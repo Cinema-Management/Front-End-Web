@@ -84,7 +84,7 @@ const Customer = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-3 text-xs uppercase font-bold text-slate-500 grid grid-cols-10 items-center gap-3">
+                <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-10 items-center">
                     <h1 className="grid col-span-2 justify-center items-center">Họ tên</h1>
                     <h1 className="grid col-span-2 justify-center items-center">Email</h1>
                     <h1 className="grid justify-center items-center">Số điện thoại</h1>
@@ -104,13 +104,13 @@ const Customer = () => {
                 <div className="overflow-auto h-90p height-sm-1">
                     {user.map((item) => (
                         <div
-                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-10 items-center gap-3"
+                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-10 items-center gap-5"
                             key={item.id}
                         >
                             <h1 className="grid col-span-2 items-center pl-3">{item.name}</h1>
                             <h1 className="grid col-span-2 items-center break-all">{item.email}</h1>
                             <h1 className="grid justify-center items-center break-all ">{item.sdt}</h1>
-                            <h1 className="grid col-span-2 items-center break-all ">{item.address}</h1>
+                            <h1 className="grid col-span-2 items-center ">{item.address}</h1>
                             <div className="  justify-center items-center grid">
                                 <button
                                     className={`border px-3 text-white text-base font-normal py-[2px] flex  rounded-[40px] uppercase ${

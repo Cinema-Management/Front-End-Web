@@ -8,7 +8,7 @@ import { LuTicket } from 'react-icons/lu';
 import { FcStatistics } from 'react-icons/fc';
 import { useNavigate } from 'react-router-dom';
 import { BsTag } from 'react-icons/bs';
-
+import { ImSpoonKnife } from 'react-icons/im';
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();
@@ -72,9 +72,21 @@ const HeaderComponent = () => {
                                     </button>
                                 </li>
                                 <li className="hover:bg-orange-200">
-                                    <button className="flex max-lg:ml-9 ml-20 items-center py-2 w-full">
+                                    <button
+                                        className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                        onClick={() => handleNavigate('/promotion')}
+                                    >
                                         <BsTag className="mr-2" color="orange" />
                                         Mã khuyến mãi
+                                    </button>
+                                </li>
+                                <li className="hover:bg-orange-200">
+                                    <button
+                                        className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                        onClick={() => handleNavigate('/food')}
+                                    >
+                                        <ImSpoonKnife className="mr-2" />
+                                        Đồ ăn
                                     </button>
                                 </li>
                                 <li className="hover:bg-orange-200">

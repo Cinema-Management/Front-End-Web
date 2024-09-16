@@ -4,6 +4,7 @@ import Film from '~/pages/FilmPage/Film';
 import Foood from '~/pages/FoodPage/Food';
 import Home from '~/pages/HomePage/Home';
 import Login from '~/pages/LoginPage/Login';
+import Promotion from '~/pages/PromotionPage/Promotion';
 import Resgiter from '~/pages/ResgiterPage/Resgiter';
 import Schedule from '~/pages/SchedulePage/Schedule';
 import Staff from '~/pages/StaffPage/Staff';
@@ -25,14 +26,6 @@ export const routes = [
         isShowSidebar: true,
     },
     {
-        path: '/login',
-        page: Login,
-    },
-    {
-        path: '/resgiter',
-        page: Resgiter,
-    },
-    {
         path: '/film',
         page: Film,
         isShowSidebar: true,
@@ -51,5 +44,18 @@ export const routes = [
         path: '/schedule',
         page: Schedule,
         isShowSidebar: true,
+    },
+    {
+        path: '/promotion',
+        page: Promotion,
+        isShowSidebar: true,
+    },
+    {
+        path: '/login',
+        page: Login,
+    },
+    {
+        path: '/resgiter',
+        page: Resgiter,
     },
 ];

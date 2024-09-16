@@ -24,6 +24,7 @@ module.exports = {
             xxl: '1400px',
             pc: '1280px',
             xl900: '900px',
+            mh850: '850px',
         },
     },
     plugins: [],

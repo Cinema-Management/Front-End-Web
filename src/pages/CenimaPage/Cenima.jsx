@@ -162,7 +162,7 @@ const Cenima = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-3 text-xs font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
+                <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
                     <h1 className="uppercase grid col-span-2 justify-center items-center">Tên rạp</h1>
                     <h1 className="uppercase grid col-span-3 justify-center items-center ">Địa chỉ</h1>
                     <h1 className="uppercase grid justify-center items-center">Số lượng phòng</h1>

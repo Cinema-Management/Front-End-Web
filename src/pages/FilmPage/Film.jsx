@@ -106,7 +106,7 @@ const Film = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-3 uppercase font-bold text-xs  text-slate-500 grid grid-cols-8 items-center gap-2">
+                <div className="border-b py-1 uppercase text-sm font-bold  text-slate-500 grid grid-cols-8 items-center gap-2">
                     <h1 className="grid justify-center items-center">Thể loại phim</h1>
                     <h1 className="grid justify-center items-center ">Hình ảnh</h1>
                     <h1 className="grid justify-center items-center">Tên phim</h1>
@@ -133,7 +133,7 @@ const Film = () => {
                             key={item.id}
                         >
                             <h1 className="grid items-center  pl-3">{item.genre}</h1>
-                            <img src={item.image} alt="phim1" className="w-32 h-28 object-contain " />
+                            <img src={item.image} alt="phim1" className="w-36 h-24 object-contain " />
                             <h1 className="grid items-center ">{item.name}</h1>
                             <h1 className="grid justify-center items-center  ">{item.duration}</h1>
                             <h1 className="grid justify-center items-center  ">{item.releaseDate}</h1>
@@ -171,7 +171,7 @@ const Film = () => {
                 maxHeightScreenHeight="95%" // Kích thước khi màn hình có chiều cao nhỏ
                 title={isUpdate ? 'Chỉnh sửa phim' : 'Thêm phim'}
             >
-                <div className=" h-90p grid grid-rows-8 gap-14 p-3">
+                <div className=" h-90p bg-red-400 grid grid-rows-8 gap-14 p-3">
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex space-x-5 ">
                             <InputComponent

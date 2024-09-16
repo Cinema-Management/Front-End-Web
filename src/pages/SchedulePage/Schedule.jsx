@@ -143,7 +143,7 @@ const Schedule = () => {
                 <div className="overflow-auto h-[92%] height-sm-1 ">
                     {rooms.map((room) => (
                         <div key={room.id}>
-                            <div className="bg-gray-200 text-base py-1 font-semibold text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
+                            <div className="bg-[#E6E6E6] text-base py-1 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
                                 <div className="flex relative justify-around items-center">
                                     <button
                                         className="absolute left-3"
@@ -165,7 +165,7 @@ const Schedule = () => {
                             </div>
                             {visibleRooms[room.id] && (
                                 <>
-                                    <div className="border-b py-2 text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
+                                    <div className="border-b  text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
                                         <h1 className="uppercase grid col-span-2 justify-center items-center">
                                             Thời gian
                                         </h1>
@@ -190,7 +190,7 @@ const Schedule = () => {
                                                     <h1 className=" grid col-span-2 justify-center items-center ">
                                                         {item.time}
                                                     </h1>
-                                                    <h1 className=" grid col-span-4 justify-center items-center break-all">
+                                                    <h1 className=" grid col-span-4 justify-center items-center">
                                                         {item.film}
                                                     </h1>
                                                     <div className="justify-center items-center grid">
