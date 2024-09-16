@@ -35,7 +35,7 @@ const Film = () => {
             id: 3,
             genre: 'Kinh dị',
             image: phim1,
-            name: 'Ma Da',
+            name: 'Làm giàu với ma',
             duration: '120 phút',
             releaseDate: '1-8-2024',
             endDate: '1-10-2024',
@@ -81,7 +81,7 @@ const Film = () => {
 
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-5 px-10 py-3 h-28">
+            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
                 <h1 className="font-bold text-[20px] ">Phim</h1>
                 <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
                     <InputComponent placeholder="Nhập tên rạp" className="rounded-[10px] " />
@@ -106,14 +106,14 @@ const Film = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-3  text-slate-500 grid grid-cols-8 items-center gap-2">
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Thể loại phim</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center ">Hình ảnh</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Tên phim</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Thời lượng</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Ngày phát hành</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Ngày kết thúc</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Trạng thái</h1>
+                <div className="border-b py-3 uppercase font-bold text-xs  text-slate-500 grid grid-cols-8 items-center gap-2">
+                    <h1 className="grid justify-center items-center">Thể loại phim</h1>
+                    <h1 className="grid justify-center items-center ">Hình ảnh</h1>
+                    <h1 className="grid justify-center items-center">Tên phim</h1>
+                    <h1 className="grid justify-center items-center">Thời lượng</h1>
+                    <h1 className="grid justify-center items-center">Ngày phát hành</h1>
+                    <h1 className="grid justify-center items-center">Ngày kết thúc</h1>
+                    <h1 className="grid justify-center items-center">Trạng thái</h1>
                     <div className="flex justify-center">
                         <button
                             className="border px-4 py-1 rounded-[40px] bg-orange-400"
@@ -128,15 +128,18 @@ const Film = () => {
 
                 <div className="overflow-auto h-90p height-sm-1">
                     {movie.map((item) => (
-                        <div className="border-b py-3 text-slate-500 grid grid-cols-8 items-center gap-2" key={item.id}>
-                            <h1 className="text-xs font-bold grid justify-center items-center  ">{item.genre}</h1>
-                            <img src={item.image} alt="phim1" className="w-32 h-44 object-contain " />
-                            <h1 className="text-xs font-bold grid justify-center items-center ">{item.name}</h1>
-                            <h1 className="text-xs font-bold grid justify-center items-center  ">{item.duration}</h1>
-                            <h1 className="text-xs font-bold grid justify-center items-center  ">{item.releaseDate}</h1>
-                            <h1 className="text-xs font-bold grid justify-center items-center  ">{item.endDate}</h1>
+                        <div
+                            className="border-b text-base font-normal py-3 text-slate-500 grid grid-cols-8 items-center gap-2"
+                            key={item.id}
+                        >
+                            <h1 className="grid items-center  pl-3">{item.genre}</h1>
+                            <img src={item.image} alt="phim1" className="w-32 h-28 object-contain " />
+                            <h1 className="grid items-center ">{item.name}</h1>
+                            <h1 className="grid justify-center items-center  ">{item.duration}</h1>
+                            <h1 className="grid justify-center items-center  ">{item.releaseDate}</h1>
+                            <h1 className="grid justify-center items-center  ">{item.endDate}</h1>
                             <div className="  justify-center items-center grid">
-                                <button className="border px-3 text-white text-xs py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
+                                <button className="border px-3 text-white text-base py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
                                     {item.status}
                                 </button>
                             </div>

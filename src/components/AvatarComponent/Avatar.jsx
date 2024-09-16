@@ -2,8 +2,8 @@ import React from 'react';
 
 const Avatar = () => {
     return (
-        <div className="py-2 flex flex-col justify-center items-end pr-8 h-[70px]">
-            <div className="flex-row flex space-x-3  mt-2 cursor-pointer">
+        <div className=" flex flex-col justify-center mt-1 items-end pr-8 h-[50px]">
+            <div className="flex-row flex space-x-3 cursor-pointer">
                 <img
                     src="https://www.w3schools.com/w3images/avatar6.png"
                     alt="Logo"

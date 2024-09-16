@@ -11,7 +11,7 @@ const rap = [
     {
         id: 1,
         name: 'Rạp Lotte',
-        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
         slRoom: '3',
         status: 'Online',
     },
@@ -137,7 +137,7 @@ const Cenima = () => {
     };
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-5 px-10 py-3 h-28">
+            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
                 <h1 className="font-bold text-[20px] ">Rạp</h1>
                 <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
                     <InputComponent placeholder="Nhập tên rạp" className="rounded-[10px] " />
@@ -162,13 +162,11 @@ const Cenima = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-3  text-slate-500 grid grid-cols-8 items-center gap-2">
-                    <h1 className="text-xs uppercase font-bold grid col-span-2 justify-center items-center">Tên rạp</h1>
-                    <h1 className="text-xs uppercase font-bold grid col-span-3 justify-center items-center ">
-                        Địa chỉ
-                    </h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Số lượng phòng</h1>
-                    <h1 className="text-xs uppercase font-bold grid justify-center items-center">Trạng thái</h1>
+                <div className="border-b py-3 text-xs font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
+                    <h1 className="uppercase grid col-span-2 justify-center items-center">Tên rạp</h1>
+                    <h1 className="uppercase grid col-span-3 justify-center items-center ">Địa chỉ</h1>
+                    <h1 className="uppercase grid justify-center items-center">Số lượng phòng</h1>
+                    <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
                     <div className="flex justify-center">
                         <button
                             className="border px-4 py-1 rounded-[40px] bg-orange-400"
@@ -181,27 +179,26 @@ const Cenima = () => {
 
                 <div className="overflow-auto h-90p height-sm-1">
                     {rap.map((item) => (
-                        <div className="border-b py-3 text-slate-500 grid grid-cols-8 items-center gap-2" key={item.id}>
-                            <h1 className="text-xs font-bold grid col-span-2 justify-center items-center  ">
-                                {item.name}
-                            </h1>
-                            <h1 className="text-xs font-bold grid col-span-3 justify-center items-center ">
-                                {item.address}
-                            </h1>
+                        <div
+                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-8 items-center gap-2"
+                            key={item.id}
+                        >
+                            <h1 className=" grid col-span-2 ml-3 items-center  ">{item.name}</h1>
+                            <h1 className=" grid col-span-3 items-center ">{item.address}</h1>
                             <div className="flex justify-center items-center">
-                                <h1 className="text-xs font-bold">{item.slRoom}</h1>
+                                <h1 className="">{item.slRoom}</h1>
                                 <button className=" ml-2" onClick={handOpenDetail}>
-                                    <FaRegEye color="black" fontSize={25} />
+                                    <FaRegEye color="black" fontSize={22} />
                                 </button>
                             </div>
                             <div className="  justify-center items-center grid">
-                                <button className="border px-3 text-white text-xs py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
+                                <button className="border px-3 text-white text-base py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
                                     {item.status}
                                 </button>
                             </div>
                             <div className="  justify-center items-center grid">
                                 <button className=" px-4 py-1" onClick={() => handleOpen(true)}>
-                                    <FaRegEdit color="black" size={25} />
+                                    <FaRegEdit color="black" size={22} />
                                 </button>
                             </div>
                         </div>
@@ -285,11 +282,11 @@ const Cenima = () => {
                 title="Chi tiết phòng"
             >
                 <div className=" h-90p grid grid-rows-12 ">
-                    <div className="border-b text-slate-500 grid grid-cols-5 items-center gap-2">
-                        <h1 className="text-xs uppercase font-bold grid  justify-center items-center">Tên phòng</h1>
-                        <h1 className="text-xs uppercase font-bold grid  justify-center items-center ">Loại phòng</h1>
-                        <h1 className="text-xs uppercase font-bold grid justify-center items-center">Số ghế</h1>
-                        <h1 className="text-xs uppercase font-bold grid justify-center items-center">Trạng thái</h1>
+                    <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-5 items-center gap-2">
+                        <h1 className=" uppercase grid justify-center items-center">Tên phòng</h1>
+                        <h1 className=" uppercase grid justify-center items-center ">Loại phòng</h1>
+                        <h1 className=" uppercase grid justify-center items-center">Số ghế</h1>
+                        <h1 className=" uppercase grid justify-center items-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button
                                 className="border px-4 py-1 rounded-[40px] bg-orange-400"
@@ -303,13 +300,13 @@ const Cenima = () => {
                     <div className="overflow-auto row-span-11  h-95p height-sm-1 ">
                         {phong.map((item) => (
                             <div
-                                className="border-b py-3 text-slate-500 grid grid-cols-5 items-center gap-2"
+                                className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-5 items-center gap-2"
                                 key={item.id}
                             >
-                                <h1 className="text-xs font-bold grid justify-center items-center">{item.name}</h1>
-                                <h1 className="text-xs font-bold grid justify-center items-center">{item.loai}</h1>
+                                <h1 className=" grid items-center pl-3">{item.name}</h1>
+                                <h1 className=" grid justify-center items-center">{item.loai}</h1>
                                 <div className="grid justify-center items-center">
-                                    <h1 className="text-xs font-bold">{item.slRoom}</h1>
+                                    <h1 className="">{item.slRoom}</h1>
                                 </div>
                                 <div className="  justify-center items-center grid">
                                     <button className="border px-3 text-white text-xs py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
@@ -350,7 +347,7 @@ const Cenima = () => {
                 maxHeightScreenWidth="75%"
                 title={isUpdateRoom ? 'Chỉnh sửa phòng' : 'Thêm phòng'}
             >
-                <div className="grid grid-rows-2 gap-2 p-3 ">
+                <div className="grid grid-rows-2 gap-2 p-3  ">
                     <div className="grid grid-cols-4 gap-4">
                         <InputComponent placeholder="Nhập tên phòng" title="Tên phòng" className="rounded-[5px] " />
                         <SelectComponent
