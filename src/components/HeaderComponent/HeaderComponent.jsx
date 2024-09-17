@@ -9,6 +9,7 @@ import { FcStatistics } from 'react-icons/fc';
 import { useNavigate } from 'react-router-dom';
 import { BsTag } from 'react-icons/bs';
 import { ImSpoonKnife } from 'react-icons/im';
+import { MdOutlineAttachMoney } from 'react-icons/md';
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();
@@ -69,6 +70,15 @@ const HeaderComponent = () => {
                                     >
                                         <LuCalendarDays className="mr-2" color="red" />
                                         Suất chiếu
+                                    </button>
+                                </li>
+                                <li className="hover:bg-orange-200">
+                                    <button
+                                        className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                        onClick={() => handleNavigate('/promotion')}
+                                    >
+                                        <MdOutlineAttachMoney className="mr-2" color="#FF6600" />
+                                        Bảng giá
                                     </button>
                                 </li>
                                 <li className="hover:bg-orange-200">

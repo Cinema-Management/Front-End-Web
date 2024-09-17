@@ -116,7 +116,11 @@ const Foood = () => {
                             </div>
                             <h1 className=" grid items-center col-span-2 justify-center">{item.date}</h1>
                             <div className="  justify-center items-center grid">
-                                <button className="border px-3 text-white text-base py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
+                                <button
+                                    className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                        item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
+                                    }`}
+                                >
                                     {item.status}
                                 </button>
                             </div>
@@ -148,23 +152,24 @@ const Foood = () => {
                 largeScreenWidth="40%"
                 maxHeightScreenHeight="60%"
                 maxHeightScreenWidth="45%"
+                heightScreen="45%"
                 title={isUpdate ? 'Chỉnh thức ăn và đồ uống' : 'Thêm thức ăn và đồ uống'}
             >
-                <div className=" h-90p grid grid-rows-4 gap-3 p-3">
-                    <div className="grid ">
+                <div className=" h-90p grid grid-rows-4">
+                    <div className="grid p-3">
                         <InputComponent placeholder="Nhập tên" title="Tên" className="rounded-[5px] " />
                     </div>
 
-                    <div className="grid">
+                    <div className="grid p-3">
                         <div className="grid ">
                             <InputComponent placeholder="Nhập số lượng" title="Số lượng" className="rounded-[5px] " />
                         </div>
                     </div>
-                    <div className="grid items-center row-span-2">
-                        <div className="grid ">
+                    <div className="grid items-center">
+                        <div className="grid p-3 ">
                             <InputComponent placeholder="Nhập tên" title="Tên" className="rounded-[5px] " type="file" />
                         </div>
-                        <div className="justify-end flex space-x-3 ">
+                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                             <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
                         </div>

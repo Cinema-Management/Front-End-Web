@@ -44,7 +44,7 @@ const Schedule = () => {
     const rooms = [
         {
             id: 1,
-            name: 'Room 1',
+            name: 'Phòng 1',
             dimension: '3D',
             seats: 70,
             schedules: [
@@ -52,19 +52,19 @@ const Schedule = () => {
                     id: 'a',
                     time: '08:00 - 09:35',
                     film: 'Đẹp trai thấy sai sai',
-                    status: 'Online',
+                    status: 'Active',
                 },
                 {
                     id: 'b',
                     time: '10:00 - 11:30',
                     film: 'Đẹp trai thấy sai sai',
-                    status: 'Offline',
+                    status: 'InActive',
                 },
             ],
         },
         {
             id: 2,
-            name: 'Room 2',
+            name: 'Phòng 2',
             dimension: '2D',
             seats: 50,
             schedules: [
@@ -72,13 +72,13 @@ const Schedule = () => {
                     id: 'c',
                     time: '09:00 - 10:30',
                     film: 'Ma da',
-                    status: 'Online',
+                    status: 'Active',
                 },
             ],
         },
         {
             id: 3,
-            name: 'Room 3',
+            name: 'Phòng 3',
             dimension: '3D',
             seats: 60,
             schedules: [
@@ -86,13 +86,13 @@ const Schedule = () => {
                     id: 'd',
                     time: '11:00 - 12:30',
                     film: 'Hai Muối',
-                    status: 'Online',
+                    status: 'Active',
                 },
                 {
                     id: 'e',
                     time: '14:00 - 15:30',
                     film: 'Làm giàu với ma',
-                    status: 'Offline',
+                    status: 'Active',
                 },
             ],
         },
@@ -144,9 +144,9 @@ const Schedule = () => {
                     {rooms.map((room) => (
                         <div key={room.id}>
                             <div className="bg-[#E6E6E6] text-base py-1 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
-                                <div className="flex relative justify-around items-center">
-                                    <button
-                                        className="absolute left-3"
+                                <div className="grid grid-cols-10 items-center gap-5">
+                                    <div
+                                        className="justify-center items-center col-span-3 grid"
                                         onClick={() => {
                                             toggleVisibility(room.id);
                                             toggleDropdown(room.id);
@@ -157,15 +157,15 @@ const Schedule = () => {
                                         ) : (
                                             <FaChevronDown color="gray" size={20} />
                                         )}
-                                    </button>
-                                    <h1 className="">{room.name}</h1>
+                                    </div>
+                                    <h1 className="uppercase grid col-span-7">{room.name}</h1>
                                 </div>
                                 <h1 className="grid justify-center items-center">{room.dimension}</h1>
                                 <h1 className="grid justify-center items-center">{room.seats}</h1>
                             </div>
                             {visibleRooms[room.id] && (
                                 <>
-                                    <div className="border-b  text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
+                                    <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
                                         <h1 className="uppercase grid col-span-2 justify-center items-center">
                                             Thời gian
                                         </h1>
@@ -190,13 +190,11 @@ const Schedule = () => {
                                                     <h1 className=" grid col-span-2 justify-center items-center ">
                                                         {item.time}
                                                     </h1>
-                                                    <h1 className=" grid col-span-4 justify-center items-center">
-                                                        {item.film}
-                                                    </h1>
+                                                    <h1 className=" grid col-span-4 pl-10 items-center">{item.film}</h1>
                                                     <div className="justify-center items-center grid">
                                                         <button
-                                                            className={`border px-3 text-white text-xs py-[2px] flex rounded-[40px] uppercase ${
-                                                                item.status === 'Online'
+                                                            className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                                                item.status === 'Active'
                                                                     ? 'bg-green-500'
                                                                     : 'bg-gray-400'
                                                             }`}
@@ -204,7 +202,7 @@ const Schedule = () => {
                                                             {item.status}
                                                         </button>
                                                     </div>
-                                                    <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                                    <div className="justify-center space-x-5 items-center col-span-2 flex ">
                                                         <button className="" onClick={() => handleOpen(true)}>
                                                             <FaRegEdit color="black" size={22} />
                                                         </button>
@@ -225,23 +223,24 @@ const Schedule = () => {
                 open={open}
                 handleClose={handleClose}
                 width="55%"
-                height="45%"
+                height="44%"
                 top="35%"
                 left="55%"
                 smallScreenWidth="75%"
-                smallScreenHeight="33%"
+                smallScreenHeight="32%"
                 mediumScreenWidth="75%"
                 mediumScreenHeight="28%"
                 largeScreenWidth="75%"
-                largeScreenHeight="25%"
-                maxHeightScreenHeight="57%"
+                largeScreenHeight="24%"
+                maxHeightScreenHeight="54%"
                 maxHeightScreenWidth="75%"
+                heightScreen="40%"
                 title={isUpdate ? 'Chỉnh sửa suất chiếu' : 'Thêm suất chiếu'}
                 room="Phòng 1"
                 date="20/10/2024"
             >
-                <div className="grid grid-rows-2 p-3 ">
-                    <div className="grid grid-cols-2 gap-16 ">
+                <div className="grid ">
+                    <div className="grid grid-cols-2 gap-16 p-2">
                         <InputComponent
                             placeholder="Nhập số cột"
                             title="Thời gian"
@@ -256,7 +255,7 @@ const Schedule = () => {
                             className="grid "
                         />
                     </div>
-                    <div className="grid items-center">
+                    <div className="grid items-center p-2 ">
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
@@ -272,9 +271,9 @@ const Schedule = () => {
                             </label>
                         </div>
                     </div>
-                    <div className="grid">
-                        <div className="grid gap-6">
-                            <div className="grid grid-cols-2 gap-16">
+                    <div className="grid ">
+                        <div className="grid gap-2">
+                            <div className="grid grid-cols-2 gap-16 p-2">
                                 <SelectComponent
                                     value={selectedValue}
                                     onChange={handleChange}
@@ -290,7 +289,7 @@ const Schedule = () => {
                                     className="grid "
                                 />
                             </div>
-                            <div className="justify-end flex space-x-3 ">
+                            <div className="justify-end flex space-x-3 border-t pt-4 pr-4">
                                 <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                                 <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
                             </div>

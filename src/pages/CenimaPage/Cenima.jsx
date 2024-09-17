@@ -13,14 +13,14 @@ const rap = [
         name: 'Rạp Lotte',
         address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
         slRoom: '3',
-        status: 'Online',
+        status: 'Active',
     },
     {
         id: 2,
         name: 'Rạp Galaxy',
         address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
         slRoom: '2',
-        status: 'Online',
+        status: 'InActive',
     },
 ];
 const phong = [
@@ -29,63 +29,21 @@ const phong = [
         name: 'Phòng 1',
         loai: '2D',
         slRoom: '60',
-        status: 'Online',
+        status: 'Active',
     },
     {
         id: 2,
         name: 'Phòng 2',
         loai: '3D',
         slRoom: '70',
-        status: 'Online',
+        status: 'Active',
     },
     {
         id: 3,
         name: 'Phòng 3',
         loai: '3D',
         slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 2,
-        name: 'Phòng 2',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 3,
-        name: 'Phòng 3',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 2,
-        name: 'Phòng 2',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 3,
-        name: 'Phòng 3',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 2,
-        name: 'Phòng 2',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
-    },
-    {
-        id: 3,
-        name: 'Phòng 3',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Online',
+        status: 'InActive',
     },
 ];
 const optionsQG = [
@@ -192,7 +150,11 @@ const Cenima = () => {
                                 </button>
                             </div>
                             <div className="  justify-center items-center grid">
-                                <button className="border px-3 text-white text-base py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
+                                <button
+                                    className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                        item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
+                                    }`}
+                                >
                                     {item.status}
                                 </button>
                             </div>
@@ -219,14 +181,15 @@ const Cenima = () => {
                 largeScreenWidth="40%"
                 maxHeightScreenHeight="87%"
                 maxHeightScreenWidth="45%"
+                heightScreen="65%"
                 title={isUpdate ? 'Chỉnh sửa rạp' : 'Thêm rạp'}
             >
-                <div className=" h-90p grid grid-rows-6 gap-16 p-3">
-                    <div className="grid ">
+                <div className=" h-90p grid grid-rows-6 gap-16">
+                    <div className="grid p-3 ">
                         <InputComponent placeholder="Nhập tên rạp" title="Tên rạp" className="rounded-[5px] " />
                     </div>
 
-                    <div className="grid">
+                    <div className="grid p-3">
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
@@ -234,7 +197,7 @@ const Cenima = () => {
                             options={optionsQG}
                         />
                     </div>
-                    <div className="grid">
+                    <div className="grid p-3">
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
@@ -242,7 +205,7 @@ const Cenima = () => {
                             options={optionsQG}
                         />
                     </div>
-                    <div className="grid">
+                    <div className="grid p-3">
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
@@ -250,17 +213,16 @@ const Cenima = () => {
                             options={optionsQG}
                         />
                     </div>
-                    <div className="w-full  ">
+                    <div className="w-full grid row-span-3 ">
                         <InputComponent
                             placeholder="Nhập ..."
                             title="Địa chỉ chi tiết"
-                            className="rounded-[5px] w-full"
+                            className="rounded-[5px] w-full grid row-span-4"
+                            className1="p-3"
                         />
-                    </div>
-                    <div className="grid items-center">
-                        <div className="justify-end flex space-x-3 ">
+                        <div className="justify-end flex space-x-3 pt-4 border-t pr-4">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                            <ButtonComponent text="Xác nhận" className=" bg-blue-500" />
                         </div>
                     </div>
                 </div>
@@ -309,7 +271,11 @@ const Cenima = () => {
                                     <h1 className="">{item.slRoom}</h1>
                                 </div>
                                 <div className="  justify-center items-center grid">
-                                    <button className="border px-3 text-white text-xs py-[2px] flex  rounded-[40px] uppercase bg-[#22E242] ">
+                                    <button
+                                        className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                            item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
+                                        }`}
+                                    >
                                         {item.status}
                                     </button>
                                 </div>
@@ -343,12 +309,13 @@ const Cenima = () => {
                 mediumScreenHeight="18%"
                 largeScreenHeight="15%"
                 largeScreenWidth="75%"
-                maxHeightScreenHeight="33%"
+                maxHeightScreenHeight="35%"
                 maxHeightScreenWidth="75%"
+                heightScreen="26%"
                 title={isUpdateRoom ? 'Chỉnh sửa phòng' : 'Thêm phòng'}
             >
-                <div className="grid grid-rows-2 gap-2 p-3  ">
-                    <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-rows-1 gap-2">
+                    <div className="grid grid-cols-4 gap-4 p-3">
                         <InputComponent placeholder="Nhập tên phòng" title="Tên phòng" className="rounded-[5px] " />
                         <SelectComponent
                             value={selectedValue}
@@ -361,9 +328,9 @@ const Cenima = () => {
                         <InputComponent placeholder="Nhập số hàng" title="Số hàng" className="rounded-[5px] " />
                     </div>
 
-                    <div className="grid items-center">
-                        <div className="justify-end flex space-x-3 ">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
+                    <div className="grid items-center  border-t">
+                        <div className="justify-end flex space-x-3 pr-4  pt-4">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseRoom} />
                             <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
                         </div>
                     </div>

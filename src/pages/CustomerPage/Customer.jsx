@@ -113,7 +113,7 @@ const Customer = () => {
                             <h1 className="grid col-span-2 items-center ">{item.address}</h1>
                             <div className="  justify-center items-center grid">
                                 <button
-                                    className={`border px-3 text-white text-base font-normal py-[2px] flex  rounded-[40px] uppercase ${
+                                    className={`border px-2 text-white text-base py-[1  px] flex  rounded-[40px] ${
                                         item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
                                     }`}
                                 >
@@ -148,16 +148,17 @@ const Customer = () => {
                 largeScreenWidth="60%"
                 maxHeightScreenHeight={isDetail ? '83%' : isUpdate ? '83%' : '76%'}
                 maxHeightScreenWidth="60%"
+                heightScreen={isDetail ? '63%' : isUpdate ? '63%' : '55%'}
                 title={isDetail ? 'Chi tiết khách hàng' : isUpdate ? 'Cập nhật khách hàng' : 'Thêm khách hàng'}
             >
-                <div className={`h-90p grid ${isUpdate ? 'grid-rows-6' : 'grid-rows-5'} gap-12 p-3`}>
-                    <div className="grid ">
+                <div className={`h-90p grid ${isUpdate ? 'grid-rows-6' : 'grid-rows-5'} gap-2`}>
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <InputComponent placeholder="Nhập họ tên" title="Họ tên" className="rounded-[5px] " />
                             <InputComponent placeholder="Nhập email" title="Email" className="rounded-[5px] " />
                         </div>
                     </div>
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <InputComponent
                                 placeholder="Nhập số điện thoại"
@@ -172,7 +173,7 @@ const Customer = () => {
                             />
                         </div>
                     </div>
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <SelectComponent
                                 value={selectedValue}
@@ -189,7 +190,7 @@ const Customer = () => {
                         </div>
                     </div>
 
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <SelectComponent
                                 value={selectedValue}
@@ -206,7 +207,7 @@ const Customer = () => {
                     </div>
 
                     {(isUpdate || isDetail) && (
-                        <div className="grid ">
+                        <div className="grid p-3">
                             <div className="grid grid-cols-2 gap-5">
                                 <InputComponent
                                     placeholder="30-08-2024 03:06:17"
@@ -223,8 +224,8 @@ const Customer = () => {
                             </div>
                         </div>
                     )}
-                    <div className="grid items-center ">
-                        <div className="justify-end flex space-x-3 mt-1">
+                    <div className="grid items-center pt-2">
+                        <div className="justify-end flex space-x-3 mt-1  border-t pt-3 pr-4">
                             {isDetail ? (
                                 <ButtonComponent text="Đóng" className="bg-blue-500 " onClick={handleClose} />
                             ) : (

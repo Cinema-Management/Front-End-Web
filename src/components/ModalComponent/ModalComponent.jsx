@@ -17,6 +17,8 @@ const ModalComponent = ({
     largeScreenWidth,
     maxHeightScreenHeight,
     maxHeightScreenWidth,
+    heightScreen,
+    widthScreen,
     title,
     room,
     date,
@@ -31,7 +33,6 @@ const ModalComponent = ({
         bgcolor: 'background.paper',
         borderRadius: 2,
         boxShadow: 24,
-        // p: 3,
         '@media (max-width: 800px)': {
             width: smallScreenWidth,
             height: smallScreenHeight,
@@ -47,6 +48,10 @@ const ModalComponent = ({
         '@media (max-height: 700px)': {
             height: maxHeightScreenHeight,
             width: maxHeightScreenWidth,
+        },
+        '@media (min-width: 1280px) and (max-width: 1350px)': {
+            height: heightScreen,
+            width: widthScreen,
         },
     };
 

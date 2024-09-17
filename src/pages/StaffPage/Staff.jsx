@@ -114,7 +114,7 @@ const Staff = () => {
                             <h1 className="grid justify-center items-center ">{item.role}</h1>
                             <div className="  justify-center items-center grid">
                                 <button
-                                    className={`border px-3 text-white text-base py-[2px] flex  rounded-[40px] uppercase ${
+                                    className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
                                         item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
                                     }`}
                                 >
@@ -143,25 +143,26 @@ const Staff = () => {
                 open={open}
                 handleClose={handleClose}
                 width="40%"
-                height={isDetail ? '75%' : isUpdate ? '75%' : '68%'}
+                height={isDetail ? '78%' : isUpdate ? '78%' : '68%'}
                 smallScreenWidth="65%"
-                smallScreenHeight={isDetail ? '55%' : isUpdate ? '55%' : '48%'}
+                smallScreenHeight={isDetail ? '55%' : isUpdate ? '55%' : '50%'}
                 mediumScreenWidth="60%"
                 mediumScreenHeight={isDetail ? '50%' : isUpdate ? '50%' : '43%'}
-                largeScreenHeight={isDetail ? '42%' : isUpdate ? '42%' : '55%'}
+                largeScreenHeight={isDetail ? '42%' : isUpdate ? '42%' : '37%'}
                 largeScreenWidth="60%"
-                maxHeightScreenHeight={isDetail ? '90%' : isUpdate ? '90%' : '83%'}
+                maxHeightScreenHeight={isDetail ? '90%' : isUpdate ? '90%' : '80%'}
                 maxHeightScreenWidth="60%"
+                heightScreen={isDetail ? '70%' : isUpdate ? '70%' : '62%'}
                 title={isDetail ? 'Chi tiết nhân viên' : isUpdate ? 'Cập nhật nhân viên' : 'Thêm nhân viên'}
             >
-                <div className={`h-90p grid ${isUpdate ? 'grid-rows-7' : 'grid-rows-6'} gap-12 p-3`}>
-                    <div className="grid ">
+                <div className={`h-90p grid ${isUpdate ? 'grid-rows-7' : 'grid-rows-6'} gap-2 `}>
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <InputComponent placeholder="Nhập họ tên" title="Họ tên" className="rounded-[5px] " />
                             <InputComponent placeholder="Nhập email" title="Email" className="rounded-[5px] " />
                         </div>
                     </div>
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <InputComponent
                                 placeholder="Nhập số điện thoại"
@@ -177,7 +178,7 @@ const Staff = () => {
                             />
                         </div>
                     </div>
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <SelectComponent
                                 value={selectedValue}
@@ -194,7 +195,7 @@ const Staff = () => {
                         </div>
                     </div>
 
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <SelectComponent
                                 value={selectedValue}
@@ -210,11 +211,11 @@ const Staff = () => {
                             />
                         </div>
                     </div>
-                    <div className="grid ">
+                    <div className="grid p-3">
                         <InputComponent placeholder="Nhập ..." title="Địa chỉ chi tiết" className="rounded-[5px] " />
                     </div>
                     {(isUpdate || isDetail) && (
-                        <div className="grid ">
+                        <div className="grid p-3 ">
                             <div className="grid grid-cols-2 gap-5">
                                 <InputComponent
                                     placeholder="30-08-2024 03:06:17"
@@ -231,8 +232,8 @@ const Staff = () => {
                             </div>
                         </div>
                     )}
-                    <div className="grid items-center ">
-                        <div className="justify-end flex space-x-3 mt-1">
+                    <div className="grid items-center pt-2">
+                        <div className="justify-end flex space-x-3 mt-1  border-t pt-3 pr-4">
                             {isDetail ? (
                                 <ButtonComponent text="Đóng" className="bg-blue-500 " onClick={handleClose} />
                             ) : (
