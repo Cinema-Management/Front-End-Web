@@ -121,13 +121,19 @@ const HeaderComponent = () => {
                         )}
                     </li>
                     <li className="hover:bg-orange-200 w-full">
-                        <button className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full ">
+                        <button
+                            className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full "
+                            onClick={() => handleNavigate('/order')}
+                        >
                             <LuTicket className="mr-2" color="orange" />
                             Đặt vé
                         </button>
                     </li>
                     <li className="hover:bg-orange-200 w-full">
-                        <button className="flex max-xl:ml-16 max-lg:ml-3 ml-12 items-center py-2 w-full">
+                        <button
+                            className="flex max-xl:ml-16 max-lg:ml-3 ml-12 items-center py-2 w-full"
+                            onClick={() => handleNavigate('/seat')}
+                        >
                             <FcStatistics className="mr-2" />
                             Thống kê
                         </button>

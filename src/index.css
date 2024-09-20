@@ -70,22 +70,96 @@ code {
     .height-sm-1 {
         height: 86%;
     }
+    .custom-height-sm1 {
+        height: 480px;
+    }
+    .custom-height-sm2 {
+        height: 300px;
+    }
+    .custom-height-sm3 {
+        height: 300px;
+    }
+    .custom-height-sm4 {
+        grid-template-columns: repeat(5, 1fr) !important;
+        height: 400px;
+    }
+    .custom-height-sm5 {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+    }
+    .custom-height-sm6 {
+        height: 15px !important;
+    }
+    .custom-height-sm7 {
+        height: 25px !important;
+    }
+    .custom-height-sm8 {
+        width: 260px !important;
+    }
+    .custom-height-sm9 {
+        width: 420px;
+        height: 500px;
+    }
+    .custom-height-sm10 {
+        height: 130px;
+    }
+    .custom-height-sm11 {
+        height: 20px;
+    }
+    .custom-height-sm12 {
+        height: 300px;
+    }
+    .custom-height-sm13 {
+        grid-template-rows: repeat(1, 1fr) !important;
+    }
+    .custom-height-sm14 {
+        gap: 4px !important;
+    }
 }
 
+@media (min-height: 780px) and (max-height: 850px) {
+    .custom-height-xxl {
+        height: 680px;
+    }
+    .custom-height-xxl1 {
+        height: 540px;
+    }
+    .custom-height-xxl2 {
+        height: 740px;
+    }
+}
 @media (min-height: 901px) and (max-height: 1024px) {
     .custom-height-md {
         height: 780px;
+    }
+    .custom-height-md1 {
+        height: 960px;
+    }
+    .custom-height-md2 {
+        height: 400px;
+    }
+    .custom-height-md3 {
+        height: 17px;
+    }
+    .custom-height-md4 {
+        height: 30px;
     }
 }
 @media (min-height: 1025px) and (max-height: 1299px) {
     .custom-height-xl {
         height: 940px;
     }
+    .custom-height-xl1 {
+        height: 1120px;
+    }
 }
 
 @media (min-height: 1300px) {
     .custom-height-lg {
         height: 1130px;
+    }
+    .custom-height-lg1 {
+        height: 1310px;
     }
 }
 .select-rap {

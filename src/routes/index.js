@@ -4,10 +4,12 @@ import Film from '~/pages/FilmPage/Film';
 import Foood from '~/pages/FoodPage/Food';
 import Home from '~/pages/HomePage/Home';
 import Login from '~/pages/LoginPage/Login';
+import Order from '~/pages/OrderPage/Order';
 import Price from '~/pages/PricePage/Price';
 import Promotion from '~/pages/PromotionPage/Promotion';
 import Resgiter from '~/pages/ResgiterPage/Resgiter';
 import Schedule from '~/pages/SchedulePage/Schedule';
+import Seat from '~/pages/SeatPage/Seat';
 import Staff from '~/pages/StaffPage/Staff';
 
 export const routes = [
@@ -54,6 +56,16 @@ export const routes = [
     {
         path: '/price',
         page: Price,
+        isShowSidebar: true,
+    },
+    {
+        path: '/seat',
+        page: Seat,
+        isShowSidebar: true,
+    },
+    {
+        path: '/order',
+        page: Order,
         isShowSidebar: true,
     },
     {
