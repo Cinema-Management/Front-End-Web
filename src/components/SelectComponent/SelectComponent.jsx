@@ -20,9 +20,24 @@ const SelectComponent = ({ value, onChange, className = '', className1 = '', tit
                 value={value || defaultValue}
                 onChange={onChange}
                 displayEmpty
-                className={`py-[6px] truncate px-4 rounded-[5px] border border-[gray]  h-10 w-full ${className}`}
+                className={`py-[6px] truncate  rounded-[5px] h-10 w-full ${className}`}
                 MenuProps={menuProps}
-                sx={selectStyles}
+                sx={{
+                    height: '35px',
+                    borderRadius: '5px',
+                    '&.MuiOutlinedInput-root': {
+                        '& fieldset': {
+                            borderColor: 'black',
+                        },
+                        '&:hover fieldset': {
+                            borderColor: 'black',
+                        },
+                        '&.Mui-focused fieldset': {
+                            borderColor: 'black',
+                        },
+                    },
+                    ...selectStyles,
+                }}
             >
                 {options.map((option) => (
                     <MenuItem key={option.value} value={option.value}>

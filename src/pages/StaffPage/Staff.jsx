@@ -7,6 +7,7 @@ import InputComponent from '~/components/InputComponent/InputComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 
 const Staff = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -59,35 +60,63 @@ const Staff = () => {
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
     };
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const rap = [
+        {
+            id: 1,
+            name: 'Rạp Lotte',
+            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+            slRoom: '3',
+            status: 'Active',
+        },
+        {
+            id: 2,
+            name: 'Rạp Galaxy',
+            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+            slRoom: '2',
+            status: 'InActive',
+        },
+    ];
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Quản lý nhân viên</h1>
-                <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
-                    <InputComponent placeholder="Nhập tên nhân viên" className="rounded-[10px] " />
-
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Nhân viên</h1>
+                <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={rap.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên nhân viên"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <InputComponent placeholder="Nhập ..." className="rounded-[10px]" title="Số điện thoại" />
                     <SelectComponent
                         value={selectedValue}
                         onChange={handleChange}
                         options={optionCV}
-                        className="border border-[gray]"
+                        title="Vai trò"
                         selectStyles={{ borderRadius: '10px' }}
                     />
                     <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-3 left-2" />
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
                             options={optionsSort}
-                            className="border border-[gray]  w-full"
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-7 items-center ">
-                    <h1 className="grid col-span-1 justify-center items-center">Họ tên</h1>
+                    <h1 className="grid justify-center items-center">Họ tên</h1>
                     <h1 className="grid justify-center items-center">Số điện thoại</h1>
                     <h1 className="grid col-span-2 justify-center items-center">Địa chỉ</h1>
                     <h1 className="grid justify-center items-center">Vai trò</h1>
@@ -108,7 +137,7 @@ const Staff = () => {
                             className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-7 items-center gap-5 "
                             key={item.id}
                         >
-                            <h1 className="grid col-span-1 items-center pl-3 ">{item.name}</h1>
+                            <h1 className="grid items-center pl-3 ">{item.name}</h1>
                             <h1 className="grid justify-center items-center break-all ">{item.sdt}</h1>
                             <h1 className="grid col-span-2 items-center ">{item.address}</h1>
                             <h1 className="grid justify-center items-center ">{item.role}</h1>
@@ -127,10 +156,10 @@ const Staff = () => {
                                         className="col-span-2 max-mh850:col-span-1 max-mh850:mr-2"
                                         onClick={() => handleOpen(true, false)}
                                     >
-                                        <FaRegEdit color="black" size={22} />
+                                        <FaRegEdit color="black" size={20} />
                                     </button>
                                     <button onClick={() => handleOpen(false, true)}>
-                                        <FaRegEye color="black" fontSize={22} />
+                                        <FaRegEye color="black" fontSize={20} />
                                     </button>
                                 </div>
                             </div>
@@ -180,34 +209,50 @@ const Staff = () => {
                     </div>
                     <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
-                                title="Tỉnh/Thành phố"
-                                options={optionsQG}
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                options={rap.map((option) => option.name)}
+                                title="Tỉnh/thành phố"
+                                freeSolo={false}
+                                disableClearable={true}
+                                placeholder="Nhập ..."
+                                heightSelect={150}
                             />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                options={rap.map((option) => option.name)}
                                 title="Quận/huyện"
-                                options={optionsQG}
+                                freeSolo={false}
+                                disableClearable={true}
+                                placeholder="Nhập ..."
+                                heightSelect={150}
                             />
                         </div>
                     </div>
 
                     <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                options={rap.map((option) => option.name)}
                                 title="Phường/xã"
-                                options={optionsQG}
+                                freeSolo={false}
+                                disableClearable={true}
+                                placeholder="Nhập ..."
+                                heightSelect={150}
                             />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                options={rap.map((option) => option.name)}
                                 title="Rạp"
-                                options={optionsQG}
+                                freeSolo={false}
+                                disableClearable={true}
+                                placeholder="Nhập ..."
+                                heightSelect={150}
                             />
                         </div>
                     </div>

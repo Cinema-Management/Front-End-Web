@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
@@ -18,6 +19,62 @@ const rap = [
     {
         id: 2,
         name: 'Rạp Galaxy',
+        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+        slRoom: '2',
+        status: 'InActive',
+    },
+    {
+        id: 1,
+        name: 'Rotte',
+        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+        slRoom: '3',
+        status: 'Active',
+    },
+    {
+        id: 2,
+        name: 'Galaxy',
+        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+        slRoom: '2',
+        status: 'InActive',
+    },
+    {
+        id: 1,
+        name: 'Rotte',
+        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+        slRoom: '3',
+        status: 'Active',
+    },
+    {
+        id: 2,
+        name: 'Galaxy',
+        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+        slRoom: '2',
+        status: 'InActive',
+    },
+    {
+        id: 1,
+        name: 'Rotte',
+        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+        slRoom: '3',
+        status: 'Active',
+    },
+    {
+        id: 2,
+        name: 'Galaxy',
+        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+        slRoom: '2',
+        status: 'InActive',
+    },
+    {
+        id: 1,
+        name: 'Rotte',
+        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+        slRoom: '3',
+        status: 'Active',
+    },
+    {
+        id: 2,
+        name: 'Galaxy',
         address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
         slRoom: '2',
         status: 'InActive',
@@ -52,13 +109,13 @@ const optionsQG = [
     { value: 'TL', label: 'Thái Lan' },
 ];
 const optionsLoc = [
-    { value: '0', label: 'Lọc thể loại' },
+    { value: '0', label: 'Chọn' },
     { value: 'KD', label: 'Kinh dị' },
     { value: 'HH', label: 'Hài hước' },
     { value: 'TC', label: 'Tình cảm' },
 ];
 const optionsSort = [
-    { value: '0', label: 'Xếp theo tên' },
+    { value: '0', label: 'Chọn' },
     { value: 'A', label: 'A - Z' },
     { value: 'B', label: 'Z - A' },
 ];
@@ -68,7 +125,7 @@ const Cenima = () => {
     const [open, setOpen] = useState(false);
     const [openDetail, setOpenDetail] = useState(false);
     const [onpenRoom, setOpenRoom] = useState(false);
-
+    const [selectedMovie, setSelectedMovie] = useState('');
     const handleOpenRoom = (isUpdateRoom) => {
         setOpenRoom(true);
         setIsUpdateRoom(isUpdateRoom);
@@ -95,31 +152,51 @@ const Cenima = () => {
     };
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Rạp</h1>
-                <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
-                    <InputComponent placeholder="Nhập tên rạp" className="rounded-[10px] " />
-
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Rạp</h1>
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={rap.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên rạp"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Tên rạp"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
                     <SelectComponent
                         value={selectedValue}
                         onChange={handleChange}
                         options={optionsLoc}
-                        className="border border-[gray]"
+                        title="Trạng thái"
                         selectStyles={{ borderRadius: '10px' }}
                     />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Số phòng"
+                        freeSolo={true}
+                        disableClearable={true}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
                     <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-3 left-2" />
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
                             options={optionsSort}
-                            className="border border-[gray]  w-full"
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
                     <h1 className="uppercase grid col-span-2 justify-center items-center">Tên rạp</h1>
                     <h1 className="uppercase grid col-span-3 justify-center items-center ">Địa chỉ</h1>
@@ -146,7 +223,7 @@ const Cenima = () => {
                             <div className="flex justify-center items-center">
                                 <h1 className="">{item.slRoom}</h1>
                                 <button className=" ml-2" onClick={handOpenDetail}>
-                                    <FaRegEye color="black" fontSize={22} />
+                                    <FaRegEye color="black" fontSize={20} />
                                 </button>
                             </div>
                             <div className="  justify-center items-center grid">
@@ -160,7 +237,7 @@ const Cenima = () => {
                             </div>
                             <div className="  justify-center items-center grid">
                                 <button className=" px-4 py-1" onClick={() => handleOpen(true)}>
-                                    <FaRegEdit color="black" size={22} />
+                                    <FaRegEdit color="black" size={20} />
                                 </button>
                             </div>
                         </div>
@@ -190,27 +267,39 @@ const Cenima = () => {
                     </div>
 
                     <div className="grid p-3">
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            title="Tỉnh/Thành phố"
-                            options={optionsQG}
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            options={rap.map((option) => option.name)}
+                            title="Tỉnh/thành phố"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={150}
                         />
                     </div>
                     <div className="grid p-3">
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            options={rap.map((option) => option.name)}
                             title="Quận/huyện"
-                            options={optionsQG}
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={150}
                         />
                     </div>
                     <div className="grid p-3">
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            options={rap.map((option) => option.name)}
                             title="Phường/xã"
-                            options={optionsQG}
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={150}
                         />
                     </div>
                     <div className="w-full grid row-span-3 ">

@@ -4,6 +4,7 @@ import Film from '~/pages/FilmPage/Film';
 import Foood from '~/pages/FoodPage/Food';
 import Home from '~/pages/HomePage/Home';
 import Login from '~/pages/LoginPage/Login';
+import Price from '~/pages/PricePage/Price';
 import Promotion from '~/pages/PromotionPage/Promotion';
 import Resgiter from '~/pages/ResgiterPage/Resgiter';
 import Schedule from '~/pages/SchedulePage/Schedule';
@@ -48,6 +49,11 @@ export const routes = [
     {
         path: '/promotion',
         page: Promotion,
+        isShowSidebar: true,
+    },
+    {
+        path: '/price',
+        page: Price,
         isShowSidebar: true,
     },
     {

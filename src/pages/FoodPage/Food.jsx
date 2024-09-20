@@ -9,6 +9,7 @@ import imgcoca from '~/assets/coca.png';
 import imgbap from '~/assets/bap.png';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 
 const Foood = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -60,33 +61,61 @@ const Foood = () => {
         { value: 'A', label: 'A - Z' },
         { value: 'B', label: 'Z - A' },
     ];
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const nuoc = [
+        {
+            id: 1,
+            name: 'Rạp Lotte',
+            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+            slRoom: '3',
+            status: 'Active',
+        },
+        {
+            id: 2,
+            name: 'Rạp Galaxy',
+            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+            slRoom: '2',
+            status: 'InActive',
+        },
+    ];
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Thức ăn & Đồ uống</h1>
-                <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
-                    <InputComponent placeholder="Nhập tên" className="rounded-[10px] " />
-
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Đồ ăn & nước</h1>
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={nuoc.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên rạp"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Tên rạp"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
                     <SelectComponent
                         value={selectedValue}
                         onChange={handleChange}
                         options={optionsLoc}
-                        className="border border-[gray]"
+                        title="Trạng thái"
                         selectStyles={{ borderRadius: '10px' }}
                     />
+                    <InputComponent className="rounded-[10px]" title="Ngày tạo" type="date" />
                     <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-3 left-2" />
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
                             options={optionsSort}
-                            className="border border-[gray]  w-full"
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 uppercase text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-10">
                     <h1 className="grid justify-center items-center">Tên </h1>
                     <h1 className="grid justify-center items-center ">Hình ảnh</h1>
@@ -127,10 +156,10 @@ const Foood = () => {
                             <div className="  justify-center col-span-2 items-center grid ">
                                 <div className="grid grid-cols-3">
                                     <button className="col-span-2" onClick={() => handleOpen(true, false)}>
-                                        <FaRegEdit color="black" size={22} />
+                                        <FaRegEdit color="black" size={20} />
                                     </button>
                                     <button onClick={() => handleOpen(false, true)}>
-                                        <FaRegEye color="black" fontSize={22} />
+                                        <FaRegEye color="black" fontSize={20} />
                                     </button>
                                 </div>
                             </div>

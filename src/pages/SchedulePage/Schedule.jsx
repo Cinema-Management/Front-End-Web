@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
+import { MdSwapVert } from 'react-icons/md';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
@@ -97,45 +99,66 @@ const Schedule = () => {
             ],
         },
     ];
-
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const nuoc = [
+        {
+            id: 1,
+            name: 'Rạp Lotte',
+            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+            slRoom: '3',
+            status: 'Active',
+        },
+        {
+            id: 2,
+            name: 'Rạp Galaxy',
+            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+            slRoom: '2',
+            status: 'InActive',
+        },
+    ];
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Suất Chiếu</h1>
-                <div className=" grid grid-cols-7  gap-3  max-lg:gap-[26px] max-xl900:gap-[6px] xl:gap-[90px] items-center w-full h-16 ">
-                    <div className="rounded-2xl border-[#eebebe] col-span-3   h-12 w-full flex ">
-                        <h2 className=" bg-gray-400 text-[#454545] pc:w-[25%] md:w-[45%] w-2/6 flex rounded-s-2xl  items-center z-20 h-full pl-2">
-                            Ngày chiếu
-                        </h2>
-                        <InputComponent
-                            placeholder="Nhập tên nhân viên"
-                            className=" h-full focus:outline-none  rounded-none mt-[-4px] rounded-se-2xl rounded-ee-2xl"
-                            type="date"
-                            className1=" w-4/6  pc:w-[75%] md:w-[55%] rounded-se-2xl rounded-ee-2xl"
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Suất chiếu</h1>
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={nuoc.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên rạp"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Tên rạp"
+                        heightSelect={200}
+                        borderRadius={'10px'}
+                    />
+                    <AutoInputComponent
+                        options={nuoc.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên phim"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Tên phim"
+                        heightSelect={200}
+                        borderRadius={'10px'}
+                    />
+                    <InputComponent className="rounded-[10px] " title="Ngày chiếu" type="date" />
+                    <div className="relative w-full ">
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
+                        <SelectComponent
+                            value={selectedValue}
+                            onChange={handleChange}
+                            options={optionCV}
+                            title="Sắp xếp"
+                            className="pl-3"
+                            selectStyles={{ borderRadius: '10px' }}
                         />
-                    </div>
-                    <div className="grid  col-span-4 grid-cols-5 max-lg:grid-cols-4 gap-5">
-                        <div className="col-span-3 rounded-2xl   border-[gray] h-12 flex ">
-                            <h2 className=" bg-gray-400 text-[#454545] pc:w-[15%] max-lg:w-[23%] w-[28%] flex rounded-s-2xl  items-center z-20 h-full pl-2">
-                                Rạp
-                            </h2>
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
-                                options={optionCV}
-                                className="h-full select-rap  rounded-none mt-[-5px] "
-                                className1=" w-[72%]  pc:w-[85%] max-lg:w-[83%] rounded-se-2xl rounded-ee-2xl "
-                                selectStyles={{ borderRadius: '0px 20px 20px 0px' }}
-                            />
-                        </div>
-                        <div className="grid items-center">
-                            <button className="bg-[#007AFF] text-white rounded-[10px] h-[80%]">Tìm</button>
-                        </div>
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="bg-[#eeaf56] text-base text-white py-1 font-semibold grid grid-cols-3 items-center gap-3 rounded-lg">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+                <div className="bg-[#eeaf56] text-[13px] text-white py-2 font-semibold grid grid-cols-3 items-center gap-3 rounded-lg">
                     <h1 className="uppercase grid justify-center items-center">Phòng</h1>
                     <h1 className="uppercase grid  justify-center items-center">Loại phòng</h1>
                     <h1 className="uppercase grid justify-center items-center">Số lượng ghế</h1>
@@ -143,7 +166,7 @@ const Schedule = () => {
                 <div className="overflow-auto h-[92%] height-sm-1 ">
                     {rooms.map((room) => (
                         <div key={room.id}>
-                            <div className="bg-[#E6E6E6] text-base py-1 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
+                            <div className="bg-[#E6E6E6] text-[14px] py-2 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
                                 <div className="grid grid-cols-10 items-center gap-5">
                                     <div
                                         className="justify-center items-center col-span-3 grid"
@@ -165,7 +188,7 @@ const Schedule = () => {
                             </div>
                             {visibleRooms[room.id] && (
                                 <>
-                                    <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
+                                    <div className="border-b py-[2px] text-sm font-bold text-slate-500 grid grid-cols-9 items-center gap-3">
                                         <h1 className="uppercase grid col-span-2 justify-center items-center">
                                             Thời gian
                                         </h1>
@@ -184,7 +207,7 @@ const Schedule = () => {
                                         {room.schedules &&
                                             room.schedules.map((item) => (
                                                 <div
-                                                    className="border-b py-2 text-base font-normal text-slate-500 grid grid-cols-9 items-center gap-3"
+                                                    className="border-b py-[6px] text-base font-normal text-slate-500 grid grid-cols-9 items-center gap-3"
                                                     key={item.id}
                                                 >
                                                     <h1 className=" grid col-span-2 justify-center items-center ">
@@ -204,10 +227,10 @@ const Schedule = () => {
                                                     </div>
                                                     <div className="justify-center space-x-5 items-center col-span-2 flex ">
                                                         <button className="" onClick={() => handleOpen(true)}>
-                                                            <FaRegEdit color="black" size={22} />
+                                                            <FaRegEdit color="black" size={20} />
                                                         </button>
                                                         <button className="">
-                                                            <FaRegEye color="black" fontSize={22} />
+                                                            <FaRegEye color="black" fontSize={20} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -247,12 +270,15 @@ const Schedule = () => {
                             className="rounded-[5px] "
                             type="time"
                         />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
+                        <AutoInputComponent
+                            options={nuoc.map((option) => option.name)}
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Tên phim"
-                            options={optionCV}
-                            className="grid "
+                            freeSolo={false}
+                            disableClearable={false}
+                            placeholder="Tên phim"
+                            heightSelect={200}
                         />
                     </div>
                     <div className="grid items-center p-2 ">

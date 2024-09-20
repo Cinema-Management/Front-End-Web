@@ -75,7 +75,7 @@ const HeaderComponent = () => {
                                 <li className="hover:bg-orange-200">
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
-                                        onClick={() => handleNavigate('/promotion')}
+                                        onClick={() => handleNavigate('/price')}
                                     >
                                         <MdOutlineAttachMoney className="mr-2" color="#FF6600" />
                                         Bảng giá
@@ -96,7 +96,7 @@ const HeaderComponent = () => {
                                         onClick={() => handleNavigate('/food')}
                                     >
                                         <ImSpoonKnife className="mr-2" />
-                                        Đồ ăn
+                                        Đồ ăn & nước
                                     </button>
                                 </li>
                                 <li className="hover:bg-orange-200">

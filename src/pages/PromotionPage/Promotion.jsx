@@ -2,18 +2,16 @@ import React, { useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdSwapVert } from 'react-icons/md';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
 
 const Promotion = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
     const [type, setType] = useState('');
     const [openLoaiKM, setOpenLoaiKM] = useState(false);
-    const [selectedValue, setSelectedValue] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [openDetail, setOpenDetail] = useState(false);
     const [openKM, setOpenKM] = useState(false);
@@ -43,10 +41,6 @@ const Promotion = () => {
         setOpenDetail(true);
     };
     const handleCloseDetail = () => setOpenDetail(false);
-
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
-    };
 
     const [visibleRooms, setVisibleRooms] = useState({});
 
@@ -197,46 +191,56 @@ const Promotion = () => {
         },
     ];
 
-    const optionsLoc = [
-        { value: '0', label: 'Lọc thể loại' },
-        { value: 'KD', label: 'Kinh dị' },
-        { value: 'HH', label: 'Hài hước' },
-        { value: 'TC', label: 'Tình cảm' },
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const nuoc = [
+        {
+            id: 1,
+            name: 'Rạp Lotte',
+            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+            slRoom: '3',
+            status: 'Active',
+        },
+        {
+            id: 2,
+            name: 'Rạp Galaxy',
+            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+            slRoom: '2',
+            status: 'InActive',
+        },
     ];
-    const optionsSort = [
-        { value: '0', label: 'Xếp theo tên' },
-        { value: 'A', label: 'A - Z' },
-        { value: 'B', label: 'Z - A' },
-    ];
-
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Chương trình khuyến mãi</h1>
-                <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
-                    <InputComponent placeholder="Nhập tên" className="rounded-[10px] " />
-
-                    <SelectComponent
-                        value={selectedValue}
-                        onChange={handleChange}
-                        options={optionsLoc}
-                        className="border border-[gray]"
-                        selectStyles={{ borderRadius: '10px' }}
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Khuyến mãi</h1>
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={nuoc.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Chương trình khuyến mãi"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
                     />
-                    <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-3 left-2" />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsSort}
-                            className="border border-[gray]  w-full"
-                            selectStyles={{ borderRadius: '10px' }}
-                        />
-                    </div>
+                    <AutoInputComponent
+                        options={nuoc.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Loại khuyến mãi"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <InputComponent className="rounded-[10px] " title="Ngày bắt đầu" type="date" />
+                    <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="bg-[#eeaf56] text-base text-white py-1 font-semibold grid grid-cols-7 items-center gap-3 rounded-lg">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+                <div className="bg-[#eeaf56] text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-7 items-center gap-3 rounded-lg">
                     <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
                     <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
                     <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
@@ -253,7 +257,7 @@ const Promotion = () => {
                 <div className="overflow-auto h-[92%] height-sm-1 ">
                     {promotions.map((promotion) => (
                         <div key={promotion.id}>
-                            <div className="bg-[#E6E6E6] text-base py-3  font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-2 ">
+                            <div className="bg-[#E6E6E6] text-[14px] py-[6px]  font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-2 ">
                                 <div className="grid col-span-3 grid-cols-10 items-center gap-5">
                                     <div
                                         className="justify-center col-span-2 grid"
@@ -274,7 +278,7 @@ const Promotion = () => {
                                 <h1 className="grid justify-center items-center">{promotion.end}</h1>
                                 <div className="justify-center items-center grid">
                                     <button
-                                        className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                        className={`border px-2 text-white text-base h-auto py-[1px] flex  rounded-[40px] ${
                                             promotion.status === 'Đang diễn ra' ? 'bg-green-500' : 'bg-gray-400'
                                         }`}
                                     >
@@ -283,13 +287,13 @@ const Promotion = () => {
                                 </div>
                                 <div className="justify-center grid items-center ">
                                     <button className="" onClick={() => handleOpen(true)}>
-                                        <FaRegEdit color="black" size={22} />
+                                        <FaRegEdit color="black" size={20} />
                                     </button>
                                 </div>
                             </div>
                             {visibleRooms[promotion.id] && (
                                 <>
-                                    <div className="border-b py-1 text-sm font-bold uppercase text-slate-500 grid grid-cols-10 items-center gap-3">
+                                    <div className="border-b text-[13px] font-bold uppercase text-slate-500 grid grid-cols-10 items-center gap-3">
                                         <h1 className="grid col-span-2 justify-center items-center">Loại KM</h1>
                                         <h1 className="grid col-span-3 justify-center items-center">Mô tả</h1>
                                         <h1 className="grid justify-center items-center">Ngày bắt đầu</h1>
@@ -308,7 +312,7 @@ const Promotion = () => {
                                         {promotion.promotion &&
                                             promotion.promotion.map((item) => (
                                                 <div
-                                                    className="border-b py-2 text-base font-normal text-slate-500 grid grid-cols-10 items-center gap-3"
+                                                    className="border-b py-2 text-[15px] font-normal text-slate-500 grid grid-cols-10 items-center gap-3"
                                                     key={item.id}
                                                 >
                                                     <h1 className=" grid col-span-2 pl-3 items-center ">{item.loai}</h1>
@@ -332,10 +336,10 @@ const Promotion = () => {
                                                     </div>
                                                     <div className="justify-center space-x-5 items-center col-span-2 flex  ">
                                                         <button className="" onClick={() => handleOpenLoaiKM(true)}>
-                                                            <FaRegEdit color="black" size={22} />
+                                                            <FaRegEdit color="black" size={20} />
                                                         </button>
                                                         <button className="" onClick={() => handOpenDetail(item.type)}>
-                                                            <FaRegEye color="black" fontSize={22} />
+                                                            <FaRegEye color="black" fontSize={20} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -400,12 +404,15 @@ const Promotion = () => {
             >
                 <div className=" h-[80%] grid grid-rows-3 gap-6 ">
                     <div className="grid grid-cols-2 gap-8 p-2 items-center ">
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            className="border border-[gray]"
+                        <AutoInputComponent
+                            options={nuoc.map((option) => option.name)}
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Loại khuyến mãi"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                         />
                         <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px] " />
                     </div>
@@ -507,7 +514,7 @@ const Promotion = () => {
                                             </div>
                                             <div className="justify-center items-center grid">
                                                 <button className=" px-4 py-1" onClick={() => handleOpenKM(true)}>
-                                                    <FaRegEdit color="black" size={25} />
+                                                    <FaRegEdit color="black" size={20} />
                                                 </button>
                                             </div>
                                         </>
@@ -537,7 +544,7 @@ const Promotion = () => {
                                             </div>
                                             <div className="justify-center items-center grid">
                                                 <button className=" px-4 py-1" onClick={() => handleOpenKM(true)}>
-                                                    <FaRegEdit color="black" size={25} />
+                                                    <FaRegEdit color="black" size={20} />
                                                 </button>
                                             </div>
                                         </>
@@ -564,7 +571,7 @@ const Promotion = () => {
                                             </div>
                                             <div className="justify-center items-center grid">
                                                 <button className=" px-4 py-1" onClick={() => handleOpenKM(true)}>
-                                                    <FaRegEdit color="black" size={25} />
+                                                    <FaRegEdit color="black" size={20} />
                                                 </button>
                                             </div>
                                         </>
@@ -612,12 +619,15 @@ const Promotion = () => {
             >
                 {type === 2 && (
                     <div className=" h-[87%] grid grid-rows-6 gap-[73px]">
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            className="border border-[gray]"
+                        <AutoInputComponent
+                            options={nuoc.map((option) => option.name)}
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Sản phẩm bán"
+                            freeSolo={false}
+                            disableClearable={false}
+                            placeholder="Sản phẩm bán"
+                            heightSelect={200}
                             className1="p-3"
                         />
                         <InputComponent
@@ -626,13 +636,16 @@ const Promotion = () => {
                             className="rounded-[5px]"
                             className1="p-3"
                         />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            className="border border-[gray]"
-                            className1="p-3"
+                        <AutoInputComponent
+                            options={nuoc.map((option) => option.name)}
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Sản phẩm tặng"
+                            freeSolo={false}
+                            disableClearable={false}
+                            placeholder="Sản phẩm tặng"
+                            heightSelect={200}
+                            className1="p-3"
                         />
                         <InputComponent
                             placeholder="Nhập ..."

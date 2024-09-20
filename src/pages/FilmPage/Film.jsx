@@ -4,10 +4,10 @@ import { IoIosAddCircleOutline } from 'react-icons/io';
 import { FaRegEdit } from 'react-icons/fa';
 import phim1 from '~/assets/phim1.png';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
-// import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
+import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 
 const Film = () => {
     const movie = [
@@ -42,24 +42,14 @@ const Film = () => {
             status: 'InActive',
         },
     ];
-    const options = [
-        { value: '0', label: 'Chọn' },
-        { value: 'Kinh dị', label: 'Kinh dị' },
-        { value: 'Hành động', label: 'Hành động' },
-        { value: 'Tình cảm, Hài hước', label: 'Tình cảm, Hài hước' },
-    ];
+
     const optionsQG = [
         { value: '0', label: 'Chọn' },
         { value: 'VN', label: 'Việt Nam' },
         { value: 'TL', label: 'Thái Lan' },
         { value: 'HQ', label: 'Hàn Quốc' },
     ];
-    const optionsLoc = [
-        { value: '0', label: 'Lọc thể loại' },
-        { value: 'KD', label: 'Kinh dị' },
-        { value: 'HH', label: 'Hài hước' },
-        { value: 'TC', label: 'Tình cảm' },
-    ];
+
     const optionsSort = [
         { value: '0', label: 'Xếp theo tên' },
         { value: 'A', label: 'A - Z' },
@@ -78,34 +68,66 @@ const Film = () => {
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
     };
-
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const rap = [
+        {
+            id: 1,
+            name: 'Rạp Lotte',
+            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
+            slRoom: '3',
+            status: 'Active',
+        },
+        {
+            id: 2,
+            name: 'Rạp Galaxy',
+            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
+            slRoom: '2',
+            status: 'InActive',
+        },
+    ];
     return (
         <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1  px-10 py-3 h-40">
-                <h1 className="font-bold text-[20px] ">Phim</h1>
-                <div className="grid grid-cols-3 gap-3 lg:gap-[66px] xl:gap-[111px] items-center w-full h-16">
-                    <InputComponent placeholder="Nhập tên rạp" className="rounded-[10px] " />
-
-                    <SelectComponent
-                        value={selectedValue}
-                        onChange={handleChange}
-                        options={optionsLoc}
-                        className="border border-[gray]"
-                        selectStyles={{ borderRadius: '10px' }}
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Phim</h1>
+                <div className="grid grid-cols-5 gap-10 max-lg:gap-2 items-center w-full h-16 px-3">
+                    <AutoInputComponent
+                        options={rap.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Tên rạp"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Tên rạp"
+                        heightSelect={200}
+                        borderRadius="10px"
                     />
+                    <AutoInputComponent
+                        options={rap.map((option) => option.name)}
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Thể loại"
+                        freeSolo={false}
+                        disableClearable={false}
+                        placeholder="Thể loại"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <InputComponent className="rounded-[10px] " title="Ngày bắt đầu" type="date" />
+                    <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
                     <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-3 left-2" />
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
                             options={optionsSort}
-                            className="border border-[gray]  w-full"
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[500px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 uppercase text-sm font-bold  text-slate-500 grid grid-cols-8 items-center gap-2">
                     <h1 className="grid justify-center items-center">Thể loại phim</h1>
                     <h1 className="grid justify-center items-center ">Hình ảnh</h1>
@@ -154,7 +176,7 @@ const Film = () => {
                                         handleOpen(true);
                                     }}
                                 >
-                                    <FaRegEdit color="black" size={25} />
+                                    <FaRegEdit color="black" size={22} />
                                 </button>
                             </div>
                         </div>
@@ -177,49 +199,74 @@ const Film = () => {
             >
                 <div className=" h-90p  grid grid-rows-8 gap-8 ">
                     <div className="grid grid-cols-2 gap-3 p-3">
-                        <div className="flex space-x-5 ">
+                        <div className="grid grid-cols-5 gap-5">
                             <InputComponent
                                 placeholder="Nhập tên phim"
                                 title="Tên phim"
                                 className="rounded-[5px] "
-                                className1="w-3/5"
+                                className1="col-span-3"
                             />
                             <InputComponent
                                 placeholder="Thời lượng"
                                 title="Thời lượng"
                                 className="rounded-[5px] "
-                                className1="w-2/5 "
+                                className1="col-span-2"
                             />
                         </div>
-                        <div className="flex space-x-5 ml-5">
-                            <SelectComponent value="0" title="Thể loại" options={options} className1="w-2/3 " />
-                            <SelectComponent value="0" title="Quốc gia" options={optionsQG} className1="w-1/3" />
+                        <div className="grid grid-cols-5 ml-5 gap-5">
+                            <AutoInputComponent
+                                options={rap.map((option) => option.name)}
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Thể loại"
+                                freeSolo={false}
+                                disableClearable={false}
+                                placeholder="Thể loại"
+                                heightSelect={150}
+                                className1="col-span-3"
+                            />
+                            <AutoInputComponent
+                                options={rap.map((option) => option.name)}
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Quốc gia"
+                                freeSolo={false}
+                                disableClearable={false}
+                                placeholder="Quốc gia"
+                                heightSelect={150}
+                                className1="col-span-2"
+                            />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 p-3 ">
-                        <div className="flex space-x-5 ">
+                        <div className="grid grid-cols-5 gap-5">
                             <InputComponent
                                 placeholder="Nhập tên đạo diễn"
                                 title="Tên phim"
                                 className="rounded-[5px] "
-                                className1="w-3/5"
+                                className1="col-span-3"
                             />
                             <InputComponent
                                 title="Ngày phát hành"
                                 className="rounded-[5px] "
-                                className1="w-2/5 "
+                                className1="col-span-2"
                                 type="date"
                             />
                         </div>
-                        <div className="flex space-x-5 ml-5 ">
+                        <div className="grid grid-cols-5 gap-5 ml-5">
                             <InputComponent
                                 title="Ngày kết thúc"
                                 className="rounded-[5px] "
-                                className1="w-1/2 "
+                                className1="col-span-3"
                                 type="date"
                             />
-                            <SelectComponent value="0" title="Giới hạn tuổi" options={optionsQG} className1="w-1/2" />
+                            <SelectComponent
+                                value="0"
+                                title="Giới hạn tuổi"
+                                options={optionsQG}
+                                className1="col-span-2"
+                            />
                         </div>
                     </div>
                     <div className="w-full p-3 ">
