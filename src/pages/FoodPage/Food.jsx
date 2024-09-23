@@ -186,12 +186,28 @@ const Foood = () => {
             >
                 <div className=" h-90p grid grid-rows-4">
                     <div className="grid p-3">
-                        <InputComponent placeholder="Nhập tên" title="Tên" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Tên"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                     </div>
 
                     <div className="grid p-3">
                         <div className="grid ">
-                            <InputComponent placeholder="Nhập số lượng" title="Số lượng" className="rounded-[5px] " />
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Số lượng"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
+                            />
                         </div>
                     </div>
                     <div className="grid items-center">

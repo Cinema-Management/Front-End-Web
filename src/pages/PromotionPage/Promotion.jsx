@@ -370,7 +370,15 @@ const Promotion = () => {
             >
                 <div className=" h-[80%] grid grid-rows-3 gap-12 ">
                     <div className="grid p-3 ">
-                        <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Mô tả"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                     </div>
 
                     <div className="grid items-center row-span-2  gap-2 ">
@@ -414,7 +422,15 @@ const Promotion = () => {
                             placeholder="Nhập ..."
                             heightSelect={200}
                         />
-                        <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Mô tả"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                     </div>
 
                     <div className="grid items-center row-span-2  gap-2 ">
@@ -630,10 +646,14 @@ const Promotion = () => {
                             heightSelect={200}
                             className1="p-3"
                         />
-                        <InputComponent
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Số tiền bán"
+                            freeSolo={true}
+                            disableClearable={false}
                             placeholder="Nhập ..."
-                            title="Số lượng bán"
-                            className="rounded-[5px]"
+                            heightSelect={200}
                             className1="p-3"
                         />
                         <AutoInputComponent
@@ -647,10 +667,14 @@ const Promotion = () => {
                             heightSelect={200}
                             className1="p-3"
                         />
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Số lượng tặng"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
                         <div className="grid items-center gap-2 border-t mt-4 row-span-2">
@@ -663,16 +687,24 @@ const Promotion = () => {
                 )}
                 {type === 1 && (
                     <div className=" h-[87%] grid grid-rows-4 gap-[73px]">
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Số tiền bán"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Số tiền tặng"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
                         <div className="grid items-center gap-2 border-t mt-4 row-span-2">
@@ -686,22 +718,34 @@ const Promotion = () => {
 
                 {type === 3 && (
                     <div className=" h-[87%] grid grid-rows-5 gap-[73px]">
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Số tiền bán"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="% chiết khấu"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Số tiền giới hạn"
-                            className="rounded-[5px]"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                             className1="p-3"
                         />
                         <div className="grid items-center gap-2 border-t mt-4 row-span-2">

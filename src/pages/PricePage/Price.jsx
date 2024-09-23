@@ -469,7 +469,15 @@ const Price = () => {
             >
                 <div className=" h-[80%] grid grid-rows-3 gap-3 ">
                     <div className="grid p-3 ">
-                        <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Mô tả"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                     </div>
 
                     <div className="grid items-center row-span-2  gap-2 ">
@@ -524,9 +532,28 @@ const Price = () => {
                         placeholder="Nhập ..."
                         heightSelect={200}
                     />
-                    <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px]" className1="p-3" />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Mô tả"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        className1="p-3"
+                    />
+
                     <div className="grid items-center row-span-2  gap-2 ">
-                        <InputComponent placeholder="Nhập giá" title="Giá" className="rounded-[5px]" className1="p-3" />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Giá"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                            className1="p-3"
+                        />
 
                         <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseLoaiKM} />
@@ -575,9 +602,27 @@ const Price = () => {
                         placeholder="Nhập ..."
                         heightSelect={200}
                     />
-                    <InputComponent placeholder="Nhập mô tả" title="Mô tả" className="rounded-[5px]" className1="p-3" />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Mô tả"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        className1="p-3"
+                    />
 
-                    <InputComponent placeholder="Nhập giá" title="Giá" className="rounded-[5px]" className1="p-3" />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Giá"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        className1="p-3"
+                    />
                     <InputComponent
                         placeholder="Ngày tạo"
                         title="Ngày tạo"

@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
-import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 
@@ -98,6 +98,10 @@ const Cenima = () => {
     const [openDetail, setOpenDetail] = useState(false);
     const [onpenRoom, setOpenRoom] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState('');
+    const navigate = useNavigate();
+    const handleNavigate = (path) => {
+        navigate(path);
+    };
     const handleOpenRoom = (isUpdateRoom) => {
         setOpenRoom(true);
         setIsUpdateRoom(isUpdateRoom);
@@ -150,7 +154,7 @@ const Cenima = () => {
                         onChange={setSelectedMovie}
                         title="Số phòng"
                         freeSolo={true}
-                        disableClearable={true}
+                        disableClearable={false}
                         placeholder="Nhập ..."
                         heightSelect={200}
                         borderRadius="10px"
@@ -235,7 +239,15 @@ const Cenima = () => {
             >
                 <div className=" h-90p grid grid-rows-6 gap-16">
                     <div className="grid p-3 ">
-                        <InputComponent placeholder="Nhập tên rạp" title="Tên rạp" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Tên rạp"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={150}
+                        />
                     </div>
 
                     <div className="grid p-3">
@@ -275,10 +287,14 @@ const Cenima = () => {
                         />
                     </div>
                     <div className="w-full grid row-span-3 ">
-                        <InputComponent
-                            placeholder="Nhập ..."
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Địa chỉ chi tiết"
-                            className="rounded-[5px] w-full grid row-span-4"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={150}
                             className1="p-3"
                         />
                         <div className="justify-end flex space-x-3 pt-4 border-t pr-4">
@@ -302,7 +318,7 @@ const Cenima = () => {
                 largeScreenWidth="40%"
                 maxHeightScreenHeight="87%"
                 maxHeightScreenWidth="45%"
-                title="Chi tiết phòng"
+                title="Chi tiết rạp"
             >
                 <div className=" h-90p grid grid-rows-12 ">
                     <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-5 items-center gap-2">
@@ -325,6 +341,7 @@ const Cenima = () => {
                             <div
                                 className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-5 items-center gap-2"
                                 key={item.id}
+                                onClick={() => handleNavigate('/room')}
                             >
                                 <h1 className=" grid items-center pl-3">{item.name}</h1>
                                 <h1 className=" grid justify-center items-center">{item.loai}</h1>
@@ -377,7 +394,15 @@ const Cenima = () => {
             >
                 <div className="grid grid-rows-1 gap-2">
                     <div className="grid grid-cols-4 gap-4 p-3">
-                        <InputComponent placeholder="Nhập tên phòng" title="Tên phòng" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Tên phòng"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
@@ -385,8 +410,24 @@ const Cenima = () => {
                             options={optionsQG}
                             className="grid "
                         />
-                        <InputComponent placeholder="Nhập số cột" title="Số cột" className="rounded-[5px] " />
-                        <InputComponent placeholder="Nhập số hàng" title="Số hàng" className="rounded-[5px] " />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Số cột"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Số hàng"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                        />
                     </div>
 
                     <div className="grid items-center  border-t">

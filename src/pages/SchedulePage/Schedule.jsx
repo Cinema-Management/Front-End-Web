@@ -127,7 +127,7 @@ const Schedule = () => {
                         onChange={setSelectedMovie}
                         title="Tên rạp"
                         freeSolo={false}
-                        disableClearable={false}
+                        disableClearable={true}
                         placeholder="Tên rạp"
                         heightSelect={200}
                         borderRadius={'10px'}
@@ -138,7 +138,7 @@ const Schedule = () => {
                         onChange={setSelectedMovie}
                         title="Tên phim"
                         freeSolo={false}
-                        disableClearable={false}
+                        disableClearable={true}
                         placeholder="Tên phim"
                         heightSelect={200}
                         borderRadius={'10px'}
@@ -276,7 +276,7 @@ const Schedule = () => {
                             onChange={setSelectedMovie}
                             title="Tên phim"
                             freeSolo={false}
-                            disableClearable={false}
+                            disableClearable={true}
                             placeholder="Tên phim"
                             heightSelect={200}
                         />

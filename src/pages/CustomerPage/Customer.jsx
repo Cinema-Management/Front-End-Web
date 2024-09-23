@@ -86,7 +86,16 @@ const Customer = () => {
                         heightSelect={200}
                         borderRadius="10px"
                     />
-                    <InputComponent placeholder="Nhập ..." className="rounded-[10px]" title="Số điện thoại" />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Số điện thoại"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
                     <SelectComponent
                         value={selectedValue}
                         onChange={handleChange}
@@ -177,22 +186,47 @@ const Customer = () => {
                 <div className={`h-90p grid ${isUpdate ? 'grid-rows-6' : 'grid-rows-5'} gap-2`}>
                     <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
-                            <InputComponent placeholder="Nhập họ tên" title="Họ tên" className="rounded-[5px] " />
-                            <InputComponent placeholder="Nhập email" title="Email" className="rounded-[5px] " />
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Họ tên"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
+                            />
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Email"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
+                            />
                         </div>
                     </div>
                     <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
-                            <InputComponent
-                                placeholder="Nhập số điện thoại"
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
                                 title="Số điện thoại"
-                                className="rounded-[5px] "
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
                             />
-
-                            <InputComponent
-                                placeholder="3.000"
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
                                 title="Điểm tích lũy"
-                                className="rounded-[5px] text-[#FB5B5E] placeholder-[#FB5B5E] "
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="3.000"
+                                heightSelect={200}
+                                color={'#FB5B5E'}
+                                className="rounded-[5px] "
                             />
                         </div>
                     </div>
@@ -233,10 +267,14 @@ const Customer = () => {
                                 placeholder="Nhập ..."
                                 heightSelect={150}
                             />
-                            <InputComponent
-                                placeholder="Nhập ..."
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
                                 title="Địa chỉ chi tiết"
-                                className="rounded-[5px] "
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
                             />
                         </div>
                     </div>

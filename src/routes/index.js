@@ -8,6 +8,7 @@ import Order from '~/pages/OrderPage/Order';
 import Price from '~/pages/PricePage/Price';
 import Promotion from '~/pages/PromotionPage/Promotion';
 import Resgiter from '~/pages/ResgiterPage/Resgiter';
+import Room from '~/pages/RoomPage/Room';
 import Schedule from '~/pages/SchedulePage/Schedule';
 import Seat from '~/pages/SeatPage/Seat';
 import Staff from '~/pages/StaffPage/Staff';
@@ -66,6 +67,11 @@ export const routes = [
     {
         path: '/order',
         page: Order,
+        isShowSidebar: true,
+    },
+    {
+        path: '/room',
+        page: Room,
         isShowSidebar: true,
     },
     {

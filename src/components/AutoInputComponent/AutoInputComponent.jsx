@@ -13,6 +13,7 @@ const AutoInputComponent = ({
     title,
     heightSelect,
     borderRadius,
+    color,
     ...props // Các props khác tùy chỉnh
 }) => {
     return (
@@ -36,6 +37,7 @@ const AutoInputComponent = ({
                                     height: '35px',
                                     paddingLeft: '6px',
                                     borderRadius: borderRadius,
+                                    color: color,
                                 },
                                 '& .MuiOutlinedInput-root': {
                                     '& fieldset': {

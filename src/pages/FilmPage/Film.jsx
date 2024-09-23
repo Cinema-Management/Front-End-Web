@@ -188,28 +188,36 @@ const Film = () => {
                 open={open}
                 handleClose={handleClose}
                 width="70%" // Kích thước mặc định
-                height="85%"
+                height="75%"
                 smallScreenWidth="90%" // Kích thước cho màn hình nhỏ
-                smallScreenHeight="63%"
+                smallScreenHeight="55%"
                 mediumScreenWidth="80%" // Kích thước cho màn hình trung bình
-                mediumScreenHeight="55%"
-                largeScreenHeight="45%" // Kích thước cho màn hình lớn
-                maxHeightScreenHeight="95%" // Kích thước khi màn hình có chiều cao nhỏ
+                mediumScreenHeight="48%"
+                largeScreenHeight="40%" // Kích thước cho màn hình lớn
+                maxHeightScreenHeight="90%" // Kích thước khi màn hình có chiều cao nhỏ
                 title={isUpdate ? 'Chỉnh sửa phim' : 'Thêm phim'}
             >
-                <div className=" h-90p  grid grid-rows-8 gap-8 ">
+                <div className=" h-90p  grid grid-rows-7 gap-8 ">
                     <div className="grid grid-cols-2 gap-3 p-3">
                         <div className="grid grid-cols-5 gap-5">
-                            <InputComponent
-                                placeholder="Nhập tên phim"
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
                                 title="Tên phim"
-                                className="rounded-[5px] "
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
                                 className1="col-span-3"
                             />
-                            <InputComponent
-                                placeholder="Thời lượng"
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
                                 title="Thời lượng"
-                                className="rounded-[5px] "
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
                                 className1="col-span-2"
                             />
                         </div>
@@ -241,10 +249,14 @@ const Film = () => {
 
                     <div className="grid grid-cols-2 gap-3 p-3 ">
                         <div className="grid grid-cols-5 gap-5">
-                            <InputComponent
-                                placeholder="Nhập tên đạo diễn"
-                                title="Tên phim"
-                                className="rounded-[5px] "
+                            <AutoInputComponent
+                                value={selectedMovie}
+                                onChange={setSelectedMovie}
+                                title="Đạo diễn"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
                                 className1="col-span-3"
                             />
                             <InputComponent
@@ -270,24 +282,20 @@ const Film = () => {
                         </div>
                     </div>
                     <div className="w-full p-3 ">
-                        <InputComponent
-                            placeholder="Nhập tên đạo diễn"
-                            title="Đạo diễn"
-                            className="rounded-[5px] w-full"
-                        />
-                    </div>
-                    <div className="w-full p-3">
-                        <InputComponent
-                            placeholder="Nhập tên diễn viên"
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
                             title="Diễn viên"
-                            className="rounded-[5px] w-full"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
                         />
                     </div>
 
                     <div className="p-3">
                         <div className="flex space-x-5 ">
                             <InputComponent
-                                placeholder="Nhập tên đạo diễn"
                                 title="Hình ảnh"
                                 className="rounded-[5px] "
                                 className1="w-3/5"
