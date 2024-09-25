@@ -530,7 +530,7 @@ const Roome = () => {
                 title="Chỉnh sửa ghế phòng 1"
             >
                 <div className=" h-[80%] grid grid-rows-10 pb-6 gap-8 ">
-                    <h1 className="text-base font-bold p-3">Ghế đang chọn : {selectSeat.so_ghe}</h1>
+                    <h1 className="text-base font-bold p-3">Ghế đang chọn : {selectSeat?.so_ghe}</h1>
 
                     <div className="flex p-2">
                         <input

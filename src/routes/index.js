@@ -1,17 +1,19 @@
-import Cenima from '~/pages/CenimaPage/Cenima';
-import Customer from '~/pages/CustomerPage/Customer';
-import Film from '~/pages/FilmPage/Film';
-import Foood from '~/pages/FoodPage/Food';
-import Home from '~/pages/HomePage/Home';
-import Login from '~/pages/LoginPage/Login';
-import Order from '~/pages/OrderPage/Order';
-import Price from '~/pages/PricePage/Price';
-import Promotion from '~/pages/PromotionPage/Promotion';
-import Resgiter from '~/pages/ResgiterPage/Resgiter';
-import Room from '~/pages/RoomPage/Room';
-import Schedule from '~/pages/SchedulePage/Schedule';
-import Seat from '~/pages/SeatPage/Seat';
-import Staff from '~/pages/StaffPage/Staff';
+import { lazy } from 'react';
+
+const Cenima = lazy(() => import('~/pages/CenimaPage/Cenima'));
+const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
+const Film = lazy(() => import('~/pages/FilmPage/Film'));
+const Food = lazy(() => import('~/pages/FoodPage/Food'));
+const Home = lazy(() => import('~/pages/HomePage/Home'));
+const Login = lazy(() => import('~/pages/LoginPage/Login'));
+const Order = lazy(() => import('~/pages/OrderPage/Order'));
+const Price = lazy(() => import('~/pages/PricePage/Price'));
+const Promotion = lazy(() => import('~/pages/PromotionPage/Promotion'));
+// const Register = lazy(() => import('~/pages/RegisterPage/Register'));
+const Room = lazy(() => import('~/pages/RoomPage/Room'));
+const Schedule = lazy(() => import('~/pages/SchedulePage/Schedule'));
+const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
+const Staff = lazy(() => import('~/pages/StaffPage/Staff'));
 
 export const routes = [
     {
@@ -26,7 +28,7 @@ export const routes = [
     },
     {
         path: '/food',
-        page: Foood,
+        page: Food,
         isShowSidebar: true,
     },
     {
@@ -80,6 +82,6 @@ export const routes = [
     },
     {
         path: '/resgiter',
-        page: Resgiter,
+        page: Login,
     },
 ];

@@ -131,6 +131,21 @@ code {
     .custom-height-sm19 {
         height: 32px !important;
     }
+    .custom-height-sm20 {
+        height: 380px;
+    }
+    .custom-height-sm21 {
+        min-width: 260px;
+    }
+    .custom-height-sm22 {
+        grid-template-rows: repeat(8, minmax(0, 1fr)) !important;
+    }
+    .custom-height-sm23 {
+        grid-row: span 1 / span 1;
+    }
+    .custom-height-sm24 {
+        height: 69px;
+    }
 }
 
 @media (min-height: 780px) and (max-height: 850px) {
@@ -186,6 +201,9 @@ code {
     .custom-height-lg2 {
         height: 630px;
     }
+    .custom-height-lg3 {
+        min-width: 260px;
+    }
 }
 
 @media (max-width: 830px) {
@@ -203,6 +221,45 @@ code {
         row-gap: 3px;
     }
 }
+@media (min-width: 1280px) and (max-width: 1350px) {
+    .custom-hubmax {
+        height: 570px;
+    }
+    .custom-hubmax1 {
+        min-width: 325px;
+    }
+    .custom-hubmax2 {
+        padding-right: 100px;
+    }
+}
 .select-rap {
     border: none;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 24px;
+    color: #000;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }

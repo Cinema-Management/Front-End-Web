@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { lazy, useState } from 'react';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import { IoIosArrowBack } from 'react-icons/io';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import phim1 from '~/assets/phim1.png';
-
-import Seat from '../SeatPage/Seat';
 import { Button } from '@mui/material';
+
+const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 const Order = () => {
     const [selectedMovie, setSelectedMovie] = useState('');
     const [selectedCinema, setSelectedCinema] = useState(false);

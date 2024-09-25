@@ -6,12 +6,12 @@ import { ImSpoonKnife } from 'react-icons/im';
 import { Box, Button, Tab, Tabs } from '@mui/material';
 import { GrFormNext } from 'react-icons/gr';
 import { styled } from '@mui/system';
-import SeatComponent from '~/components/OrderComponent/SeatComponent';
-import FoodComponent from '~/components/OrderComponent/FoodComponent';
-import PayComponent from '~/components/OrderComponent/PayComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
+const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
+const FoodComponent = React.lazy(() => import('~/components/OrderComponent/FoodComponent'));
+const PayComponent = React.lazy(() => import('~/components/OrderComponent/PayComponent'));
 
 const CustomTab = styled(({ isActive, ...other }) => <Tab {...other} />)(({ isActive }) => ({
     borderBottom: isActive ? '2px solid red' : '1px solid transparent',

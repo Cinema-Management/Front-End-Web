@@ -22,7 +22,7 @@ const HeaderComponent = () => {
         navigate(path);
     };
     return (
-        <div className="bg-white xl:w-1/5 max-xl:w-28p">
+        <div className="bg-white xl:w-1/5 max-xl:w-28p min-w-[230px] custom-hubmax1 custom-height-lg3 custom-height-sm21 custom-height-xxl4">
             <div className="py-2 flex flex-col justify-center items-center cursor-pointer">
                 <div className="text-center" onClick={() => handleNavigate('/')}>
                     <img src={Logo} alt="Logo" width={90} height={90} className="mx-auto mb-2" />

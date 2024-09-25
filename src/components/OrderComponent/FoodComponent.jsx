@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { IoIosAddCircleOutline, IoMdRemoveCircleOutline } from 'react-icons/io';
 import coca from '~/assets/coca.png';
 const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {

@@ -17,7 +17,7 @@ const SelectComponent = ({ value, onChange, className = '', className1 = '', tit
         <div className={`${className1}`}>
             <InputLabel sx={{ fontSize: '16px', color: 'black', marginBottom: '5px' }}>{title}</InputLabel>
             <Select
-                value={value || defaultValue}
+                value={options.some((option) => option.value === value) ? value : defaultValue}
                 onChange={onChange}
                 displayEmpty
                 className={`py-[6px] truncate  rounded-[5px] h-10 w-full ${className}`}
