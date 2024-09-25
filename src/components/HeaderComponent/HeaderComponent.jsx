@@ -57,7 +57,7 @@ const HeaderComponent = () => {
                                         Phim
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200" onClick={() => handleNavigate('/cenima')}>
+                                <li className="hover:bg-orange-200" onClick={() => handleNavigate('/cinema')}>
                                     <button className="flex max-lg:ml-9 ml-20 items-center py-2  w-full ">
                                         <SlScreenDesktop className="mr-2" color="#66FFFF" />
                                         Rạp
