@@ -115,7 +115,7 @@ const Foood = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 uppercase text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-10">
                     <h1 className="grid justify-center items-center">Tên </h1>
                     <h1 className="grid justify-center items-center ">Hình ảnh</h1>

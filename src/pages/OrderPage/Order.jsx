@@ -117,7 +117,7 @@ const Order = () => {
                             />
                         </div>
                     </div>
-                    <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 overflow-auto h-[515px] max-h-screen custom-height-sm16 custom-height-md custom-height-lg custom-height-xl2 custom-height-xxl3">
+                    <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 overflow-auto h-[515px] custom-height-xs max-h-screen custom-height-sm16 custom-height-md custom-height-lg custom-height-xl2 custom-height-xxl3">
                         {!selectedCinema ? (
                             <div>
                                 <div className="grid mb-3 ">

@@ -280,7 +280,7 @@ const Film = React.memo(() => {
                 </div>
             </div>
 
-            <div className="bg-white border shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm20 custom-height-md custom-height-lg custom-hubmax custom-height-xl">
+            <div className="bg-white border shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-xs custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto h-[100%]">
                     <div className="bg-white border-b sticky top-0 z-10 px-1 py-3 uppercase text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
                         <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center">

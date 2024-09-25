@@ -239,7 +239,7 @@ const Promotion = () => {
                     <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-xs custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="bg-[#eeaf56] text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-7 items-center gap-3 rounded-lg">
                     <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
                     <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>

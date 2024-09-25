@@ -62,10 +62,17 @@ code {
     scrollbar-width: thin;
     scrollbar-color: #9a9a9a #f1f1f1;
 }
-
-@media (max-height: 700px) {
+@media (min-height: 700px) and (max-height: 720px) {
+    .custom-height-xs {
+        height: 480px !important;
+    }
+    .custom-height-xs1 {
+        height: 640px !important;
+    }
+}
+@media (max-height: 704px) {
     .custom-height-sm {
-        height: 360px;
+        height: 380px;
     }
     .height-sm-1 {
         height: 86%;
@@ -130,9 +137,6 @@ code {
     }
     .custom-height-sm19 {
         height: 32px !important;
-    }
-    .custom-height-sm20 {
-        height: 380px;
     }
     .custom-height-sm21 {
         min-width: 260px;
