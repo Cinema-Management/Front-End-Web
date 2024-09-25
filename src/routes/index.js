@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 
-const Cenima = lazy(() => import('~/pages/CenimaPage/Cenima'));
+const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
 const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
 const Film = lazy(() => import('~/pages/FilmPage/Film'));
 const Food = lazy(() => import('~/pages/FoodPage/Food'));
@@ -22,8 +22,8 @@ export const routes = [
         isShowSidebar: true,
     },
     {
-        path: '/cenima',
-        page: Cenima,
+        path: '/cinema',
+        page: Cinema,
         isShowSidebar: true,
     },
     {

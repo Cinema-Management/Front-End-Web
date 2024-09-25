@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
@@ -7,7 +7,7 @@ import AutoInputComponent from '~/components/AutoInputComponent/AutoInputCompone
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
-
+import ky from 'ky';
 const rap = [
     {
         id: 1,
@@ -91,13 +91,99 @@ const optionsSort = [
     { value: 'A', label: 'A - Z' },
     { value: 'B', label: 'Z - A' },
 ];
-const Cenima = () => {
+const Cinema = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [isUpdateRoom, setIsUpdateRoom] = useState(false);
     const [open, setOpen] = useState(false);
     const [openDetail, setOpenDetail] = useState(false);
     const [onpenRoom, setOpenRoom] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState('');
+
+    const BASE_API_URL = 'https://provinces.open-api.vn/api';
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [selectedProvince, setSelectedProvince] = useState('');
+    const [selectedDistrict, setSelectedDistrict] = useState('');
+    const [selectedWard, setSelectedWard] = useState('');
+
+    // Fetch provinces
+    const fetchProvinces = async () => {
+        try {
+            const data = await ky.get(`${BASE_API_URL}/p/`).json();
+            setProvinces(data); // Giả sử data là một mảng các tỉnh
+        } catch (error) {
+            console.error('Error fetching provinces:', error);
+        }
+    };
+
+    // Fetch districts based on selected province
+    const fetchDistricts = async (provinceCode) => {
+        try {
+            const data = await ky.get(`${BASE_API_URL}/p/${provinceCode}`, { searchParams: { depth: 2 } }).json();
+            setDistricts(data.districts); // Lưu trữ danh sách quận
+            setWards([]); // Reset wards when province changes
+            setSelectedDistrict(''); // Reset selected district
+            setSelectedWard(''); // Reset selected ward when province changes
+        } catch (error) {
+            console.error('Error fetching districts:', error);
+        }
+    };
+
+    // Fetch wards based on selected district
+    const fetchWards = async (districtCode) => {
+        try {
+            const data = await ky.get(`${BASE_API_URL}/d/${districtCode}`, { searchParams: { depth: 2 } }).json();
+            setWards(data.wards); // Lưu trữ danh sách phường
+        } catch (error) {
+            console.error('Error fetching wards:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchProvinces();
+    }, []);
+
+    const removeVietnameseTones = (str) => {
+        return str
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Loại bỏ dấu
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    };
+
+    const normalizeString = (str) => {
+        if (!str) return '';
+        return removeVietnameseTones(str).toLowerCase().trim();
+    };
+    const getProvinceCodeByName = (name) => {
+        const normalizedInput = normalizeString(name);
+        const province = provinces.find((province) => normalizeString(province.name) === normalizedInput);
+        return province ? province.code : null;
+    };
+
+    const getDistrictsCodeByName = (name) => {
+        const normalizedInput = normalizeString(name);
+        const district = districts.find((districts) => normalizeString(districts.name) === normalizedInput);
+        return district ? district.code : null;
+    };
+
+    const handleProvinceChange = (value) => {
+        setSelectedProvince(value);
+
+        fetchDistricts(getProvinceCodeByName(value)); // Gọi hàm fetchDistricts khi province thay đổi
+    };
+
+    const handleDistrictChange = (value) => {
+        setSelectedDistrict(value);
+        setSelectedWard(''); // Reset selected ward when district changes
+        fetchWards(getDistrictsCodeByName(value)); // Gọi hàm fetchWards khi district thay đổi
+    };
+
+    const handleWardChange = (value) => {
+        setSelectedWard(value);
+    };
+
     const navigate = useNavigate();
     const handleNavigate = (path) => {
         navigate(path);
@@ -172,7 +258,7 @@ const Cenima = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
                     <h1 className="uppercase grid col-span-2 justify-center items-center">Tên rạp</h1>
                     <h1 className="uppercase grid col-span-3 justify-center items-center ">Địa chỉ</h1>
@@ -252,9 +338,9 @@ const Cenima = () => {
 
                     <div className="grid p-3">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            options={rap.map((option) => option.name)}
+                            options={provinces.map((province) => province.name)} // Lấy danh sách tỉnh
+                            value={selectedProvince}
+                            onChange={handleProvinceChange} // Thay đổi hàm xử lý cho tỉnh
                             title="Tỉnh/thành phố"
                             freeSolo={false}
                             disableClearable={true}
@@ -264,24 +350,26 @@ const Cenima = () => {
                     </div>
                     <div className="grid p-3">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            options={rap.map((option) => option.name)}
+                            options={districts.map((district) => district.name)} // Lấy danh sách quận
+                            value={selectedDistrict}
+                            onChange={handleDistrictChange} // Thay đổi hàm xử lý cho quận
                             title="Quận/huyện"
                             freeSolo={false}
                             disableClearable={true}
                             placeholder="Nhập ..."
+                            disabled={!selectedProvince} // Vô hiệu hóa nếu chưa chọn tỉnh
                             heightSelect={150}
                         />
                     </div>
                     <div className="grid p-3">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            options={rap.map((option) => option.name)}
+                            options={wards.map((ward) => ward.name)} // Lấy danh sách phường
+                            value={selectedWard}
+                            onChange={handleWardChange} // Thay đổi hàm xử lý cho phường
                             title="Phường/xã"
                             freeSolo={false}
                             disableClearable={true}
+                            disabled={!selectedDistrict} // Vô hiệu hóa nếu chưa chọn quận
                             placeholder="Nhập ..."
                             heightSelect={150}
                         />
@@ -442,4 +530,4 @@ const Cenima = () => {
     );
 };
 
-export default Cenima;
+export default Cinema;
