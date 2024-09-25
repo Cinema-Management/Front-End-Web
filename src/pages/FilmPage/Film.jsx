@@ -10,6 +10,8 @@ import axios from 'axios';
 import Select from '~/components/Select';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { FaRegEye } from 'react-icons/fa6';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import LazyLoad from 'react-lazy-load';
 
 const Film = React.memo(() => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -312,65 +314,64 @@ const Film = React.memo(() => {
 
                     <div className="py-1 px-1">
                         {data.map((item, index) => (
-                            <div
-                                key={item.movieId}
-                                className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2"
-                            >
-                                <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center ">
-                                    <h1 className="grid col-span-2 pl-3 items-center">{index + 1}</h1>
-                                    <h1 className="grid col-span-4 pl-3 items-center ">{item.code}</h1>
-                                    <h1 className="grid items-center col-span-4 pl-3">
-                                        {item.movieGenreCode.map((genre) => genre.name).join(', ')}
-                                    </h1>
-                                </div>
-
-                                <img src={item.image} alt="phim1" className="w-36 h-24 object-contain" />
-
-                                <h1 className="grid items-center pl-3 col-span-2 uppercase">{item.name}</h1>
-                                <h1 className="grid justify-center items-center">{item.duration} phút</h1>
-                                <div className="grid col-span-3 grid-cols-7">
-                                    <h1 className="grid justify-center col-span-4 items-center">
-                                        {formatDate(item.startDate)}
-                                    </h1>
-                                    <h1 className="grid justify-center col-span-3 items-center">
-                                        {formatDate(item.endDate)}
-                                    </h1>
-                                </div>
-                                <div className="grid grid-cols-7 justify-center col-span-2 ">
-                                    <div className="grid col-span-5  justify-center items-center">
-                                        <button
-                                            className={`border px-2  uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
-                                                item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
-                                            }`}
-                                            onClick={() => handleUpdateStatusMovie(item.code, item.status)}
-                                        >
-                                            {item.status === 0 ? 'Hết hiệu lực' : 'Có hiệu lực'}
-                                        </button>
+                            <LazyLoad key={item.movieId} height={115} offsetTop={200}>
+                                <div className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
+                                    <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center ">
+                                        <h1 className="grid col-span-2 pl-3 items-center">{index + 1}</h1>
+                                        <h1 className="grid col-span-4 pl-3 items-center ">{item.code}</h1>
+                                        <h1 className="grid items-center col-span-4 pl-3">
+                                            {item.movieGenreCode.map((genre) => genre.name).join(', ')}
+                                        </h1>
                                     </div>
 
-                                    <div className=" col-span-2 justify-center items-center flex">
-                                        <button
-                                            className="mr-[8px] py-1 max-lg:mr-1"
-                                            onClick={() => {
-                                                handleOpen(true);
-                                                setSelectedFilm(item);
-                                            }}
-                                        >
-                                            <FaRegEdit color="black" size={22} />
-                                        </button>
-                                        <button
-                                            className=" py-1"
-                                            onClick={() => {
-                                                handleOpen(true);
-                                                setSelectedFilm(item);
-                                                setDetailMovie(true);
-                                            }}
-                                        >
-                                            <FaRegEye color="black" size={22} />
-                                        </button>
+                                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
+
+                                    <h1 className="grid items-center pl-3 col-span-2 uppercase">{item.name}</h1>
+                                    <h1 className="grid justify-center items-center">{item.duration} phút</h1>
+                                    <div className="grid col-span-3 grid-cols-7">
+                                        <h1 className="grid justify-center col-span-4 items-center">
+                                            {formatDate(item.startDate)}
+                                        </h1>
+                                        <h1 className="grid justify-center col-span-3 items-center">
+                                            {formatDate(item.endDate)}
+                                        </h1>
+                                    </div>
+                                    <div className="grid grid-cols-7 justify-center col-span-2 ">
+                                        <div className="grid col-span-5  justify-center items-center">
+                                            <button
+                                                className={`border px-2  uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
+                                                    item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                                                }`}
+                                                onClick={() => handleUpdateStatusMovie(item.code, item.status)}
+                                            >
+                                                {item.status === 0 ? 'Hết hiệu lực' : 'Có hiệu lực'}
+                                            </button>
+                                        </div>
+
+                                        <div className=" col-span-2 justify-center items-center flex">
+                                            <button
+                                                className="mr-[8px] py-1 max-lg:mr-1"
+                                                onClick={() => {
+                                                    handleOpen(true);
+                                                    setSelectedFilm(item);
+                                                }}
+                                            >
+                                                <FaRegEdit color="black" size={22} />
+                                            </button>
+                                            <button
+                                                className=" py-1"
+                                                onClick={() => {
+                                                    handleOpen(true);
+                                                    setSelectedFilm(item);
+                                                    setDetailMovie(true);
+                                                }}
+                                            >
+                                                <FaRegEye color="black" size={22} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </LazyLoad>
                         ))}
                     </div>
                 </div>
