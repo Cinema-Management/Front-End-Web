@@ -116,7 +116,7 @@ const Customer = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-7 items-center">
                     <h1 className="grid justify-center items-center">Họ tên</h1>
                     <h1 className="grid justify-center items-center">Số điện thoại</h1>

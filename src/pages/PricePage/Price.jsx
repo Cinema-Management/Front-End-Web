@@ -204,7 +204,7 @@ const Price = () => {
                     </div>
                 </div>
             </div>
-            <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border  h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div>
                     <h1 className="font-bold text-[16px] pl-3 pt-1 ">Vé</h1>
 

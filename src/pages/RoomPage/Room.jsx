@@ -425,7 +425,7 @@ const Roome = () => {
 
     console.log(selectSeat);
     return (
-        <div className="grid h-[670px] rounded-[10px] custom-height-md1 custom-height-xl1 custom-height-lg1 custom-height-sm17 bg-white">
+        <div className="grid h-[670px] rounded-[10px] custom-height-md1 custom-height-xl1 custom-height-lg1 custom-height-sm17 custom-height-xs1 bg-white">
             <h1 className=" text-2xl font-bold  uppercase p-2">Phòng 1</h1>
             <div className=" grid max-lg:row-span-2 ">
                 <div className=" grid h-[80px]">
