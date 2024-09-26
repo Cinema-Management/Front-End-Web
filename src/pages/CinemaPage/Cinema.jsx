@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
@@ -8,6 +8,8 @@ import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ky from 'ky';
+import { useQuery } from 'react-query';
+import Loading from '~/components/LoadingComponent/Loading';
 const rap = [
     {
         id: 1,
@@ -98,26 +100,34 @@ const Cinema = () => {
     const [openDetail, setOpenDetail] = useState(false);
     const [onpenRoom, setOpenRoom] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState('');
-
+    const [selectedValue, setSelectedValue] = useState('');
     const BASE_API_URL = 'https://provinces.open-api.vn/api';
-    const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
     const [selectedProvince, setSelectedProvince] = useState('');
     const [selectedDistrict, setSelectedDistrict] = useState('');
     const [selectedWard, setSelectedWard] = useState('');
-
+    const navigate = useNavigate();
     // Fetch provinces
-    const fetchProvinces = async () => {
-        try {
-            const data = await ky.get(`${BASE_API_URL}/p/`).json();
-            setProvinces(data); // Giả sử data là một mảng các tỉnh
-        } catch (error) {
-            console.error('Error fetching provinces:', error);
-        }
-    };
+    const {
+        data: provinces = [],
+        isLoading: isLoadingProvinces,
+        error: provincesError,
+    } = useQuery(
+        'provinces',
+        async () => {
+            const response = await ky.get(`${BASE_API_URL}/p/`);
+            return response.json();
+        },
+        {
+            staleTime: 1000 * 60 * 5, // Dữ liệu còn mới trong 3 phút
+            cacheTime: 1000 * 60 * 10, // Giữ trong cache 10 phút
+        },
+    );
 
-    // Fetch districts based on selected province
+    if (isLoadingProvinces) return <Loading />;
+    if (provincesError) return <div>Error loading provinces: {provincesError.message}</div>;
+
     const fetchDistricts = async (provinceCode) => {
         try {
             const data = await ky.get(`${BASE_API_URL}/p/${provinceCode}`, { searchParams: { depth: 2 } }).json();
@@ -139,10 +149,6 @@ const Cinema = () => {
             console.error('Error fetching wards:', error);
         }
     };
-
-    useEffect(() => {
-        fetchProvinces();
-    }, []);
 
     const removeVietnameseTones = (str) => {
         return str
@@ -184,7 +190,6 @@ const Cinema = () => {
         setSelectedWard(value);
     };
 
-    const navigate = useNavigate();
     const handleNavigate = (path) => {
         navigate(path);
     };
@@ -206,8 +211,6 @@ const Cinema = () => {
 
     const handOpenDetail = () => setOpenDetail(true);
     const handleCloseDetail = () => setOpenDetail(false);
-
-    const [selectedValue, setSelectedValue] = useState('');
 
     const handleChange = (event) => {
         setSelectedValue(event.target.value);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { MdSwapVert } from 'react-icons/md';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { FaRegEdit } from 'react-icons/fa';
@@ -12,12 +12,24 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { FaRegEye } from 'react-icons/fa6';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import LazyLoad from 'react-lazy-load';
+import { useQuery } from 'react-query';
+import Loading from '~/components/LoadingComponent/Loading';
+
+const fetchMoviesAndGenres = async () => {
+    const [moviesResponse, genresResponse] = await Promise.all([
+        axios.get('api/movies'), // API để lấy dữ liệu phim
+        axios.get('api/movie-genres'), // API để lấy dữ liệu thể loại phim
+    ]);
+
+    return {
+        movies: moviesResponse.data, // Dữ liệu phim
+        genres: genresResponse.data, // Dữ liệu thể loại phim
+    };
+};
 
 const Film = React.memo(() => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
-    const [data, setData] = useState([]);
-    const [optionGenre, setOptionGenre] = useState([]);
     const [open, setOpen] = useState(false);
     const descriptionRef = useRef('');
     const [selectedMovie, setSelectedMovie] = useState('');
@@ -33,6 +45,25 @@ const Film = React.memo(() => {
     const [endDate, setEndDate] = useState('');
     const [selecteFilm, setSelectedFilm] = useState([]);
     const [detailMovie, setDetailMovie] = useState(false);
+    const [selectedValue, setSelectedValue] = useState('');
+    // Sử dụng useQuery cho phim
+    const {
+        data: { movies, genres } = {},
+        // Khởi tạo giá trị mặc định để tránh lỗi nếu dữ liệu chưa có
+        error,
+        isLoading,
+        isFetched,
+        refetch,
+    } = useQuery('moviesAndGenres', fetchMoviesAndGenres, {
+        staleTime: 1000 * 60 * 3, // Dữ liệu còn mới trong 3 phút
+        cacheTime: 1000 * 60 * 10, // Giữ trong cache 10 phút
+        // refetchInterval: 30000, // Tự động tải lại dữ liệu sau 10 giây
+    });
+
+    // Kiểm tra trạng thái tải
+    if (isLoading) return <Loading />;
+    if (!isFetched) return <div>Fetching...</div>;
+    if (error) return <div>Error loading data: {error.message}</div>;
 
     const handleOpen = (isUpdate) => {
         setOpen(true);
@@ -43,8 +74,6 @@ const Film = React.memo(() => {
         setSelectedImage(null);
         setDetailMovie(false);
     };
-
-    const [selectedValue, setSelectedValue] = useState('');
 
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
@@ -72,34 +101,6 @@ const Film = React.memo(() => {
             status: 'InActive',
         },
     ];
-
-    useEffect(() => {
-        fetchDataMovie();
-        fetchDataGenre();
-        // eslint-disable-next-line
-    }, []);
-
-    const fetchDataMovie = async () => {
-        try {
-            const response = await axios.get('api/movies');
-            if (JSON.stringify(response.data) !== JSON.stringify(data)) {
-                setData(response.data);
-            }
-        } catch (err) {
-            console.error('Error fetching movies:', err);
-        }
-    };
-
-    const fetchDataGenre = async () => {
-        try {
-            const response = await axios.get('api/movie-genres');
-            if (JSON.stringify(response.data) !== JSON.stringify(optionGenre)) {
-                setOptionGenre(response.data);
-            }
-        } catch (err) {
-            console.error('Error fetching movie genres:', err);
-        }
-    };
 
     // Hàm xử lý khi người dùng chọn ảnh
     const handleImageChange = (event) => {
@@ -166,7 +167,7 @@ const Film = React.memo(() => {
         if (Array.isArray(selectedGenre)) {
             selectedGenre.forEach((code) => formData.append('movieGenreCode', code));
         } else {
-            console.error('selectedGenre không phải là một mảng:', selectedGenre);
+            return;
         }
 
         if (selectedImage) {
@@ -188,7 +189,7 @@ const Film = React.memo(() => {
             alert('Thêm phim thành công!');
             clearText();
             handleClose();
-            fetchDataMovie();
+            refetch();
         } catch (error) {
             alert('Đã xảy ra lỗi: ' + error.response.data.message);
         }
@@ -209,8 +210,7 @@ const Film = React.memo(() => {
                 },
             );
             alert('Cập nhật status phim thành công!');
-
-            fetchDataMovie();
+            refetch();
         } catch (error) {
             alert('Đã xảy ra lỗi: ' + error.response.data.message);
         }
@@ -230,7 +230,7 @@ const Film = React.memo(() => {
             alert('Cập nhật phim thành công!');
             clearText();
             handleClose();
-            fetchDataMovie();
+            refetch();
             setSelectedImage(null);
         } catch (error) {
             alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
@@ -255,7 +255,7 @@ const Film = React.memo(() => {
                             borderRadius="10px"
                         />
                         <AutoInputComponent
-                            options={optionGenre.map((option) => option.name)}
+                            options={genres.map((option) => option.name)}
                             value={selectedMovie}
                             onChange={setSelectedMovie}
                             title="Thể loại"
@@ -313,7 +313,7 @@ const Film = React.memo(() => {
                     </div>
 
                     <div className="py-1 px-1">
-                        {data.map((item, index) => (
+                        {movies.map((item, index) => (
                             <LazyLoad key={item.movieId} height={115} offsetTop={200}>
                                 <div className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
                                     <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center ">
@@ -421,7 +421,7 @@ const Film = React.memo(() => {
                             </div>
                             <div className="grid grid-cols-6 col-span-4 ml-5 gap-5">
                                 <Select
-                                    options={optionGenre?.map((option) => ({
+                                    options={genres?.map((option) => ({
                                         title: option.name,
                                         code: option.code,
                                     }))}
