@@ -14,7 +14,10 @@ import { LazyLoadImage } from 'react-lazy-load-image-component';
 import LazyLoad from 'react-lazy-load';
 import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
-
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { get } from 'lodash';
+const { getFormattedDate } = require('~/utils/dateUtils');
 const fetchMoviesAndGenres = async () => {
     const [moviesResponse, genresResponse] = await Promise.all([
         axios.get('api/movies'), // API để lấy dữ liệu phim
@@ -151,6 +154,8 @@ const Film = React.memo(() => {
     };
 
     const handleFormData = () => {
+        let check = validate();
+        if (!check) return;
         const formData = new FormData();
         const age = ageRestriction === 'C13' ? 13 : ageRestriction === 'C16' ? 16 : ageRestriction === 'C18' ? 18 : 0;
         formData.append('name', name);
@@ -166,10 +171,7 @@ const Film = React.memo(() => {
         formData.append('status', 0);
         if (Array.isArray(selectedGenre)) {
             selectedGenre.forEach((code) => formData.append('movieGenreCode', code));
-        } else {
-            return;
         }
-
         if (selectedImage) {
             formData.append('image', selectedImage);
         }
@@ -177,21 +179,78 @@ const Film = React.memo(() => {
         return formData;
     };
 
+    const validate = () => {
+        if (isUpdate) return true;
+        if (!name) {
+            toast.error('Vui lòng nhập tên.');
+            return false;
+        }
+        if (!duration) {
+            toast.error('Vui lòng nhập thời lượng.');
+            return false;
+        }
+        if (!selectedGenre) {
+            toast.error('Vui lòng chọn thể loại.');
+            return false;
+        }
+        if (!country) {
+            toast.error('Vui lòng chọn quốc gia.');
+            return false;
+        }
+        if (!director) {
+            toast.error('Vui lòng nhập đạo diễn.');
+            return false;
+        }
+
+        if (!startDate) {
+            toast.error('Vui lòng chọn ngày phát hành.');
+            return false;
+        }
+        if (!endDate) {
+            toast.error('Vui lòng chọn ngày kết thúc.');
+            return false;
+        }
+        if (!ageRestriction) {
+            toast.error('Vui lòng chọn độ tuổi.');
+            return false;
+        }
+        if (!cast) {
+            toast.error('Vui lòng nhập dàn diễn viên.');
+            return false;
+        }
+
+        if (!trailer) {
+            toast.error('Vui lòng nhập trailer.');
+            return false;
+        }
+        if (!selectedImage) {
+            toast.error('Vui lòng chọn hình ảnh.');
+            return false;
+        }
+        if (!descriptionRef.current) {
+            toast.error('Vui lòng thêm hình ảnh.');
+            return false;
+        }
+
+        return true;
+    };
+
     const handleAddMovie = async () => {
         // Thêm các giá trị vào FormData
         const formData = handleFormData();
+        if (!formData) return;
         try {
             await axios.post('api/movies', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            alert('Thêm phim thành công!');
+            toast.success('Thêm phim thành công!');
             clearText();
             handleClose();
             refetch();
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+            toast.error('Thêm phim thất bại!');
         }
     };
 
@@ -218,25 +277,23 @@ const Film = React.memo(() => {
 
     const handleUpdateMovie = async (movieCode) => {
         const formData = handleFormData();
+
         try {
-            const response = await axios.put(`api/movies/${movieCode}`, formData, {
+            await axios.put(`api/movies/${movieCode}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            console.log(response.data);
-
-            alert('Cập nhật phim thành công!');
+            toast.success('Cập nhật phim thành công!');
             clearText();
             handleClose();
             refetch();
             setSelectedImage(null);
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+            toast.error('Cập nhật phim thất bại!');
         }
     };
-
     return (
         <div className="max-h-screen">
             <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
@@ -579,13 +636,13 @@ const Film = React.memo(() => {
                             <div className="grid p-2">
                                 <div className="grid grid-cols-2 gap-5">
                                     <InputComponent
-                                        placeholder="30-08-2024 03:06:17"
+                                        value={getFormattedDate(selecteFilm?.createdAt)}
                                         title="Ngày tạo"
                                         className="rounded-[5px] bg-[#707070] "
                                         disabled={true}
                                     />
                                     <InputComponent
-                                        placeholder="30-08-2024 03:06:17"
+                                        value={getFormattedDate(selecteFilm?.updatedAt)}
                                         title="Ngày cập nhật"
                                         className="rounded-[5px] bg-[#707070] "
                                         disabled={true}

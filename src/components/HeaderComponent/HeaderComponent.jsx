@@ -6,13 +6,15 @@ import { SlScreenDesktop } from 'react-icons/sl';
 import { LuCalendarDays } from 'react-icons/lu';
 import { LuTicket } from 'react-icons/lu';
 import { FcStatistics } from 'react-icons/fc';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { BsTag } from 'react-icons/bs';
 import { ImSpoonKnife } from 'react-icons/im';
 import { MdOutlineAttachMoney } from 'react-icons/md';
+
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation(); // Get the current route
 
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
@@ -20,6 +22,13 @@ const HeaderComponent = () => {
 
     const handleNavigate = (path) => {
         navigate(path);
+    };
+
+    const isActive = (path) => {
+        return location.pathname === path ? 'bg-orange-300' : '';
+    };
+    const isParentActive = (paths) => {
+        return paths.some((path) => location.pathname.startsWith(path)) ? 'bg-orange-200' : '';
     };
     return (
         <div className="bg-white xl:w-1/5 max-xl:w-28p min-w-[230px] custom-hubmax1 custom-height-lg3 custom-height-sm21 custom-height-xxl4">
@@ -29,21 +38,32 @@ const HeaderComponent = () => {
                     <h1 className="font-bold text-base">ADMIN TDCENIMAS</h1>
                 </div>
             </div>
-            <div className="text-center  ">
+            <div className="text-center">
                 <ul className="bg-white border rounded shadow-sm text-[18px] leading-[22px] cursor-pointer">
-                    <li className="w-full  ">
-                        <div className="hover:bg-orange-200 relative max-xl:pl-16 max-lg:pl-3 pl-12">
+                    <li className="w-full">
+                        <div
+                            className={`hover:bg-orange-500 relative max-xl:pl-16 max-lg:pl-3 pl-12 ${isParentActive([
+                                '/film',
+                                '/cinema',
+                                '/schedule',
+                                '/price',
+                                '/promotion',
+                                '/food',
+                                '/staff',
+                                '/customer',
+                            ])}`}
+                        >
                             <button onClick={toggleDropdown} className="flex items-center py-2 w-full">
                                 <GoHome className="mr-2" /> Master Data{' '}
                                 {isDropdownOpen ? (
                                     <FaChevronUp
                                         fontSize={15}
-                                        className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16 "
+                                        className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16"
                                     />
                                 ) : (
                                     <FaChevronDown
                                         fontSize={15}
-                                        className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16 "
+                                        className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16"
                                     />
                                 )}
                             </button>
@@ -51,19 +71,25 @@ const HeaderComponent = () => {
 
                         {isDropdownOpen && (
                             <ul className="border-t border-gray-400">
-                                <li className=" hover:bg-orange-200" onClick={() => handleNavigate('/film')}>
-                                    <button className="flex max-lg:ml-9 ml-20 items-center py-2  w-full">
+                                <li
+                                    className={`hover:bg-orange-500 ${isActive('/film')}`}
+                                    onClick={() => handleNavigate('/film')}
+                                >
+                                    <button className="flex max-lg:ml-9 ml-20 items-center py-2 w-full">
                                         <FaFilm className="mr-2" color="orange" />
                                         Phim
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200" onClick={() => handleNavigate('/cinema')}>
-                                    <button className="flex max-lg:ml-9 ml-20 items-center py-2  w-full ">
+                                <li
+                                    className={`hover:bg-orange-500 ${isActive('/cinema')}`}
+                                    onClick={() => handleNavigate('/cinema')}
+                                >
+                                    <button className="flex max-lg:ml-9 ml-20 items-center py-2 w-full ">
                                         <SlScreenDesktop className="mr-2" color="#66FFFF" />
                                         Rạp
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/schedule')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/schedule')}
@@ -72,7 +98,7 @@ const HeaderComponent = () => {
                                         Suất chiếu
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/price')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/price')}
@@ -81,7 +107,7 @@ const HeaderComponent = () => {
                                         Bảng giá
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/promotion')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/promotion')}
@@ -90,7 +116,7 @@ const HeaderComponent = () => {
                                         Mã khuyến mãi
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/food')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/food')}
@@ -99,7 +125,7 @@ const HeaderComponent = () => {
                                         Đồ ăn & nước
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/staff')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/staff')}
@@ -108,7 +134,7 @@ const HeaderComponent = () => {
                                         Nhân viên
                                     </button>
                                 </li>
-                                <li className="hover:bg-orange-200">
+                                <li className={`hover:bg-orange-500 ${isActive('/customer')}`}>
                                     <button
                                         className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
                                         onClick={() => handleNavigate('/customer')}
@@ -120,16 +146,16 @@ const HeaderComponent = () => {
                             </ul>
                         )}
                     </li>
-                    <li className="hover:bg-orange-200 w-full">
+                    <li className={`hover:bg-orange-500 w-full ${isActive('/order')}`}>
                         <button
-                            className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full "
+                            className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full"
                             onClick={() => handleNavigate('/order')}
                         >
                             <LuTicket className="mr-2" color="orange" />
                             Đặt vé
                         </button>
                     </li>
-                    <li className="hover:bg-orange-200 w-full">
+                    <li className={`hover:bg-orange-500 w-full ${isActive('/seat')}`}>
                         <button
                             className="flex max-xl:ml-16 max-lg:ml-3 ml-12 items-center py-2 w-full"
                             onClick={() => handleNavigate('/seat')}
