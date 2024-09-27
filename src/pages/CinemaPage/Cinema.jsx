@@ -10,6 +10,9 @@ import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ky from 'ky';
 import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
+import axios from 'axios';
+import { MultiSelect } from 'react-multi-select-component';
+
 const rap = [
     {
         id: 1,
@@ -54,34 +57,7 @@ const rap = [
         status: 'InActive',
     },
 ];
-const phong = [
-    {
-        id: 1,
-        name: 'Phòng 1',
-        loai: '2D',
-        slRoom: '60',
-        status: 'Active',
-    },
-    {
-        id: 2,
-        name: 'Phòng 2',
-        loai: '3D',
-        slRoom: '70',
-        status: 'Active',
-    },
-    {
-        id: 3,
-        name: 'Phòng 3',
-        loai: '3D',
-        slRoom: '70',
-        status: 'InActive',
-    },
-];
-const optionsQG = [
-    { value: '0', label: 'Chọn' },
-    { value: 'VN', label: 'Việt Nam' },
-    { value: 'TL', label: 'Thái Lan' },
-];
+
 const optionsLoc = [
     { value: '0', label: 'Chọn' },
     { value: 'KD', label: 'Kinh dị' },
@@ -93,6 +69,22 @@ const optionsSort = [
     { value: 'A', label: 'A - Z' },
     { value: 'B', label: 'Z - A' },
 ];
+
+const fetchCinemasFullAddress = async () => {
+    try {
+        const response = await axios.get('/api/cinemas/getAllFullAddress');
+        return response.data;
+    } catch (error) {
+        // Handle errors based on response or other criteria
+        if (error.response) {
+            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+        } else if (error.request) {
+            throw new Error('Error: No response received from server');
+        } else {
+            throw new Error('Error: ' + error.message);
+        }
+    }
+};
 const Cinema = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [isUpdateRoom, setIsUpdateRoom] = useState(false);
@@ -107,8 +99,324 @@ const Cinema = () => {
     const [selectedProvince, setSelectedProvince] = useState('');
     const [selectedDistrict, setSelectedDistrict] = useState('');
     const [selectedWard, setSelectedWard] = useState('');
+    const [nameCinema, setNameCinema] = useState('');
+    const [addressDetail, setAddressDetail] = useState('');
+    const [selectedCinema, setSelectedCinema] = useState([]);
+    const [rooms, setRooms] = useState([]);
+    const [selectedOptionRoomType, setSelectedOptionRoomType] = useState([]);
+    const [nameRoom, setNameRoom] = useState('');
+    const [numRows, setNumRows] = useState('');
+    const [numColumns, setNumColumns] = useState('');
+    const [selectedRoom, setSelectedRoom] = useState([]);
+
+    const [optionRoomType, setOptionRoomType] = useState([]);
+
+    // Gọi API để lấy danh sách loại phòng
+    const fetchRoomTypes = async () => {
+        try {
+            const response = await axios.get('api/room-types');
+            const data = response.data;
+
+            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+            const roomTypeOptions = data.map((roomType) => ({
+                label: roomType.name, // Hiển thị tên
+                value: roomType.code, // Giá trị sẽ được gửi về
+            }));
+
+            setOptionRoomType(roomTypeOptions); // Cập nhật state với options
+        } catch (error) {
+            console.error('Error fetching room types:', error);
+        }
+    };
+
     const navigate = useNavigate();
-    // Fetch provinces
+
+    const {
+        data: cinemas = [],
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+        refetch,
+    } = useQuery('cinemasFullAddress', fetchCinemasFullAddress, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+
+    const clearTextModalCinema = () => {
+        setNameCinema('');
+        setSelectedProvince('');
+        setSelectedDistrict('');
+        setSelectedWard('');
+        setAddressDetail('');
+    };
+
+    const clearTextModalRoom = () => {
+        setNameRoom('');
+        setSelectedOptionRoomType([]);
+        setNumRows('');
+        setNumColumns('');
+    };
+    // action
+    console.log('ten rap', nameCinema);
+    const handleAddRoom = async () => {
+        try {
+            if (nameRoom === '') {
+                alert('Vui lòng nhập tên phòng');
+                return;
+            }
+            const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
+            alert(arrayValueRoomType);
+            // Dữ liệu gửi đi
+            const roomData = {
+                name: nameRoom,
+                cinemaCode: selectedCinema?.code,
+                roomTypeCode: arrayValueRoomType,
+                numRows: numRows,
+                numColumns: numColumns,
+            };
+
+            // Gửi request POST tới server
+            const response = await axios.post('api/rooms', roomData);
+
+            if (response.data) {
+                clearTextModalRoom();
+                alert('Thêm phòng thành công!');
+                handleCloseRoom();
+                getRoomByCinemaCode(selectedCinema?.code);
+            }
+        } catch (err) {
+            // Nếu có lỗi, hiển thị lỗi
+            alert(err.response?.data?.message || 'Có lỗi xảy ra');
+        }
+    };
+
+    const handleUpdateRoom = async (roomCode) => {
+        try {
+            if (nameRoom === '') {
+                alert('Vui lòng nhập tên phòng');
+                return;
+            }
+            const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
+            alert(arrayValueRoomType);
+            // Dữ liệu gửi đi
+            const roomData = {
+                code: roomCode,
+                name: nameRoom,
+                cinemaCode: selectedCinema?.code,
+                roomTypeCode: arrayValueRoomType,
+                numRows: numRows,
+                numColumns: numColumns,
+            };
+
+            // Gửi request POST tới server
+            const response = await axios.put('api/rooms', roomData);
+
+            if (response.data) {
+                // clearTextModalRoom();
+                alert('Cập nhật phòng thành công!');
+                handleCloseRoom();
+                getRoomByCinemaCode(selectedCinema?.code);
+            }
+        } catch (err) {
+            // Nếu có lỗi, hiển thị lỗi
+            alert(err.response?.data?.message || 'Có lỗi xảy ra');
+        }
+    };
+
+    const handleAddCinema = async () => {
+        try {
+            if (nameCinema === '') {
+                alert('Vui lòng nhập tên rạp!');
+                return;
+            }
+            if (selectedProvince === '') {
+                alert('Vui lòng chọn tỉnh/thành phố!');
+                return;
+            }
+            if (selectedDistrict === '') {
+                alert('Vui lòng chọn quận/huyện!');
+                return;
+            }
+            if (selectedWard === '') {
+                alert('Vui lòng chọn phường/xã!');
+                return;
+            }
+            if (addressDetail === '') {
+                alert('Vui lòng nhập địa chỉ chi tiết!');
+                return;
+            }
+            const hierarchyValues = [
+                { name: selectedProvince, level: 0 },
+                { name: selectedDistrict, parentCode: '', level: 1 },
+                { name: selectedWard, parentCode: '', level: 2 },
+                { name: addressDetail, parentCode: '', level: 3 },
+            ];
+
+            let parentCode = '';
+
+            for (let i = 0; i < hierarchyValues.length; i++) {
+                const { name, level } = hierarchyValues[i];
+                const hierarchyValue = {
+                    name,
+                    parentCode: i > 0 ? parentCode : undefined,
+                    level,
+                    hierarchyStructureCode: 'PHANCAP01',
+                };
+
+                const response = await axios.post('api/hierarchy-values', hierarchyValue);
+
+                if (response.data) {
+                    parentCode = response.data.code;
+                } else {
+                    throw new Error('Không thể thêm giá trị cấp bậc.');
+                }
+            }
+
+            const cinema = {
+                name: nameCinema,
+                hierarchyValueCode: parentCode,
+            };
+
+            await axios.post('api/cinemas', cinema);
+
+            alert('Thêm Rạp thành công!');
+            refetch();
+            clearTextModalCinema();
+            handleCloseCinema();
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const handleUpdateCinema = async (cinemaCode) => {
+        if (!cinemaCode) return;
+
+        try {
+            if (nameCinema === '') {
+                alert('Vui lòng nhập tên rạp!');
+                return;
+            }
+            if (selectedProvince === '') {
+                alert('Vui lòng chọn tỉnh/thành phố!');
+                return;
+            }
+            if (selectedDistrict === '') {
+                alert('Vui lòng chọn quận/huyện!');
+                return;
+            }
+            if (selectedWard === '') {
+                alert('Vui lòng chọn phường/xã!');
+                return;
+            }
+            if (addressDetail === '') {
+                alert('Vui lòng nhập địa chỉ chi tiết!');
+                return;
+            }
+
+            const hierarchyValues = [
+                { name: selectedProvince, level: 0 },
+                { name: selectedDistrict, parentCode: '', level: 1 },
+                { name: selectedWard, parentCode: '', level: 2 },
+                { name: addressDetail, parentCode: '', level: 3 },
+            ];
+
+            let parentCode = '';
+
+            for (let i = 0; i < hierarchyValues.length; i++) {
+                const { name, level } = hierarchyValues[i];
+                const hierarchyValue = {
+                    name,
+                    parentCode: i > 0 ? parentCode : undefined,
+                    level,
+                    hierarchyStructureCode: 'PHANCAP01',
+                };
+
+                const response = await axios.post('api/hierarchy-values', hierarchyValue);
+
+                if (response.data) {
+                    parentCode = response.data.code;
+                } else {
+                    throw new Error('Không thể thêm giá trị cấp bậc.');
+                }
+            }
+            const cinema = {
+                code: cinemaCode,
+                name: nameCinema,
+                hierarchyValueCode: parentCode,
+            };
+
+            const result = await axios.put('api/cinemas', cinema);
+
+            if (result.data) {
+                alert('Cập nhật rạp thành công!');
+
+                clearTextModalCinema();
+                refetch();
+                handleCloseCinema();
+            }
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const handleUpdateStatusCinema = async (cinemaCode, currentStatus) => {
+        const newStatus = currentStatus === 0 ? 1 : 0;
+        const cinema = {
+            code: cinemaCode,
+            status: newStatus,
+        };
+        try {
+            await axios.put(`api/cinemas`, cinema);
+            alert('Cập nhật trạng thái phim thành công!');
+            refetch();
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+        }
+    };
+
+    const handleUpdateStatusRoom = async (roomcode, currentStatus) => {
+        if (!roomcode) return;
+        const newStatus = currentStatus === 0 ? 1 : 0;
+        const room = {
+            code: roomcode,
+            status: newStatus,
+        };
+        try {
+            await axios.put(`api/rooms`, room);
+            alert('Cập nhật trạng phòng thành công!');
+            getRoomByCinemaCode(selectedCinema?.code);
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+        }
+    };
+
+    const getAddress = async (code) => {
+        try {
+            const response = await axios.get(`api/hierarchy-values/${code}`);
+            if (response.data) {
+                setSelectedProvince(response.data.province);
+                setSelectedProvince(response.data.province);
+                setSelectedDistrict(response.data.district);
+                setSelectedWard(response.data.ward);
+                setAddressDetail(response.data.addressDetail);
+            }
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const getRoomByCinemaCode = async (cinemaCode) => {
+        if (!cinemaCode) return; // Nếu cinemaCode rỗng thì không gọi API
+
+        try {
+            const response = await axios.get(`api/rooms/${cinemaCode}`);
+            if (response.data) {
+                setRooms(response.data);
+                handOpenDetail();
+            }
+        } catch (error) {
+            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
     const {
         data: provinces = [],
         isLoading: isLoadingProvinces,
@@ -125,8 +433,19 @@ const Cinema = () => {
         },
     );
 
-    if (isLoadingProvinces) return <Loading />;
-    if (provincesError) return <div>Error loading provinces: {provincesError.message}</div>;
+    if (isLoadingCinemas || isLoadingProvinces) {
+        return <Loading />;
+    }
+
+    // Kiểm tra lỗi khi tải rạp chiếu phim
+    if (CinemaError) {
+        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
+    }
+
+    // Kiểm tra lỗi khi tải tỉnh
+    if (provincesError) {
+        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
+    }
 
     const fetchDistricts = async (provinceCode) => {
         try {
@@ -194,6 +513,7 @@ const Cinema = () => {
         navigate(path);
     };
     const handleOpenRoom = (isUpdateRoom) => {
+        fetchRoomTypes();
         setOpenRoom(true);
         setIsUpdateRoom(isUpdateRoom);
         setOpenDetail(false);
@@ -203,18 +523,22 @@ const Cinema = () => {
         setOpenDetail(true);
     };
 
-    const handleOpen = (isUpdate) => {
+    const handleOpenCinema = (isUpdate) => {
         setOpen(true);
         setIsUpdate(isUpdate);
     };
-    const handleClose = () => setOpen(false);
+    const handleCloseCinema = () => setOpen(false);
 
     const handOpenDetail = () => setOpenDetail(true);
-    const handleCloseDetail = () => setOpenDetail(false);
+    const handleCloseDetail = () => {
+        setOpenDetail(false);
+        refetch();
+    };
 
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
     };
+
     return (
         <div className="max-h-screen">
             <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
@@ -262,48 +586,85 @@ const Cinema = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-8 items-center gap-2">
-                    <h1 className="uppercase grid col-span-2 justify-center items-center">Tên rạp</h1>
-                    <h1 className="uppercase grid col-span-3 justify-center items-center ">Địa chỉ</h1>
-                    <h1 className="uppercase grid justify-center items-center">Số lượng phòng</h1>
-                    <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
-                    <div className="flex justify-center">
-                        <button
-                            className="border px-4 py-1 rounded-[40px] bg-orange-400"
-                            onClick={() => handleOpen(false)}
+                <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-2">
+                    <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
+                        <h1 className=" grid justify-center col-span-3 items-center  ">Stt</h1>
+                        <h1 className="grid justify-center col-span-7 items-center    ">Mã phim</h1>
+                    </div>
+
+                    <div className="uppercase grid justify-center grid-cols-10 col-span-7 gap-4 items-center">
+                        <h1 className="grid justify-center col-span-3 items-center  ">Tên rạp</h1>
+                        <h1 className="grid justify-center col-span-5 items-center   m-4 ">Địa chỉ</h1>
+                        <h1 className="grid justify-center col-span-2 items-center   ">Số lượng phòng</h1>
+                    </div>
+                    <div className="uppercase grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
+                        <h1 className="grid justify-center col-span-7 items-center    ">Trạng thái</h1>
+
+                        <div
+                            className="flex justify-center col-span-3   "
+                            onClick={() => {
+                                handleOpenCinema(false);
+                                clearTextModalCinema();
+                            }}
                         >
-                            <IoIosAddCircleOutline color="white" size={20} />
-                        </button>
+                            <button className="border px-4 py-1 rounded-[40px] bg-orange-400">
+                                <IoIosAddCircleOutline color="white" size={20} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div className="overflow-auto h-90p height-sm-1">
-                    {rap.map((item) => (
+                    {cinemas.map((item, index) => (
                         <div
-                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-8 items-center gap-2"
-                            key={item.id}
+                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-12 items-center gap-2"
+                            key={item.code}
                         >
-                            <h1 className=" grid col-span-2 ml-3 items-center  ">{item.name}</h1>
-                            <h1 className=" grid col-span-3 items-center ">{item.address}</h1>
-                            <div className="flex justify-center items-center">
-                                <h1 className="">{item.slRoom}</h1>
-                                <button className=" ml-2" onClick={handOpenDetail}>
-                                    <FaRegEye color="black" fontSize={20} />
-                                </button>
+                            <div className="grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
+                                <h1 className="grid justify-center col-span-3  items-center ">{index + 1}</h1>
+                                <h1 className="grid justify-center col-span-7 items-center  ">{item.code}</h1>
                             </div>
-                            <div className="  justify-center items-center grid">
-                                <button
-                                    className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
-                                        item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
-                                    }`}
+
+                            <div className=" grid justify-center grid-cols-10 col-span-7 gap-4 items-center">
+                                <h1 className=" grid col-span-3  items-center  ">{item.name}</h1>
+                                <h1 className=" grid col-span-5 items-center m-2 ">{item.fullAddress}</h1>
+                                <div
+                                    className="flex col-span-2 justify-center items-center cursor-pointer  "
+                                    onClick={() => {
+                                        getRoomByCinemaCode(item.code);
+                                        setSelectedCinema(item);
+                                    }}
                                 >
-                                    {item.status}
-                                </button>
+                                    <h1 className="">{item.roomsCount}</h1>
+                                    <button className=" ml-2">
+                                        <FaRegEye color="black" fontSize={20} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="  justify-center items-center grid">
-                                <button className=" px-4 py-1" onClick={() => handleOpen(true)}>
-                                    <FaRegEdit color="black" size={20} />
-                                </button>
+
+                            <div className=" grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
+                                <div className="   grid justify-center col-span-7 items-center ">
+                                    <button
+                                        className={`uppercase border px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
+                                            item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                                        }`}
+                                        onClick={() => handleUpdateStatusCinema(item.code, item.status)}
+                                    >
+                                        {item.status === 0 ? 'Không đoạt động' : 'Hoạt động'}
+                                    </button>
+                                </div>
+                                <div className="  grid justify-center col-span-3 items-center ">
+                                    <button
+                                        className=" px-4 py-1"
+                                        onClick={() => {
+                                            handleOpenCinema(true);
+                                            setSelectedCinema(item);
+                                            getAddress(item.hierarchyValueCode);
+                                        }}
+                                    >
+                                        <FaRegEdit color="black" size={20} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -312,7 +673,7 @@ const Cinema = () => {
 
             <ModalComponent
                 open={open}
-                handleClose={handleClose}
+                handleClose={handleCloseCinema}
                 width="30%"
                 height="70%"
                 smallScreenWidth="50%"
@@ -329,8 +690,8 @@ const Cinema = () => {
                 <div className=" h-90p grid grid-rows-6 gap-16">
                     <div className="grid p-3 ">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            value={isUpdate ? selectedCinema?.name : nameCinema}
+                            onChange={setNameCinema}
                             title="Tên rạp"
                             freeSolo={true}
                             disableClearable={false}
@@ -379,8 +740,8 @@ const Cinema = () => {
                     </div>
                     <div className="w-full grid row-span-3 ">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            value={addressDetail}
+                            onChange={setAddressDetail}
                             title="Địa chỉ chi tiết"
                             freeSolo={true}
                             disableClearable={false}
@@ -389,8 +750,12 @@ const Cinema = () => {
                             className1="p-3"
                         />
                         <div className="justify-end flex space-x-3 pt-4 border-t pr-4">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500" />
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseCinema} />
+                            <ButtonComponent
+                                text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
+                                className=" bg-blue-500"
+                                onClick={isUpdate ? () => handleUpdateCinema(selectedCinema?.code) : handleAddCinema}
+                            />
                         </div>
                     </div>
                 </div>
@@ -399,7 +764,7 @@ const Cinema = () => {
             <ModalComponent
                 open={openDetail}
                 handleClose={handleCloseDetail}
-                width="40%"
+                width="55%"
                 height="70%"
                 smallScreenWidth="50%"
                 smallScreenHeight="52%"
@@ -409,57 +774,105 @@ const Cinema = () => {
                 largeScreenWidth="40%"
                 maxHeightScreenHeight="87%"
                 maxHeightScreenWidth="45%"
-                title="Chi tiết rạp"
+                title="DANH SÁCH PHÒNG CHIẾU"
             >
                 <div className=" h-90p grid grid-rows-12 ">
-                    <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-5 items-center gap-2">
-                        <h1 className=" uppercase grid justify-center items-center">Tên phòng</h1>
-                        <h1 className=" uppercase grid justify-center items-center ">Loại phòng</h1>
-                        <h1 className=" uppercase grid justify-center items-center">Số ghế</h1>
-                        <h1 className=" uppercase grid justify-center items-center">Trạng thái</h1>
-                        <div className="flex justify-center">
-                            <button
-                                className="border px-4 py-1 rounded-[40px] bg-orange-400"
-                                onClick={() => handleOpenRoom(false)}
-                            >
-                                <IoIosAddCircleOutline color="white" size={20} />
-                            </button>
+                    <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-8 items-center gap-2 mx-2">
+                        <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
+                            <h1 className=" grid justify-center col-span-4 items-center   ">Stt</h1>
+                            <h1 className="grid justify-center col-span-6 items-center      ">Mã phòng</h1>
+                        </div>
+
+                        <div className="uppercase grid justify-center grid-cols-11 col-span-4 gap-2 items-center">
+                            <h1 className=" uppercase grid justify-center items-center col-span-4   ">Tên phòng</h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-5    ">Loại phòng</h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-2    ">Số ghế</h1>
+                        </div>
+
+                        <div className="uppercase grid justify-center grid-cols-10  col-span-2 gap-2 items-center">
+                            <h1 className=" uppercase grid justify-center items-center col-span-7  ">Trạng thái</h1>
+                            <div className="flex justify-center col-span-3     ">
+                                <button
+                                    className="border px-3 py-1 rounded-[40px] bg-orange-400 "
+                                    onClick={() => {
+                                        clearTextModalRoom();
+                                        handleOpenRoom(false);
+                                    }}
+                                >
+                                    <IoIosAddCircleOutline color="white" size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div className="overflow-auto row-span-11  h-95p height-sm-1 ">
-                        {phong.map((item) => (
+                        {rooms?.map((item, index) => (
                             <div
-                                className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-5 items-center gap-2"
-                                key={item.id}
-                                onClick={() => handleNavigate('/room')}
+                                className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-8 items-center gap-2 m-2"
+                                key={item.code}
                             >
-                                <h1 className=" grid items-center pl-3">{item.name}</h1>
-                                <h1 className=" grid justify-center items-center">{item.loai}</h1>
-                                <div className="grid justify-center items-center">
-                                    <h1 className="">{item.slRoom}</h1>
+                                <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
+                                    <h1 className=" grid justify-center col-span-4 items-center   ">{index + 1}</h1>
+                                    <h1 className="grid justify-center col-span-6 items-center      ">{item?.code}</h1>
                                 </div>
-                                <div className="  justify-center items-center grid">
-                                    <button
-                                        className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
-                                            item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
-                                        }`}
+
+                                <div className=" grid justify-center grid-cols-11 col-span-4 gap-2 items-center">
+                                    <h1 className=" grid items-center pl-3 col-span-4">{item?.name}</h1>
+                                    <h1 className=" grid justify-center items-center col-span-5">
+                                        {item?.roomTypeName}
+                                    </h1>
+                                    <div
+                                        className="flex justify-center items-center  col-span-2 "
+                                        onClick={() => handleNavigate('/room')}
                                     >
-                                        {item.status}
-                                    </button>
+                                        <h1 className="">138</h1>
+
+                                        <button
+                                            className=" ml-2"
+                                            onClick={() => {
+                                                getRoomByCinemaCode(item.code);
+                                            }}
+                                        >
+                                            <FaRegEye color="black" fontSize={20} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="justify-center items-center grid">
-                                    <button className=" px-4 py-1" onClick={() => handleOpenRoom(true)}>
-                                        <FaRegEdit color="black" size={25} />
-                                    </button>
+                                <div className="uppercase grid justify-center items-center grid-cols-10  col-span-2 gap-2">
+                                    <div className="  justify-center items-center grid  col-span-7 ">
+                                        <button
+                                            className={` border px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
+                                                item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                            }`}
+                                            onClick={() => handleUpdateStatusRoom(item.code, item.status)}
+                                        >
+                                            {item.status === 0 ? 'Không Hoạt động' : 'Hoạt động'}
+                                        </button>
+                                    </div>
+
+                                    <div className="justify-center items-center grid  col-span-3">
+                                        <button
+                                            className=" px-4 py-1"
+                                            onClick={() => {
+                                                handleOpenRoom(true);
+                                                setSelectedRoom(item);
+                                                setSelectedOptionRoomType(
+                                                    item.roomTypeCode.map((roomType) => ({
+                                                        label: roomType.name,
+                                                        value: roomType.code,
+                                                    })),
+                                                );
+                                            }}
+                                        >
+                                            <FaRegEdit color="black" size={25} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                     <div className="grid border-t items-center">
                         <div className="px-4 py-3 justify-end flex space-x-3 ">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                            <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleCloseDetail} />
                         </div>
                     </div>
                 </div>
@@ -486,34 +899,54 @@ const Cinema = () => {
                 <div className="grid grid-rows-1 gap-2">
                     <div className="grid grid-cols-4 gap-4 p-3">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            value={isUpdateRoom ? selectedRoom?.name : nameRoom}
+                            onChange={setNameRoom}
                             title="Tên phòng"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
                         />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            title="Loại phòng"
-                            options={optionsQG}
-                            className="grid "
-                        />
+
+                        <div>
+                            <h1>Loại phòng</h1>
+                            <MultiSelect
+                                className="border border-black rounded-md grid "
+                                options={optionRoomType}
+                                value={selectedOptionRoomType}
+                                onChange={setSelectedOptionRoomType}
+                                labelledBy="Select"
+                                valueRenderer={(selected, _options) => {
+                                    if (selected.length === 0) {
+                                        return 'Chọn';
+                                    } else if (selected.length === _options.length) {
+                                        return selected.map((item) => item.label).join(', ');
+                                    } else {
+                                        return selected.map((item) => item.label).join(', ');
+                                    }
+                                }}
+                                overrideStrings={{
+                                    selectSomeItems: 'Chọn',
+                                    selectAll: 'Chọn tất cả',
+                                    search: 'Tìm kiếm',
+                                }}
+                            />
+                        </div>
+
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            title="Số cột"
+                            value={isUpdateRoom ? selectedRoom?.numRows : numRows}
+                            onChange={setNumRows}
+                            title="Số hàng"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
                         />
+
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            title="Số hàng"
+                            value={isUpdateRoom ? selectedRoom?.numColumns : numColumns}
+                            onChange={setNumColumns}
+                            title="Số cột"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập ..."
@@ -524,7 +957,11 @@ const Cinema = () => {
                     <div className="grid items-center  border-t">
                         <div className="justify-end flex space-x-3 pr-4  pt-4">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseRoom} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                            <ButtonComponent
+                                text={isUpdateRoom ? 'Cập nhật' : 'Thêm mới'}
+                                className=" bg-blue-500 "
+                                onClick={isUpdateRoom ? () => handleUpdateRoom(selectedRoom?.code) : handleAddRoom}
+                            />
                         </div>
                     </div>
                 </div>
