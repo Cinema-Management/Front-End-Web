@@ -12,51 +12,7 @@ import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from 'axios';
 import { MultiSelect } from 'react-multi-select-component';
-
-const rap = [
-    {
-        id: 1,
-        name: 'Rạp Lotte',
-        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-        slRoom: '3',
-        status: 'Active',
-    },
-    {
-        id: 2,
-        name: 'Rạp Galaxy',
-        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-        slRoom: '2',
-        status: 'InActive',
-    },
-    {
-        id: 3,
-        name: 'Rotte',
-        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-        slRoom: '3',
-        status: 'Active',
-    },
-    {
-        id: 4,
-        name: 'Galaxy',
-        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-        slRoom: '2',
-        status: 'InActive',
-    },
-    {
-        id: 5,
-        name: 'Rotte',
-        address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-        slRoom: '3',
-        status: 'Active',
-    },
-    {
-        id: 6,
-        name: 'Galaxy',
-        address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-        slRoom: '2',
-        status: 'InActive',
-    },
-];
+import { toast } from 'react-toastify';
 
 const optionsLoc = [
     { value: '0', label: 'Chọn' },
@@ -70,21 +26,6 @@ const optionsSort = [
     { value: 'B', label: 'Z - A' },
 ];
 
-const fetchCinemasFullAddress = async () => {
-    try {
-        const response = await axios.get('/api/cinemas/getAllFullAddress');
-        return response.data;
-    } catch (error) {
-        // Handle errors based on response or other criteria
-        if (error.response) {
-            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-        } else if (error.request) {
-            throw new Error('Error: No response received from server');
-        } else {
-            throw new Error('Error: ' + error.message);
-        }
-    }
-};
 const Cinema = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [isUpdateRoom, setIsUpdateRoom] = useState(false);
@@ -111,7 +52,32 @@ const Cinema = () => {
 
     const [optionRoomType, setOptionRoomType] = useState([]);
 
-    // Gọi API để lấy danh sách loại phòng
+    // toast.success('t',optionNameCinema);
+
+    const fetchCinemasFullAddress = async () => {
+        try {
+            const response = await axios.get('/api/cinemas/getAllFullAddress');
+
+            const data = response.data;
+
+            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+            const arrayNameCinema = data.map((cinema) => ({
+                name: cinema.name, // Hiển thị tên
+                code: cinema.code, // Giá trị sẽ được gửi về
+            }));
+
+            return { cinemas: data, optionNameCinema: arrayNameCinema };
+        } catch (error) {
+            // Handle errors based on response or other criteria
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
     const fetchRoomTypes = async () => {
         try {
             const response = await axios.get('api/room-types');
@@ -132,7 +98,7 @@ const Cinema = () => {
     const navigate = useNavigate();
 
     const {
-        data: cinemas = [],
+        data: { cinemas = [], optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
         refetch,
@@ -155,16 +121,12 @@ const Cinema = () => {
         setNumRows('');
         setNumColumns('');
     };
+
     // action
-    console.log('ten rap', nameCinema);
     const handleAddRoom = async () => {
         try {
-            if (nameRoom === '') {
-                alert('Vui lòng nhập tên phòng');
-                return;
-            }
+            if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
-            alert(arrayValueRoomType);
             // Dữ liệu gửi đi
             const roomData = {
                 name: nameRoom,
@@ -179,22 +141,20 @@ const Cinema = () => {
 
             if (response.data) {
                 clearTextModalRoom();
-                alert('Thêm phòng thành công!');
+                toast.success('Thêm phòng thành công!');
                 handleCloseRoom();
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
             // Nếu có lỗi, hiển thị lỗi
-            alert(err.response?.data?.message || 'Có lỗi xảy ra');
+            toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
     };
 
     const handleUpdateRoom = async (roomCode) => {
+        if (!roomCode) return;
         try {
-            if (nameRoom === '') {
-                alert('Vui lòng nhập tên phòng');
-                return;
-            }
+            if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
             alert(arrayValueRoomType);
             // Dữ liệu gửi đi
@@ -211,39 +171,56 @@ const Cinema = () => {
             const response = await axios.put('api/rooms', roomData);
 
             if (response.data) {
-                // clearTextModalRoom();
-                alert('Cập nhật phòng thành công!');
+                clearTextModalRoom();
+                toast.success('Cập nhật phòng thành công!');
                 handleCloseRoom();
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
-            // Nếu có lỗi, hiển thị lỗi
-            alert(err.response?.data?.message || 'Có lỗi xảy ra');
+            toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
+    };
+
+    const validateCinema = () => {
+        if (nameCinema === '') {
+            toast.warning('Vui lòng nhập tên rạp!');
+            return false;
+        } else if (selectedProvince === '') {
+            toast.warning('Vui lòng chọn tỉnh/thành phố!');
+            return false;
+        } else if (selectedDistrict === '') {
+            toast.warning('Vui lòng chọn quận/huyện!');
+            return false;
+        } else if (selectedWard === '') {
+            toast.warning('Vui lòng chọn phường/xã!');
+            return false;
+        } else if (addressDetail === '') {
+            toast.warning('Vui lòng nhập địa chỉ chi tiết!');
+            return false;
+        } else return true;
+    };
+
+    const validateRoom = () => {
+        const regexPositiveInteger = /^(10|[1-9])$/;
+
+        if (nameRoom === '') {
+            toast.warning('Vui lòng nhập tên phòng!');
+            return false;
+        } else if (selectedOptionRoomType.length === 0) {
+            toast.warning('Vui lòng chọn loại phòng!');
+            return false;
+        } else if (typeof numRows === 'string' && !regexPositiveInteger.test(numRows)) {
+            toast.warning('Hàng phải là số nguyên  1 - 10 !');
+            return false;
+        } else if (typeof numColumns === 'string' && !regexPositiveInteger.test(numColumns)) {
+            toast.warning('Cột phải là số nguyên dương > 0!');
+            return false;
+        } else return true;
     };
 
     const handleAddCinema = async () => {
         try {
-            if (nameCinema === '') {
-                alert('Vui lòng nhập tên rạp!');
-                return;
-            }
-            if (selectedProvince === '') {
-                alert('Vui lòng chọn tỉnh/thành phố!');
-                return;
-            }
-            if (selectedDistrict === '') {
-                alert('Vui lòng chọn quận/huyện!');
-                return;
-            }
-            if (selectedWard === '') {
-                alert('Vui lòng chọn phường/xã!');
-                return;
-            }
-            if (addressDetail === '') {
-                alert('Vui lòng nhập địa chỉ chi tiết!');
-                return;
-            }
+            if (!validateCinema()) return;
             const hierarchyValues = [
                 { name: selectedProvince, level: 0 },
                 { name: selectedDistrict, parentCode: '', level: 1 },
@@ -278,40 +255,18 @@ const Cinema = () => {
 
             await axios.post('api/cinemas', cinema);
 
-            alert('Thêm Rạp thành công!');
+            toast.success('Thêm rạp thành công!');
             refetch();
             clearTextModalCinema();
             handleCloseCinema();
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
         }
     };
 
     const handleUpdateCinema = async (cinemaCode) => {
-        if (!cinemaCode) return;
-
         try {
-            if (nameCinema === '') {
-                alert('Vui lòng nhập tên rạp!');
-                return;
-            }
-            if (selectedProvince === '') {
-                alert('Vui lòng chọn tỉnh/thành phố!');
-                return;
-            }
-            if (selectedDistrict === '') {
-                alert('Vui lòng chọn quận/huyện!');
-                return;
-            }
-            if (selectedWard === '') {
-                alert('Vui lòng chọn phường/xã!');
-                return;
-            }
-            if (addressDetail === '') {
-                alert('Vui lòng nhập địa chỉ chi tiết!');
-                return;
-            }
-
+            if (!validateCinema()) return;
             const hierarchyValues = [
                 { name: selectedProvince, level: 0 },
                 { name: selectedDistrict, parentCode: '', level: 1 },
@@ -347,14 +302,13 @@ const Cinema = () => {
             const result = await axios.put('api/cinemas', cinema);
 
             if (result.data) {
-                alert('Cập nhật rạp thành công!');
-
+                toast.success('Cập nhật rạp thành công!');
                 clearTextModalCinema();
                 refetch();
                 handleCloseCinema();
             }
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -366,10 +320,10 @@ const Cinema = () => {
         };
         try {
             await axios.put(`api/cinemas`, cinema);
-            alert('Cập nhật trạng thái phim thành công!');
+            toast.success('Cập nhật trạng thái rạp thành công!');
             refetch();
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
 
@@ -382,10 +336,10 @@ const Cinema = () => {
         };
         try {
             await axios.put(`api/rooms`, room);
-            alert('Cập nhật trạng phòng thành công!');
+            toast.success('Cập nhật trạng thái phòng thành công!');
             getRoomByCinemaCode(selectedCinema?.code);
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
 
@@ -400,7 +354,7 @@ const Cinema = () => {
                 setAddressDetail(response.data.addressDetail);
             }
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
 
@@ -414,7 +368,7 @@ const Cinema = () => {
                 handOpenDetail();
             }
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + (error.response?.data?.message || error.message));
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
     const {
@@ -545,7 +499,7 @@ const Cinema = () => {
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Rạp</h1>
                 <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
                     <AutoInputComponent
-                        options={rap.map((option) => option.name)}
+                        options={optionNameCinema}
                         value={selectedMovie}
                         onChange={setSelectedMovie}
                         title="Tên rạp"
