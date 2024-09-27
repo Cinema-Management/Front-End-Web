@@ -62,29 +62,208 @@ code {
     scrollbar-width: thin;
     scrollbar-color: #9a9a9a #f1f1f1;
 }
-
-@media (max-height: 700px) {
+@media (min-height: 700px) and (max-height: 720px) {
+    .custom-height-xs {
+        height: 480px !important;
+    }
+    .custom-height-xs1 {
+        height: 640px !important;
+    }
+}
+@media (max-height: 704px) {
     .custom-height-sm {
-        height: 360px;
+        height: 380px;
     }
     .height-sm-1 {
         height: 86%;
     }
+    .custom-height-sm1 {
+        height: 480px;
+    }
+    .custom-height-sm2 {
+        height: 300px;
+    }
+    .custom-height-sm3 {
+        height: 300px;
+    }
+    .custom-height-sm4 {
+        grid-template-columns: repeat(5, 1fr) !important;
+        height: 400px;
+    }
+    .custom-height-sm5 {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+    }
+    .custom-height-sm6 {
+        height: 15px !important;
+    }
+    .custom-height-sm7 {
+        height: 25px !important;
+    }
+    .custom-height-sm8 {
+        width: 260px !important;
+    }
+    .custom-height-sm9 {
+        width: 420px;
+        height: 500px;
+    }
+    .custom-height-sm10 {
+        height: 130px;
+    }
+    .custom-height-sm11 {
+        height: 20px;
+    }
+    .custom-height-sm12 {
+        height: 360px;
+    }
+    .custom-height-sm13 {
+        grid-template-rows: repeat(1, 1fr) !important;
+    }
+    .custom-height-sm14 {
+        gap: 4px !important;
+    }
+    .custom-height-sm15 {
+        height: 400px;
+        justify-content: center;
+    }
+    .custom-height-sm16 {
+        height: 380px;
+    }
+    .custom-height-sm17 {
+        height: 540px;
+    }
+    .custom-height-sm18 {
+        height: 22px !important;
+    }
+    .custom-height-sm19 {
+        height: 32px !important;
+    }
+    .custom-height-sm21 {
+        min-width: 260px;
+    }
+    .custom-height-sm22 {
+        grid-template-rows: repeat(8, minmax(0, 1fr)) !important;
+    }
+    .custom-height-sm23 {
+        grid-row: span 1 / span 1;
+    }
+    .custom-height-sm24 {
+        height: 69px;
+    }
 }
 
+@media (min-height: 780px) and (max-height: 850px) {
+    .custom-height-xxl {
+        height: 680px;
+    }
+    .custom-height-xxl1 {
+        height: 540px;
+    }
+    .custom-height-xxl2 {
+        height: 740px;
+    }
+    .custom-height-xxl3 {
+        height: 570px;
+    }
+}
 @media (min-height: 901px) and (max-height: 1024px) {
     .custom-height-md {
         height: 780px;
+    }
+    .custom-height-md1 {
+        height: 960px;
+    }
+    .custom-height-md2 {
+        height: 430px;
+    }
+    .custom-height-md3 {
+        height: 17px;
+    }
+    .custom-height-md4 {
+        height: 30px;
     }
 }
 @media (min-height: 1025px) and (max-height: 1299px) {
     .custom-height-xl {
         height: 940px;
     }
+    .custom-height-xl1 {
+        height: 1120px;
+    }
+    .custom-height-xl2 {
+        height: 950px;
+    }
 }
 
 @media (min-height: 1300px) {
     .custom-height-lg {
         height: 1130px;
+    }
+    .custom-height-lg1 {
+        height: 1310px;
+    }
+    .custom-height-lg2 {
+        height: 630px;
+    }
+    .custom-height-lg3 {
+        min-width: 260px;
+    }
+}
+
+@media (max-width: 830px) {
+    .mini-air {
+        width: 230px;
+    }
+}
+@media (max-width: 769px) {
+    .mini {
+        padding: 0px;
+        margin-top: 12px;
+    }
+    .mini1 {
+        padding: 5px;
+        row-gap: 3px;
+    }
+}
+@media (min-width: 1280px) and (max-width: 1350px) {
+    .custom-hubmax {
+        height: 570px;
+    }
+    .custom-hubmax1 {
+        min-width: 325px;
+    }
+    .custom-hubmax2 {
+        padding-right: 100px;
+    }
+}
+.select-rap {
+    border: none;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 24px;
+    color: #000;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
     }
 }

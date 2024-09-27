@@ -17,7 +17,11 @@ const ModalComponent = ({
     largeScreenWidth,
     maxHeightScreenHeight,
     maxHeightScreenWidth,
+    heightScreen,
+    widthScreen,
     title,
+    room,
+    date,
 }) => {
     const style = {
         position: 'absolute',
@@ -29,7 +33,6 @@ const ModalComponent = ({
         bgcolor: 'background.paper',
         borderRadius: 2,
         boxShadow: 24,
-        // p: 3,
         '@media (max-width: 800px)': {
             width: smallScreenWidth,
             height: smallScreenHeight,
@@ -46,13 +49,24 @@ const ModalComponent = ({
             height: maxHeightScreenHeight,
             width: maxHeightScreenWidth,
         },
+        '@media (min-width: 1280px) and (max-width: 1350px)': {
+            height: heightScreen,
+            width: widthScreen,
+        },
     };
 
     return (
         <Modal open={open} onClose={handleClose} aria-labelledby="modal-title" aria-describedby="modal-description">
             <Box sx={style}>
-                <div className="border-b ">
+                <div className="border-b flex items-center ">
+                    {' '}
                     <h1 className="uppercase font-bold text-[20px] py-2 px-4">{title}</h1>
+                    {room && (
+                        <h1 className="uppercase font-bold text-[20px] py-2 px-4 border-l border-[gray]">{room}</h1>
+                    )}
+                    {date && (
+                        <h1 className="uppercase font-bold text-[20px] py-2 px-4 border-l border-[gray]">{date}</h1>
+                    )}
                 </div>
                 {children}
             </Box>
