@@ -4,6 +4,7 @@ import { routes } from '~/routes';
 import DefaultComponent from './components/DefaultComponent/DefaultComponent';
 import Loading from './components/LoadingComponent/Loading';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ToastContainer } from 'react-toastify';
 const queryClient = new QueryClient();
 function App() {
     return (
@@ -28,6 +29,17 @@ function App() {
                                 );
                             })}
                         </Routes>
+                        <ToastContainer
+                            position="top-right"
+                            autoClose={3000}
+                            hideProgressBar={false}
+                            newestOnTop={false}
+                            closeOnClick
+                            rtl={false}
+                            pauseOnFocusLoss
+                            draggable
+                            pauseOnHover
+                        />
                     </Router>
                 </Suspense>
             </div>
