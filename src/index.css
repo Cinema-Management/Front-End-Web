@@ -193,6 +193,9 @@ code {
     .custom-height-xl2 {
         height: 950px;
     }
+    .custom-air {
+        height: 850px;
+    }
 }
 
 @media (min-height: 1300px) {
@@ -234,6 +237,12 @@ code {
     }
     .custom-hubmax2 {
         padding-right: 100px;
+    }
+}
+
+@media (min-height: 1180px) and (max-width: 1370px) {
+    .air-pro {
+        padding-right: 105px !important;
     }
 }
 .select-rap {
