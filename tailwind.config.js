@@ -22,7 +22,7 @@ module.exports = {
             air: '830px',
             lg: '1025px',
             xl: '1281px',
-            xxl: '1400px',
+            xxl: '1500px',
             pc: '1280px',
             xl900: '900px',
             mh850: '850px',

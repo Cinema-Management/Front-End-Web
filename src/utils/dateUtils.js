@@ -1,5 +1,3 @@
-// dateUtils.js
-
 function getFormattedDate(isoString) {
     const date = new Date(isoString);
 
@@ -13,5 +11,4 @@ function getFormattedDate(isoString) {
     return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
 }
 
-// Xuất hàm để sử dụng ở nơi khác
 module.exports = { getFormattedDate };
