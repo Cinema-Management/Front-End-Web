@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
+
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
@@ -18,8 +19,7 @@ const Cinema = () => {
     const [isUpdateRoom, setIsUpdateRoom] = useState(false);
     const [open, setOpen] = useState(false);
     const [openDetail, setOpenDetail] = useState(false);
-    const [onpenRoom, setOpenRoom] = useState(false);
-    const [selectedMovie, setSelectedMovie] = useState('');
+    const [openRoom, setOpenRoom] = useState(false);
     const BASE_API_URL = 'https://provinces.open-api.vn/api';
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
@@ -31,12 +31,15 @@ const Cinema = () => {
     const [selectedCinema, setSelectedCinema] = useState([]);
     const [rooms, setRooms] = useState([]);
     const [selectedOptionRoomType, setSelectedOptionRoomType] = useState([]);
+    const [selectedOptionRoomSize, setSelectedOptionRoomSize] = useState([]);
     const [nameRoom, setNameRoom] = useState('');
     const [numRows, setNumRows] = useState('');
     const [numColumns, setNumColumns] = useState('');
     const [selectedRoom, setSelectedRoom] = useState([]);
 
     const [optionRoomType, setOptionRoomType] = useState([]);
+    const [optionRoomSize, setOptionRoomSize] = useState('');
+
     const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
     const [selectedOptionFilterStatus, setSelectedOptionFilterStatus] = useState('');
     const [inputValue, setInputValue] = useState('');
@@ -174,6 +177,37 @@ const Cinema = () => {
             setCinemasFilter(data.cinemas); // Cập nhật danh sách rạp ban đầu khi fetch thành công
         },
     });
+
+    const {
+        data: provinces = [],
+        isLoading: isLoadingProvinces,
+        error: provincesError,
+    } = useQuery(
+        'provinces',
+        async () => {
+            const response = await ky.get(`${BASE_API_URL}/p/`);
+            return response.json();
+        },
+        {
+            staleTime: 1000 * 60 * 5, // Dữ liệu còn mới trong 3 phút
+            cacheTime: 1000 * 60 * 10, // Giữ trong cache 10 phút
+        },
+    );
+
+    if (isLoadingCinemas || isLoadingProvinces) {
+        return <Loading />;
+    }
+
+    // Kiểm tra lỗi khi tải rạp chiếu phim
+    if (CinemaError) {
+        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
+    }
+
+    // Kiểm tra lỗi khi tải tỉnh
+    if (provincesError) {
+        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
+    }
+
     const fetchRoomTypes = async () => {
         try {
             const response = await axios.get('api/room-types');
@@ -191,6 +225,23 @@ const Cinema = () => {
         }
     };
 
+    const fetchRoomSizes = async () => {
+        try {
+            const response = await axios.get('api/room-sizes');
+            const data = response.data;
+
+            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+            const roomSizeOptions = data.map((roomSize) => ({
+                name: roomSize.name, // Hiển thị tên
+                value: roomSize.code, // Giá trị sẽ được gửi về
+            }));
+
+            setOptionRoomSize(roomSizeOptions); // Cập nhật state với options
+        } catch (error) {
+            console.error('Error fetching room types:', error);
+        }
+    };
+
     const clearTextModalCinema = () => {
         setNameCinema('');
         setSelectedProvince('');
@@ -202,6 +253,7 @@ const Cinema = () => {
     const clearTextModalRoom = () => {
         setNameRoom('');
         setSelectedOptionRoomType([]);
+        setSelectedOptionRoomSize([]);
         setNumRows('');
         setNumColumns('');
     };
@@ -211,13 +263,15 @@ const Cinema = () => {
         try {
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
+
+            const selectedOption = optionRoomSize.find((option) => option.name === selectedOptionRoomSize);
+
             // Dữ liệu gửi đi
             const roomData = {
                 name: nameRoom,
                 cinemaCode: selectedCinema?.code,
                 roomTypeCode: arrayValueRoomType,
-                numRows: numRows,
-                numColumns: numColumns,
+                roomSizeCode: selectedOption?.value,
             };
 
             // Gửi request POST tới server
@@ -238,9 +292,11 @@ const Cinema = () => {
     const handleUpdateRoom = async (roomCode) => {
         if (!roomCode) return;
         try {
+            const option = optionRoomSize.find((option) => option.name === selectedRoom?.roomSizeName);
+
+            setSelectedOptionRoomSize(option);
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
-            alert(arrayValueRoomType);
             // Dữ liệu gửi đi
             const roomData = {
                 code: roomCode,
@@ -285,19 +341,14 @@ const Cinema = () => {
     };
 
     const validateRoom = () => {
-        const regexPositiveInteger = /^(10|[1-9])$/;
-
         if (nameRoom === '') {
             toast.warning('Vui lòng nhập tên phòng!');
             return false;
         } else if (selectedOptionRoomType.length === 0) {
             toast.warning('Vui lòng chọn loại phòng!');
             return false;
-        } else if (typeof numRows === 'string' && !regexPositiveInteger.test(numRows)) {
-            toast.warning('Hàng phải là số nguyên  1 - 10 !');
-            return false;
-        } else if (typeof numColumns === 'string' && !regexPositiveInteger.test(numColumns)) {
-            toast.warning('Cột phải là số nguyên dương > 0!');
+        } else if (selectedOptionRoomSize.length === 0) {
+            toast.warning('Vui lòng chọn size phòng!');
             return false;
         } else return true;
     };
@@ -455,35 +506,6 @@ const Cinema = () => {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
-    const {
-        data: provinces = [],
-        isLoading: isLoadingProvinces,
-        error: provincesError,
-    } = useQuery(
-        'provinces',
-        async () => {
-            const response = await ky.get(`${BASE_API_URL}/p/`);
-            return response.json();
-        },
-        {
-            staleTime: 1000 * 60 * 5, // Dữ liệu còn mới trong 3 phút
-            cacheTime: 1000 * 60 * 10, // Giữ trong cache 10 phút
-        },
-    );
-
-    if (isLoadingCinemas || isLoadingProvinces) {
-        return <Loading />;
-    }
-
-    // Kiểm tra lỗi khi tải rạp chiếu phim
-    if (CinemaError) {
-        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
-    }
-
-    // Kiểm tra lỗi khi tải tỉnh
-    if (provincesError) {
-        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
-    }
 
     const fetchDistricts = async (provinceCode) => {
         try {
@@ -552,6 +574,7 @@ const Cinema = () => {
     };
     const handleOpenRoom = (isUpdateRoom) => {
         fetchRoomTypes();
+        fetchRoomSizes();
         setOpenRoom(true);
         setIsUpdateRoom(isUpdateRoom);
         setOpenDetail(false);
@@ -609,7 +632,7 @@ const Cinema = () => {
                             }`}
                             onClick={() => handleUpdateStatusCinema(item.code, item.status)}
                         >
-                            {item.status === 0 ? 'Không đoạt động' : 'Hoạt động'}
+                            {item.status === 0 ? 'Ngừng hoạt động' : 'Hoạt động'}
                         </button>
                     </div>
                     <div className="  grid justify-center col-span-3 items-center ">
@@ -825,29 +848,38 @@ const Cinema = () => {
             <ModalComponent
                 open={openDetail}
                 handleClose={handleCloseDetail}
-                width="55%"
+                width="60%"
                 height="70%"
-                smallScreenWidth="50%"
+                smallScreenWidth="70%"
                 smallScreenHeight="52%"
-                mediumScreenWidth="50%"
+                mediumScreenWidth="70%"
                 mediumScreenHeight="45%"
                 largeScreenHeight="38%"
-                largeScreenWidth="40%"
+                largeScreenWidth="70%"
                 maxHeightScreenHeight="87%"
                 maxHeightScreenWidth="45%"
                 title="DANH SÁCH PHÒNG CHIẾU"
             >
                 <div className=" h-90p grid grid-rows-12 ">
-                    <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-8 items-center gap-2 mx-2">
+                    <div className="border-b text-xs font-bold text-slate-500 grid grid-cols-9 items-center gap-2 mx-2">
                         <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
                             <h1 className=" grid justify-center col-span-4 items-center   ">Stt</h1>
                             <h1 className="grid justify-center col-span-6 items-center      ">Mã phòng</h1>
                         </div>
 
-                        <div className="uppercase grid justify-center grid-cols-11 col-span-4 gap-2 items-center">
-                            <h1 className=" uppercase grid justify-center items-center col-span-4   ">Tên phòng</h1>
-                            <h1 className=" uppercase grid justify-center items-center col-span-5    ">Loại phòng</h1>
-                            <h1 className=" uppercase grid justify-center items-center col-span-2    ">Số ghế</h1>
+                        <div className="uppercase grid justify-center grid-cols-12 col-span-5 gap-2 items-center">
+                            <h1 className=" uppercase grid justify-center items-center col-span-4  bg-red-500 ">
+                                Tên phòng
+                            </h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-2  bg-red-200 ">
+                                Kích cỡ
+                            </h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-4  bg-red-500  ">
+                                Loại phòng
+                            </h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-2   bg-red-200 ">
+                                Số ghế
+                            </h1>
                         </div>
 
                         <div className="uppercase grid justify-center grid-cols-10  col-span-2 gap-2 items-center">
@@ -869,7 +901,7 @@ const Cinema = () => {
                     <div className="overflow-auto row-span-11  h-95p height-sm-1 ">
                         {rooms?.map((item, index) => (
                             <div
-                                className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-8 items-center gap-2 m-2"
+                                className="border-b text-base font-normal  py-3 text-slate-500 grid grid-cols-9 items-center gap-2 m-2"
                                 key={item.code}
                             >
                                 <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
@@ -877,13 +909,15 @@ const Cinema = () => {
                                     <h1 className="grid justify-center col-span-6 items-center      ">{item?.code}</h1>
                                 </div>
 
-                                <div className=" grid justify-center grid-cols-11 col-span-4 gap-2 items-center">
+                                <div className=" grid justify-center grid-cols-12 col-span-5 gap-2 items-center">
                                     <h1 className=" grid items-center pl-3 col-span-4">{item?.name}</h1>
-                                    <h1 className=" grid justify-center items-center col-span-5">
+                                    <h1 className=" grid items-center pl-3 col-span-2">{item?.roomSizeName}</h1>
+
+                                    <h1 className=" grid justify-center items-center col-span-4">
                                         {item?.roomTypeName}
                                     </h1>
                                     <div
-                                        className="flex justify-center items-center  col-span-2 "
+                                        className="flex justify-center items-center col-span-2 "
                                         onClick={() => handleNavigate('/room')}
                                     >
                                         <h1 className="">138</h1>
@@ -901,12 +935,12 @@ const Cinema = () => {
                                 <div className="uppercase grid justify-center items-center grid-cols-10  col-span-2 gap-2">
                                     <div className="  justify-center items-center grid  col-span-7 ">
                                         <button
-                                            className={` border px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
+                                            className={` uppercase  border px-2 text-white text-xs py-[1px] flex  rounded-[40px] ${
                                                 item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                                             }`}
                                             onClick={() => handleUpdateStatusRoom(item.code, item.status)}
                                         >
-                                            {item.status === 0 ? 'Không Hoạt động' : 'Hoạt động'}
+                                            {item.status === 0 ? 'Ngừng hoạt động' : 'Hoạt động'}
                                         </button>
                                     </div>
 
@@ -940,7 +974,7 @@ const Cinema = () => {
             </ModalComponent>
 
             <ModalComponent
-                open={onpenRoom}
+                open={openRoom}
                 handleClose={handleCloseRoom}
                 width="60%"
                 height="28%"
@@ -958,7 +992,7 @@ const Cinema = () => {
                 title={isUpdateRoom ? 'Chỉnh sửa phòng' : 'Thêm phòng'}
             >
                 <div className="grid grid-rows-1 gap-2">
-                    <div className="grid grid-cols-4 gap-4 p-3">
+                    <div className="grid grid-cols-3 gap-4 p-3">
                         <AutoInputComponent
                             value={isUpdateRoom ? selectedRoom?.name : nameRoom}
                             onChange={setNameRoom}
@@ -993,25 +1027,20 @@ const Cinema = () => {
                                 }}
                             />
                         </div>
-
                         <AutoInputComponent
-                            value={isUpdateRoom ? selectedRoom?.numRows : numRows}
-                            onChange={setNumRows}
-                            title="Số hàng"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập ..."
+                            options={optionRoomSize}
+                            value={
+                                isUpdateRoom && Array.isArray(optionRoomSize) // Kiểm tra xem optionRoomSize có phải là mảng không
+                                    ? optionRoomSize.find((option) => option.name === selectedRoom?.roomSizeName) // Tìm option tương ứng
+                                    : selectedOptionRoomSize
+                            }
+                            onChange={setSelectedOptionRoomSize}
+                            title="Kích cỡ"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Chọn ..."
                             heightSelect={200}
-                        />
-
-                        <AutoInputComponent
-                            value={isUpdateRoom ? selectedRoom?.numColumns : numColumns}
-                            onChange={setNumColumns}
-                            title="Số cột"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập ..."
-                            heightSelect={200}
+                            disabled={isUpdateRoom}
                         />
                     </div>
 
