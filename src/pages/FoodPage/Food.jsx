@@ -1,38 +1,71 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaRegEdit } from 'react-icons/fa';
-import { FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdSwapVert } from 'react-icons/md';
+import { MdOutlineDeleteOutline } from 'react-icons/md';
 import InputComponent from '~/components/InputComponent/InputComponent';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import { useQuery } from 'react-query';
+import { FixedSizeList as List } from 'react-window';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from '~/setup/axios';
-const { getFormattedDate } = require('~/utils/dateUtils');
-const fetchProductNotSeat = async () => {
-    const [productNotSeat] = await Promise.all([axios.get('api/products/getAllNotSeat')]);
-    console.log('...check res', productNotSeat);
-    return {
-        product: productNotSeat,
-    };
-};
+import HeightComponent from '~/components/HeightComponent/HeightComponent';
 
-const Foood = () => {
+const { getFormattedDate } = require('~/utils/dateUtils');
+
+const Food = () => {
+    const fetchProductNotSeat = async () => {
+        const [productNotSeat] = await Promise.all([axios.get('api/products/getAllNotSeat')]);
+        return {
+            product: productNotSeat,
+        };
+    };
+    const {
+        data: { product } = [],
+        error,
+        isLoading,
+        isFetched,
+        isFetching,
+        refetch,
+    } = useQuery('productNotSeat', fetchProductNotSeat, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
-    const [selectedMovie, setSelectedMovie] = useState('');
+    const [selectedMovie, setSelectedMovie] = useState(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [image, setImage] = useState('');
+    const [image, setImage] = useState(null);
     const [type, setType] = useState('Mặc định');
-    const [selectedFood, setSelectedFood] = useState('');
-    const [selectedValue, setSelectedValue] = useState('');
+    const [selectedFood, setSelectedFood] = useState(null);
+    const [openDelete, setOpenDelete] = useState(false);
+    const [foodFilter, setFoodFilter] = useState([]);
+    const [isStatus, setIsStatus] = useState(false);
+    const [isUpdateStatus, setIsUpdateStatus] = useState(false);
+    const [inputSets, setInputSets] = useState([
+        { code: '', name: '', quantity: 0 },
+        { code: '', name: '', quantity: 0 },
+    ]);
+    const optionsSort = [
+        { value: 3, name: 'Tất cả' },
+        { value: 1, name: 'Bắp & nước' },
+        { value: 2, name: 'Combo' },
+    ];
+    const optionStatus = [
+        { value: 3, name: 'Tất cả' },
+        { value: 1, name: 'Đang bán' },
+        { value: 2, name: 'Ngừng bán' },
+    ];
+    const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
+    const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
+    const height = HeightComponent();
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setImage(file);
@@ -45,39 +78,72 @@ const Foood = () => {
         setOpen(false);
         setImage(null);
         setIsUpdate(false);
+        setSelectedFood(null);
+        setName('');
+        setDescription('');
+        setType('Mặc định');
+        setInputSets([
+            { code: '', name: '', quantity: 0 },
+            { code: '', name: '', quantity: 0 },
+        ]);
     };
 
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
+    const sortFood = (option) => {
+        if (!option) {
+            setFoodFilter(product);
+            return;
+        }
+        setSelectedSort(option);
+
+        let sortedFood = [];
+        if (option.value === 1) {
+            sortedFood = product.filter((item) => item.type === 1);
+            setFoodFilter(sortedFood);
+        } else if (option.value === 2) {
+            sortedFood = product.filter((item) => item.type === 2);
+            setFoodFilter(sortedFood);
+        } else if (option.value === 3) {
+            sortedFood = product;
+        }
+        if (sortedFood.length > 0) {
+            setFoodFilter(sortedFood);
+        }
+    };
+    console.log('product', product);
+
+    const sortedStatus = (option) => {
+        console.log('abc', product);
+        if (!option) {
+            setFoodFilter(product);
+            return;
+        }
+        setSelectedStatus(option);
+        let sortedStatus = [];
+        if (option.value === 1) {
+            sortedStatus = product.filter((item) => item.status === 1);
+            setFoodFilter(sortedStatus);
+        } else if (option.value === 2) {
+            sortedStatus = product.filter((item) => item.status === 0);
+            setFoodFilter(sortedStatus);
+        } else if (option.value === 3) {
+            sortedStatus = product;
+        }
+        if (sortedStatus.length > 0) {
+            setFoodFilter(sortedStatus);
+        }
     };
 
-    console.log('...check isUpdate', isUpdate);
-    const {
-        data: { product } = {},
-        error,
-        isLoading,
-        isFetched,
-        refetch,
-    } = useQuery('productNotSeat', fetchProductNotSeat, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
+    const handleOpenDelete = () => {
+        setOpenDelete(true);
+    };
+    const handleCloseDelete = () => {
+        setOpenDelete(false);
+    };
+
     // Kiểm tra trạng thái tải
-    if (isLoading) return <Loading />;
+    if (isLoading || isFetching) return <Loading />;
     if (!isFetched) return <div>Fetching...</div>;
     if (error) return <div>Error loading data: {error.message}</div>;
-
-    const optionsLoc = [
-        { value: '0', label: 'Lọc thể loại' },
-        { value: 'KD', label: 'Kinh dị' },
-        { value: 'HH', label: 'Hài hước' },
-        { value: 'TC', label: 'Tình cảm' },
-    ];
-    const optionsSort = [
-        { value: '0', label: 'Xếp theo tên' },
-        { value: 'A', label: 'A - Z' },
-        { value: 'B', label: 'Z - A' },
-    ];
 
     const options = [
         { value: '1', label: 'Mặc định' },
@@ -99,6 +165,40 @@ const Foood = () => {
             status: 'InActive',
         },
     ];
+
+    const updateInputSet = (index, field, value) => {
+        const newInputSets = [...inputSets];
+        newInputSets[index][field] = value;
+        setInputSets(newInputSets);
+    };
+
+    const removeInputSet = (index) => {
+        const updatedInputSets = inputSets.filter((_, i) => i !== index);
+        setInputSets(updatedInputSets);
+    };
+
+    const handleCodeChange = (index, newValue) => {
+        const selectedProduct = product.find((item) => item.name === newValue);
+        const code = selectedProduct ? selectedProduct.code : '';
+
+        updateInputSet(index, 'code', code);
+        updateInputSet(index, 'name', newValue);
+    };
+    const handleComboSelect = (combo) => {
+        if (combo && combo.comboItems) {
+            const updatedInputSets = combo.comboItemNames.map((item) => ({
+                code: item?.code,
+                name: item?.name,
+                quantity: item?.quantity,
+            }));
+            setInputSets(updatedInputSets);
+        }
+    };
+
+    const addInputSet = () => {
+        setInputSets([...inputSets, { code: '', name: '', quantity: 0 }]);
+    };
+
     const validate = () => {
         if (isUpdate) return true;
         if (!name) {
@@ -149,22 +249,241 @@ const Foood = () => {
     };
 
     const handleUpdateFood = async () => {
-        const form = formDataFood();
-        try {
-            await axios.post(`api/products/${selectedFood?.code}`, form, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+        const typeSelected = selectedFood?.type === 1 ? 'Mặc định' : 'Combo';
+        if (name !== '' || description !== '' || image !== null || type !== typeSelected) {
+            const form = formDataFood();
+            try {
+                await axios.post(`api/products/${selectedFood?.code}`, form, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
 
-            toast.success('Cập nhật thành công!');
-            refetch();
-            setName('');
-            setDescription('');
-            handleClose();
-        } catch (error) {
-            toast.error('Cập nhật thất bại!');
+                toast.success('Cập nhật thành công!');
+                refetch();
+                setName('');
+                setDescription('');
+                handleClose();
+            } catch (error) {
+                toast.error('Cập nhật thất bại!');
+            }
+        } else {
+            toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
+            return;
         }
+    };
+
+    const handleUpdateCombo = async () => {
+        const isQuantityMismatch = inputSets.some((inputItem, index) => {
+            const comboItem = selectedFood?.comboItemNames[index];
+
+            if (comboItem) {
+                return comboItem.quantity !== Number(inputItem.quantity);
+            }
+            return true;
+        });
+
+        const comBo = inputSets.map(({ code, quantity }) => ({
+            code,
+            quantity: Number(quantity),
+        }));
+        const comBoCodes = comBo.map((item) => item.code);
+
+        const uniqueCodes = new Set(comBoCodes);
+        const hasDuplicates = uniqueCodes.size !== comBoCodes.length;
+
+        if (hasDuplicates) {
+            toast.warn('Sản phẩm đã được chọn!');
+            return;
+        }
+        const isNameMismatch = inputSets.some((inputItem, index) => {
+            const comboItem = selectedFood?.comboItemNames[index];
+
+            if (comboItem) {
+                return comboItem.name !== inputItem.name;
+            }
+            return true;
+        });
+
+        const typeSelected = selectedFood?.type === 1 ? 'Mặc định' : 'Combo';
+        if (
+            name !== '' ||
+            description !== '' ||
+            image !== null ||
+            type !== typeSelected ||
+            isQuantityMismatch ||
+            isNameMismatch ||
+            inputSets.length !== selectedFood?.comboItems.length
+        ) {
+            const comBo = inputSets.map(({ code, quantity }) => ({
+                code,
+                quantity: Number(quantity),
+            }));
+
+            const hasInvalidQuantity = comBo.some((item) => isNaN(item.quantity) || item.quantity < 1);
+            if (hasInvalidQuantity) {
+                toast.warn('Số lượng không hợp lệ!');
+                return;
+            }
+            const form = new FormData();
+            form.append('name', name);
+            form.append('description', description);
+            form.append('type', 2);
+            form.append('image', image);
+            form.append('comboItems', JSON.stringify(comBo));
+            try {
+                await axios.post(`api/products/updateCombo/${selectedFood?.code}`, form, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+
+                toast.success('Cập nhật Combo thành công!');
+                refetch();
+                setName('');
+                setDescription('');
+                handleClose();
+            } catch (error) {
+                toast.error('Cập nhật Combo thất bại!');
+            }
+        } else {
+            toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
+            return;
+        }
+    };
+
+    const handleAddCombo = async () => {
+        if (name && description && image && type === 'Combo') {
+            const comBo = inputSets.map(({ code, quantity }) => ({
+                code,
+                quantity: Number(quantity),
+            }));
+
+            const hasInvalidQuantity = comBo.some((item) => isNaN(item.quantity) || item.quantity < 1);
+            if (hasInvalidQuantity) {
+                toast.warn('Số lượng không hợp lệ!');
+                return;
+            }
+            const comBoCodes = comBo.map((item) => item.code);
+
+            const uniqueCodes = new Set(comBoCodes);
+            const hasDuplicates = uniqueCodes.size !== comBoCodes.length;
+
+            if (hasDuplicates) {
+                toast.warn('Sản phẩm đã được chọn!');
+                return;
+            }
+
+            const form = new FormData();
+            form.append('name', name);
+            form.append('description', description);
+            form.append('type', 2);
+            form.append('image', image);
+            form.append('comboItems', JSON.stringify(comBo));
+            try {
+                await axios.post('api/products/addCombo', form, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+
+                toast.success('Thêm Combo thành công!');
+                refetch();
+                setName('');
+                setDescription('');
+                handleClose();
+            } catch (error) {
+                toast.error('Thêm Combo thất bại!');
+            }
+        } else {
+            toast.warn('Vui lòng nhập thông tin!');
+            return;
+        }
+    };
+
+    const handleUpdateStatus = async (productId, status) => {
+        const newStatus = status === 0 ? 1 : 0;
+        try {
+            await axios.post(
+                `api/products/updateStatus/${productId}`,
+                {
+                    status: newStatus,
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                },
+            );
+            toast.success('Cập nhật trạng thái thành công!');
+            refetch();
+        } catch (error) {
+            toast.error('Cập nhật trạng thái thất bại!');
+        }
+    };
+
+    const handleDeleteProduct = async (productId) => {
+        try {
+            await axios.delete(`api/products/${productId}`);
+            toast.success('Xóa thành công!');
+            refetch();
+        } catch (error) {
+            toast.error('Xóa thất bại!');
+        }
+    };
+
+    const rowRenderer = ({ index, style }, data) => {
+        const item = data[index];
+        // console.log(`Rendering comment ${index + 1}: ${product[index].name}`);
+        return (
+            <div
+                className=" border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 max-lg:pr-[95px] custom-hubmax2 min-h-[120px] "
+                key={item.code}
+                style={style} // Áp dụng style để điều chỉnh vị trí
+            >
+                <div className="grid col-span-2 gap-2 grid-cols-9 justify-center items-center">
+                    <h1 className="grid pl-3 col-span-2">{index + 1}</h1>
+                    <h1 className="grid pl-3 col-span-2">{item.code}</h1>
+                    <h1 className="grid pl-3 col-span-5">{item.name}</h1>
+                </div>
+                <div className="justify-center items-center grid ">
+                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
+                </div>
+
+                <h1 className="grid">{item.description}</h1>
+                <h1 className="grid break-all">{getFormattedDate(item.createdAt)}</h1>
+                <h1 className="grid break-all">{getFormattedDate(item.updatedAt)}</h1>
+                <div className="grid justify-center">
+                    <button
+                        className={`border px-2 w-[auto] uppercase text-white text-[13px] py-1 flex rounded-[40px] ${
+                            item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                        onClick={() => handleUpdateStatus(item.code, item.status)}
+                    >
+                        {item.status === 1 ? 'Đang bán' : 'Ngừng bán'}
+                    </button>
+                </div>
+                <div className="justify-center col-span-1 items-center grid">
+                    <div className="grid grid-cols-3">
+                        <button
+                            className="col-span-2"
+                            onClick={() => {
+                                handleOpen(true, false);
+
+                                setSelectedFood(item);
+                                setType(item?.type === 1 ? 'Mặc định' : 'Combo');
+                                handleComboSelect(item); // Giả sử handleComboSelect là một hàm
+                            }}
+                        >
+                            <FaRegEdit color="black" size={20} />
+                        </button>
+                        <button onClick={handleOpenDelete}>
+                            <MdOutlineDeleteOutline color="black" fontSize={20} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -177,49 +496,61 @@ const Foood = () => {
                             options={nuoc.map((option) => option.name)}
                             value={selectedMovie}
                             onChange={setSelectedMovie}
-                            title="Tên rạp"
+                            title="Tên"
                             freeSolo={false}
                             disableClearable={false}
-                            placeholder="Tên rạp"
+                            placeholder="Nhập"
                             heightSelect={200}
                             borderRadius="10px"
                         />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            title="Trạng thái"
-                            selectStyles={{ borderRadius: '10px' }}
-                        />
+                        <div className="relative w-full ">
+                            <AutoInputComponent
+                                value={selectedStatus.name}
+                                onChange={(newValue) => sortedStatus(newValue)}
+                                options={optionStatus}
+                                title="Trạng thái"
+                                freeSolo={true}
+                                disableClearable={true}
+                                heightSelect={200}
+                                borderRadius="10px"
+                                onBlur={(event) => {
+                                    event.preventDefault();
+                                }}
+                            />
+                        </div>
                         <InputComponent className="rounded-[10px]" title="Ngày tạo" type="date" />
                         <div className="relative w-full ">
-                            <MdSwapVert className="absolute bottom-[10px] left-2" />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
+                            <AutoInputComponent
+                                value={selectedSort.name}
+                                onChange={(newValue) => sortFood(newValue)}
                                 options={optionsSort}
-                                title="Sắp xếp"
-                                className="pl-3"
-                                selectStyles={{ borderRadius: '10px' }}
+                                title="Loại sản phẩm"
+                                freeSolo={true}
+                                disableClearable={true}
+                                heightSelect={200}
+                                borderRadius="10px"
+                                onBlur={(event) => {
+                                    event.preventDefault();
+                                }}
                             />
                         </div>
                     </div>
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
-                <div className="overflow-auto h-[100%]">
-                    <div className="bg-white border-b py-1 sticky top-0 z-10 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-8 gap-6 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
-                        <div className="grid col-span-2 grid-cols-9 gap-3 justify-center items-center">
-                            <h1 className="grid justify-center col-span-2 items-center">STT </h1>
-                            <h1 className="grid justify-center col-span-2 items-center">Mã SP </h1>
+                <div className="overflow-auto overflow-y-hidden h-[100%]">
+                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] max-lg:pr-24 custom-hubmax2 air-pro xxl:pr-3">
+                        <div className="grid col-span-2 grid-cols-9 gap-2 justify-center items-center">
+                            <h1 className="grid justify-center col-span-2 items-center ">STT </h1>
+                            <h1 className="grid justify-center col-span-2 items-center ">Mã SP </h1>
                             <h1 className="grid justify-center items-center col-span-5">Tên </h1>
                         </div>
 
-                        <h1 className="grid ">Hình ảnh</h1>
-                        <h1 className="grid ">Mô tả</h1>
-                        <h1 className="grid ">Ngày tạo</h1>
-                        <h1 className="grid">Ngày sửa</h1>
-                        <h1 className="grid">Trạng thái</h1>
+                        <h1 className="grid  justify-center">Hình ảnh</h1>
+                        <h1 className="grid justify-center">Mô tả</h1>
+                        <h1 className="grid  justify-center">Ngày tạo</h1>
+                        <h1 className="grid justify-center">Ngày sửa</h1>
+                        <h1 className="grid justify-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button
                                 className="border px-4 py-[3px] rounded-[40px] bg-orange-400"
@@ -230,51 +561,18 @@ const Foood = () => {
                         </div>
                     </div>
 
-                    <div className="py-1">
-                        {product.map((item, index) => (
-                            <div
-                                className="border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 min-w-[1100px] max-lg:pr-24 custom-hubmax2"
-                                key={item.productId}
-                            >
-                                <div className="grid col-span-2 gap-3 grid-cols-9 justify-center items-center">
-                                    <h1 className="grid pl-3 col-span-2">{index + 1}</h1>
-                                    <h1 className="grid pl-3 col-span-2">{item.code}</h1>
-                                    <h1 className=" grid ml-3 col-span-5 ">{item.name}</h1>
-                                </div>
-                                <div className="justify-center items-center grid ">
-                                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
-                                </div>
-
-                                <h1 className="grid ">{item.description}</h1>
-                                <h1 className="grid break-all">{getFormattedDate(item.createdAt)}</h1>
-                                <h1 className="grid break-all">{getFormattedDate(item.updatedAt)}</h1>
-                                <div className="grid justify-center">
-                                    <button
-                                        className={`border px-2 w-[auto] uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
-                                            item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
-                                        }`}
-                                    >
-                                        {item.status}
-                                    </button>
-                                </div>
-                                <div className="  justify-center col-span-1 items-center grid ">
-                                    <div className="grid grid-cols-3">
-                                        <button
-                                            className="col-span-2"
-                                            onClick={() => {
-                                                handleOpen(true, false);
-                                                setSelectedFood(item);
-                                            }}
-                                        >
-                                            <FaRegEdit color="black" size={20} />
-                                        </button>
-                                        <button onClick={() => handleOpen(false, true)}>
-                                            <FaRegEye color="black" fontSize={20} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="py-1 min-w-[1100px]">
+                        <List
+                            itemCount={foodFilter.length === 0 ? product.length : foodFilter.length}
+                            itemSize={120}
+                            height={height}
+                            width={1200}
+                            style={{ minWidth: '1200px' }}
+                        >
+                            {({ index, style }) =>
+                                rowRenderer({ index, style }, foodFilter.length === 0 ? product : foodFilter)
+                            }
+                        </List>
                     </div>
                 </div>
             </div>
@@ -283,20 +581,24 @@ const Foood = () => {
                 open={open}
                 handleClose={handleClose}
                 width="35%"
-                height="55%"
-                smallScreenWidth="50%"
-                smallScreenHeight="35%"
-                mediumScreenWidth="50%"
-                mediumScreenHeight="30%"
-                largeScreenHeight="27%"
-                largeScreenWidth="40%"
-                maxHeightScreenHeight="60%"
-                maxHeightScreenWidth="45%"
-                heightScreen="45%"
+                height={(selectedFood?.type === 2) | (type === 'Combo') ? '79%' : '55%'}
+                smallScreenWidth="59%"
+                smallScreenHeight={(selectedFood?.type === 2) | (type === 'Combo') ? '58%' : '40%'}
+                mediumScreenWidth="55%"
+                mediumScreenHeight={(selectedFood?.type === 2) | (type === 'Combo') ? '50%' : '35%'}
+                largeScreenHeight={(selectedFood?.type === 2) | (type === 'Combo') ? '44%' : '32%'}
+                largeScreenWidth="48%"
+                maxHeightScreenHeight={(selectedFood?.type === 2) | (type === 'Combo') ? '95%' : '68%'}
+                maxHeightScreenWidth="50%"
+                heightScreen={(selectedFood?.type === 2) | (type === 'Combo') ? '75%' : '52%'}
                 title={isUpdate ? 'Chỉnh thức ăn và đồ uống' : 'Thêm thức ăn và nước'}
             >
-                <div className=" h-90p grid grid-rows-5">
-                    <div className="grid p-3 grid-cols-3 gap-x-6">
+                <div
+                    className={`h-90p  grid ${
+                        selectedFood?.type === 2 || type === 'Combo' ? 'grid-rows-8' : 'grid-rows-5'
+                    }`}
+                >
+                    <div className="grid  grid-cols-3 gap-x-6 px-3 py-1">
                         <AutoInputComponent
                             value={isUpdate ? selectedFood?.name : name}
                             onChange={setName}
@@ -309,19 +611,29 @@ const Foood = () => {
                         />
                         <AutoInputComponent
                             value={
-                                isUpdate ? (selectedFood?.type === 1 ? 'Mặc định' : 'Combo') : type || options[0].label
+                                isUpdate
+                                    ? selectedFood?.type === 1
+                                        ? 'Mặc định'
+                                        : selectedFood?.type === 2
+                                        ? 'Combo'
+                                        : options[0].label
+                                    : selectedFood?.type === 1
+                                    ? 'Mặc định'
+                                    : selectedFood?.type === 2
+                                    ? 'Combo'
+                                    : options[0].label
                             }
                             onChange={setType}
                             options={options.map((option) => option.label)}
                             title="Loại"
                             freeSolo={true}
-                            disableClearable={false}
+                            disableClearable={true}
                             defaultValue={options[0].label}
                             heightSelect={200}
                         />
                     </div>
 
-                    <div className="grid p-3 gap-x-6">
+                    <div className="grid gap-x-6 px-3 py-1">
                         <AutoInputComponent
                             value={isUpdate ? selectedFood?.description : description}
                             onChange={setDescription}
@@ -333,8 +645,8 @@ const Foood = () => {
                             className1="col-span-2"
                         />
                     </div>
-                    <div className="grid items-center grid-cols-7 row-span-2">
-                        <div className="grid p-3 col-span-5">
+                    <div className="grid items-center justify-center grid-cols-7 px-3 gap-3 py-1 row-span-2">
+                        <div className="grid  col-span-5 h-full">
                             <InputComponent
                                 title="Hình "
                                 className="rounded-[5px] "
@@ -342,31 +654,130 @@ const Foood = () => {
                                 onChange={handleImageChange}
                             />
                         </div>
-                        <div className="justify-end col-span-2 flex  pr-4">
+                        <div className="justify-end col-span-2 h-full flex">
                             {image ? (
                                 <img
                                     src={URL.createObjectURL(image)}
                                     alt="phim1"
-                                    className="w-28 custom-height-sm24 h-[135px] object-contain"
+                                    className={`w-36 ${
+                                        selectedFood?.type === 2 || type === 'Combo' ? 'h-[122px]' : 'h-[145px]'
+                                    } object-cover`}
                                 />
                             ) : (
                                 isUpdate && (
                                     <img
                                         src={selectedFood?.image}
                                         alt="phim1"
-                                        className="w-28 custom-height-sm24 h-[135px] object-contain"
+                                        className={`w-36 ${
+                                            selectedFood?.type === 2 || type === 'Combo' ? 'h-[122px]' : 'h-[145px]'
+                                        } object-cover`}
                                     />
                                 )
                             )}
                         </div>
                     </div>
-                    <div className="grid items-center">
+                    {(type === 'Combo' || selectedFood?.type === 2) && (
+                        <div className="row-span-3">
+                            <div className="grid grid-cols-12 px-3 mb-1 ">
+                                <h1 className="col-span-8 text-[14px] uppercase">Sản phẩm trong combo</h1>
+                                <div className="col-span-4 grid justify-end ">
+                                    <button
+                                        onClick={addInputSet}
+                                        className="  px-3 py-[1px]  bg-[#FB5B5E] rounded-[10px]"
+                                    >
+                                        <IoIosAddCircleOutline size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className=" h-[85%] overflow-auto border-[red] border mx-3 rounded-[10px]">
+                                <div className="px-3 py-2   ">
+                                    {inputSets.map((inputSet, index) => (
+                                        <div className="grid grid-cols-12 gap-4 mb-2 " key={index}>
+                                            <div className="col-span-7">
+                                                <AutoInputComponent
+                                                    value={inputSet.name} // Hiển thị tên
+                                                    onChange={(newValue) => handleCodeChange(index, newValue)} // Xử lý chọn sản phẩm
+                                                    options={product
+                                                        .filter((item) => item.type === 1)
+                                                        .map((item) => item.name)} // Chọn tên làm tùy chọn
+                                                    title="Tên"
+                                                    freeSolo={false}
+                                                    disableClearable={true}
+                                                    placeholder="Nhập ..."
+                                                    heightSelect={130}
+                                                />
+                                            </div>
+
+                                            <div className="col-span-4">
+                                                <AutoInputComponent
+                                                    value={String(inputSet?.quantity)}
+                                                    onChange={(newValue) => updateInputSet(index, 'quantity', newValue)}
+                                                    title="Số lượng"
+                                                    freeSolo={true}
+                                                    disableClearable={false}
+                                                    placeholder="Nhập ..."
+                                                    heightSelect={130}
+                                                />
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center items-center mt-6">
+                                                <button onClick={() => removeInputSet(index)} className="p-2 rounded">
+                                                    <MdOutlineDeleteOutline size={25} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="grid items-center ">
                         <div className="justify-end flex space-x-3 border-t pt-3 pr-4">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                             <ButtonComponent
                                 text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
                                 className="bg-blue-500"
-                                onClick={isUpdate ? handleUpdateFood : handleAddFood}
+                                onClick={
+                                    isUpdate && selectedFood?.type === 1
+                                        ? handleUpdateFood
+                                        : !isUpdate && type === 'Mặc định'
+                                        ? handleAddFood
+                                        : isUpdate && selectedFood?.type === 2
+                                        ? handleUpdateCombo
+                                        : handleAddCombo
+                                }
+                            />
+                        </div>
+                    </div>
+                </div>
+            </ModalComponent>
+
+            <ModalComponent
+                open={openDelete}
+                handleClose={handleCloseDelete}
+                width="25%"
+                height="32%"
+                smallScreenWidth="40%"
+                smallScreenHeight="25%"
+                mediumScreenWidth="40%"
+                mediumScreenHeight="20%"
+                largeScreenHeight="20%"
+                largeScreenWidth="40%"
+                maxHeightScreenHeight="40%"
+                maxHeightScreenWidth="40%"
+                title="Xóa thức ăn và nước"
+            >
+                <div className="h-[80%] grid grid-rows-3 ">
+                    <h1 className="grid row-span-2 p-3">
+                        Khi xóa sẽ không thể khôi phục lại. Bạn có chắc chắn xóa chứ?{' '}
+                    </h1>
+                    <div className="grid items-center ">
+                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
+                            <ButtonComponent
+                                text="Xóa"
+                                className="bg-blue-500"
+                                onClick={() => handleDeleteProduct(selectedFood?.code)}
                             />
                         </div>
                     </div>
@@ -376,4 +787,4 @@ const Foood = () => {
     );
 };
 
-export default Foood;
+export default Food;

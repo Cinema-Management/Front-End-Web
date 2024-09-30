@@ -16,7 +16,7 @@ import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { get } from 'lodash';
+
 const { getFormattedDate } = require('~/utils/dateUtils');
 const fetchMoviesAndGenres = async () => {
     const [moviesResponse, genresResponse] = await Promise.all([
@@ -268,16 +268,16 @@ const Film = React.memo(() => {
                     },
                 },
             );
-            alert('Cập nhật status phim thành công!');
+            toast.success('Cập nhật status phim thành công!');
             refetch();
         } catch (error) {
-            alert('Đã xảy ra lỗi: ' + error.response.data.message);
+            toast.error('Câp nhật status phim thất bại!');
         }
     };
 
     const handleUpdateMovie = async (movieCode) => {
         const formData = handleFormData();
-
+        console.log(formData);
         try {
             await axios.put(`api/movies/${movieCode}`, formData, {
                 headers: {
@@ -294,6 +294,22 @@ const Film = React.memo(() => {
             toast.error('Cập nhật phim thất bại!');
         }
     };
+
+    const getAgeRestrictionLabel = (ageRestriction) => {
+        switch (ageRestriction) {
+            case 13:
+                return 'C13';
+            case 16:
+                return 'C16';
+            case 18:
+                return 'C18';
+            case 0:
+                return 'Không giới hạn';
+            default:
+                return ''; // Giá trị mặc định nếu không khớp
+        }
+    };
+
     return (
         <div className="max-h-screen">
             <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
@@ -339,7 +355,7 @@ const Film = React.memo(() => {
                 </div>
             </div>
 
-            <div className="bg-white border shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-sm custom-height-xs custom-height-md custom-height-lg custom-hubmax custom-height-xl">
+            <div className="bg-white border shadow-md rounded-[10px] box-border h-[515px] max-h-screen custom-height-sm custom-height-xs custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto h-[100%]">
                     <div className="bg-white border-b sticky top-0 z-10 px-1 py-3 uppercase text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
                         <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
@@ -369,7 +385,7 @@ const Film = React.memo(() => {
                         </div>
                     </div>
 
-                    <div className="py-1 px-1">
+                    <div className="py-1 px-1 ">
                         {movies.map((item, index) => (
                             <LazyLoad key={item.movieId} height={115} offsetTop={200}>
                                 <div className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
@@ -411,6 +427,8 @@ const Film = React.memo(() => {
                                                 onClick={() => {
                                                     handleOpen(true);
                                                     setSelectedFilm(item);
+                                                    setCountry(item.country);
+                                                    setAgeRestriction(getAgeRestrictionLabel(item?.ageRestriction));
                                                 }}
                                             >
                                                 <FaRegEdit color="black" size={22} />
@@ -494,8 +512,8 @@ const Film = React.memo(() => {
                                 />
                                 <AutoInputComponent
                                     options={optionsQG.map((option) => option.label)}
-                                    value={isUpdate ? selecteFilm?.country : country}
-                                    onChange={setCountry}
+                                    value={country}
+                                    onChange={(newValue) => setCountry(newValue)}
                                     title="Quốc gia"
                                     freeSolo={false}
                                     disableClearable={true}
@@ -544,20 +562,8 @@ const Film = React.memo(() => {
                                 />
                                 <AutoInputComponent
                                     options={optionTuoi.map((option) => option.label)}
-                                    value={
-                                        isUpdate
-                                            ? selecteFilm?.ageRestriction === 13
-                                                ? 'C13'
-                                                : selecteFilm?.ageRestriction === 16
-                                                ? 'C16'
-                                                : selecteFilm?.ageRestriction === 18
-                                                ? 'C18'
-                                                : selecteFilm?.ageRestriction === 0
-                                                ? 'Không giới hạn'
-                                                : 'Chọn'
-                                            : ageRestriction
-                                    }
-                                    onChange={setAgeRestriction}
+                                    value={ageRestriction}
+                                    onChange={(newValue) => setAgeRestriction(newValue)}
                                     title="Giới hạn tuổi"
                                     freeSolo={false}
                                     disableClearable={true}

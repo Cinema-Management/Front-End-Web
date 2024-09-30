@@ -28,7 +28,7 @@ const AutoInputComponent = ({
                     disableClearable={disableClearable}
                     options={options}
                     getOptionLabel={(option) => option.name || option}
-                    value={value} // Giá trị được điều khiển (controlled)
+                    value={inputValue} // Giá trị được điều khiển (controlled)
                     inputValue={inputValue} // Giá trị input được điều khiển (controlled)
                     onInputChange={(event, newInputValue) => setInputValue(newInputValue)} // Cập nhật inputValue tạm thời
                     // Chỉ cập nhật giá trị khi người dùng chọn hoặc nhấn Enter
