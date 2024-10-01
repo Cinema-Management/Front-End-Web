@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Autocomplete, TextField, Stack } from '@mui/material';
 
 const AutoInputComponent = ({
@@ -16,8 +16,10 @@ const AutoInputComponent = ({
     color,
     ...props // Các props khác tùy chỉnh
 }) => {
-    // Tạo một state để theo dõi giá trị nhập tạm thời (chưa commit)
-    const [inputValue, setInputValue] = useState(value || ''); // Đảm bảo inputValue không bị undefined
+    const [inputValue, setInputValue] = useState(value || '');
+    useEffect(() => {
+        setInputValue(value || '');
+    }, [value]);
 
     return (
         <Stack spacing={2} sx={{ width: 'auto' }} className={`${className1}`}>

@@ -14,31 +14,13 @@ import { FixedSizeList as List } from 'react-window';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from '~/setup/axios';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
+import { set } from 'lodash';
 
 const { getFormattedDate } = require('~/utils/dateUtils');
 
 const Food = () => {
-    const fetchProductNotSeat = async () => {
-        const [productNotSeat] = await Promise.all([axios.get('api/products/getAllNotSeat')]);
-        return {
-            product: productNotSeat,
-        };
-    };
-    const {
-        data: { product } = [],
-        error,
-        isLoading,
-        isFetched,
-        isFetching,
-        refetch,
-    } = useQuery('productNotSeat', fetchProductNotSeat, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
-    const [selectedMovie, setSelectedMovie] = useState(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [image, setImage] = useState(null);
@@ -46,8 +28,8 @@ const Food = () => {
     const [selectedFood, setSelectedFood] = useState(null);
     const [openDelete, setOpenDelete] = useState(false);
     const [foodFilter, setFoodFilter] = useState([]);
-    const [isStatus, setIsStatus] = useState(false);
-    const [isUpdateStatus, setIsUpdateStatus] = useState(false);
+    const [inputSearch, setInputSearch] = useState('');
+
     const [inputSets, setInputSets] = useState([
         { code: '', name: '', quantity: 0 },
         { code: '', name: '', quantity: 0 },
@@ -62,9 +44,53 @@ const Food = () => {
         { value: 1, name: 'Đang bán' },
         { value: 2, name: 'Ngừng bán' },
     ];
+
+    const options = [
+        { value: '1', label: 'Mặc định' },
+        { value: '2', label: 'Combo' },
+    ];
+
     const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
     const height = HeightComponent();
+    const fetchProductNotSeat = async () => {
+        try {
+            const response = await axios.get('api/products/getAllNotSeat');
+            const data = response;
+            const arrayName = data.map((item) => ({
+                code: item.code,
+                name: item.name,
+            }));
+
+            return { product: data, optionFood: arrayName };
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+    const {
+        data: { product = [], optionFood = [] } = {},
+        error,
+        isLoading,
+        // isFetched,
+        // isFetching,
+        refetch,
+    } = useQuery('productNotSeat', fetchProductNotSeat, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        onSuccess: (data) => {
+            setFoodFilter(data.product);
+        },
+    });
+
+    if (isLoading) return <Loading />;
+    // if (!isFetched) return <div>Fetching...</div>;
+    if (error) return <div>Error loading data: {error.message}</div>;
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -88,6 +114,18 @@ const Food = () => {
         ]);
     };
 
+    const handleSearch = (value) => {
+        setInputSearch(value);
+        if (value === '' || value === null) {
+            setFoodFilter(product);
+            return;
+        }
+        const search = product.filter((item) => item.name.toLowerCase().includes(value.toLowerCase()));
+        setFoodFilter(search);
+        setSelectedSort(optionsSort[0]);
+        setSelectedStatus(optionStatus[0]);
+    };
+
     const sortFood = (option) => {
         if (!option) {
             setFoodFilter(product);
@@ -105,14 +143,16 @@ const Food = () => {
         } else if (option.value === 3) {
             sortedFood = product;
         }
-        if (sortedFood.length > 0) {
-            setFoodFilter(sortedFood);
+        if (sortedFood.length === 0) {
+            toast.info('Không có sản phẩm nào!');
         }
+
+        setFoodFilter(sortedFood);
+        setInputSearch('');
+        setSelectedStatus(optionStatus[0]);
     };
-    console.log('product', product);
 
     const sortedStatus = (option) => {
-        console.log('abc', product);
         if (!option) {
             setFoodFilter(product);
             return;
@@ -128,9 +168,12 @@ const Food = () => {
         } else if (option.value === 3) {
             sortedStatus = product;
         }
-        if (sortedStatus.length > 0) {
-            setFoodFilter(sortedStatus);
+        if (sortedStatus.length === 0) {
+            toast.info('Không có sản phẩm nào!');
         }
+        setFoodFilter(sortedStatus);
+        setInputSearch('');
+        setSelectedSort(optionsSort[0]);
     };
 
     const handleOpenDelete = () => {
@@ -139,32 +182,6 @@ const Food = () => {
     const handleCloseDelete = () => {
         setOpenDelete(false);
     };
-
-    // Kiểm tra trạng thái tải
-    if (isLoading || isFetching) return <Loading />;
-    if (!isFetched) return <div>Fetching...</div>;
-    if (error) return <div>Error loading data: {error.message}</div>;
-
-    const options = [
-        { value: '1', label: 'Mặc định' },
-        { value: '2', label: 'Combo' },
-    ];
-    const nuoc = [
-        {
-            id: 1,
-            name: 'Rạp Lotte',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-            slRoom: '3',
-            status: 'Active',
-        },
-        {
-            id: 2,
-            name: 'Rạp Galaxy',
-            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            slRoom: '2',
-            status: 'InActive',
-        },
-    ];
 
     const updateInputSet = (index, field, value) => {
         const newInputSets = [...inputSets];
@@ -244,7 +261,7 @@ const Food = () => {
             setDescription('');
             handleClose();
         } catch (error) {
-            toast.error('Thêm thất bại!');
+            toast.error(error.response.data.message);
         }
     };
 
@@ -265,7 +282,7 @@ const Food = () => {
                 setDescription('');
                 handleClose();
             } catch (error) {
-                toast.error('Cập nhật thất bại!');
+                toast.error(error.response.data.message);
             }
         } else {
             toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
@@ -344,7 +361,7 @@ const Food = () => {
                 setDescription('');
                 handleClose();
             } catch (error) {
-                toast.error('Cập nhật Combo thất bại!');
+                toast.error(error.response.data.message);
             }
         } else {
             toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
@@ -393,7 +410,7 @@ const Food = () => {
                 setDescription('');
                 handleClose();
             } catch (error) {
-                toast.error('Thêm Combo thất bại!');
+                toast.error(error.response.data.message);
             }
         } else {
             toast.warn('Vui lòng nhập thông tin!');
@@ -416,6 +433,9 @@ const Food = () => {
                 },
             );
             toast.success('Cập nhật trạng thái thành công!');
+            setSelectedSort(optionsSort[0]);
+            setSelectedStatus(optionStatus[0]);
+            setFoodFilter([]);
             refetch();
         } catch (error) {
             toast.error('Cập nhật trạng thái thất bại!');
@@ -472,7 +492,7 @@ const Food = () => {
 
                                 setSelectedFood(item);
                                 setType(item?.type === 1 ? 'Mặc định' : 'Combo');
-                                handleComboSelect(item); // Giả sử handleComboSelect là một hàm
+                                handleComboSelect(item);
                             }}
                         >
                             <FaRegEdit color="black" size={20} />
@@ -493,11 +513,11 @@ const Food = () => {
                 <div className="overflow-x-auto  xl:overflow-hidden">
                     <div className="grid grid-cols-4  gap-12 items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
                         <AutoInputComponent
-                            options={nuoc.map((option) => option.name)}
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            options={optionFood.map((item) => item.name)}
+                            value={inputSearch}
+                            onChange={(newValue) => handleSearch(newValue)}
                             title="Tên"
-                            freeSolo={false}
+                            freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập"
                             heightSelect={200}
