@@ -13,6 +13,8 @@ import Loading from '~/components/LoadingComponent/Loading';
 import axios from 'axios';
 import { MultiSelect } from 'react-multi-select-component';
 import { toast } from 'react-toastify';
+import { getAllSeatByRoomCode, getRoomCode } from '~/redux/apiRequest';
+import { useDispatch } from 'react-redux';
 
 const Cinema = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -62,6 +64,7 @@ const Cinema = () => {
     }));
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const handleSearch = (searchValue, type) => {
         if (type === 'name') {
@@ -260,6 +263,7 @@ const Cinema = () => {
 
     // action
     const handleAddRoom = async () => {
+        let loadingToastId;
         try {
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
@@ -275,10 +279,19 @@ const Cinema = () => {
             };
 
             // Gửi request POST tới server
-            const response = await axios.post('api/rooms', roomData);
+            const responseRoom = await axios.post('api/rooms', roomData);
 
-            if (response.data) {
+            const seatData = {
+                roomCode: responseRoom.data?.code,
+                roomSizeCode: selectedOption?.value,
+            };
+            loadingToastId = toast.loading('Vui lòng chờ, đang thêm phòng!');
+
+            const responseSeat = await axios.post('api/products/generateSeat', seatData);
+
+            if (responseSeat.data) {
                 clearTextModalRoom();
+                toast.dismiss(loadingToastId);
                 toast.success('Thêm phòng thành công!');
                 handleCloseRoom();
                 getRoomByCinemaCode(selectedCinema?.code);
@@ -348,7 +361,7 @@ const Cinema = () => {
             toast.warning('Vui lòng chọn loại phòng!');
             return false;
         } else if (selectedOptionRoomSize.length === 0) {
-            toast.warning('Vui lòng chọn size phòng!');
+            toast.warning('Vui lòng chọn kích cỡ!');
             return false;
         } else return true;
     };
@@ -661,10 +674,10 @@ const Cinema = () => {
                         options={optionNameCinema}
                         value={selectedOptionFilterCinema}
                         onChange={(newValue) => handleSearch(newValue, 'name')}
-                        title="Chọn"
+                        title="Tên Rạp"
                         freeSolo={false}
                         disableClearable={false}
-                        placeholder="Tên rạp"
+                        placeholder="Tất cả"
                         heightSelect={200}
                         borderRadius="10px"
                     />
@@ -676,7 +689,7 @@ const Cinema = () => {
                         title="Trạng thái"
                         freeSolo={false}
                         disableClearable={false}
-                        placeholder="Chọn"
+                        placeholder="Tất cả"
                         heightSelect={200}
                         borderRadius="10px"
                     />
@@ -701,7 +714,7 @@ const Cinema = () => {
                             title="Sắp xếp"
                             freeSolo={false}
                             disableClearable={false}
-                            placeholder="Chọn"
+                            placeholder="Tất cả"
                             heightSelect={200}
                             borderRadius="10px"
                             renderOption={(props, option) => (
@@ -868,18 +881,10 @@ const Cinema = () => {
                         </div>
 
                         <div className="uppercase grid justify-center grid-cols-12 col-span-5 gap-2 items-center">
-                            <h1 className=" uppercase grid justify-center items-center col-span-4  bg-red-500 ">
-                                Tên phòng
-                            </h1>
-                            <h1 className=" uppercase grid justify-center items-center col-span-2  bg-red-200 ">
-                                Kích cỡ
-                            </h1>
-                            <h1 className=" uppercase grid justify-center items-center col-span-4  bg-red-500  ">
-                                Loại phòng
-                            </h1>
-                            <h1 className=" uppercase grid justify-center items-center col-span-2   bg-red-200 ">
-                                Số ghế
-                            </h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-4 ">Tên phòng</h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-2   ">Kích cỡ</h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-4   ">Loại phòng</h1>
+                            <h1 className=" uppercase grid justify-center items-center col-span-2   ">Số ghế</h1>
                         </div>
 
                         <div className="uppercase grid justify-center grid-cols-10  col-span-2 gap-2 items-center">
@@ -917,17 +922,17 @@ const Cinema = () => {
                                         {item?.roomTypeName}
                                     </h1>
                                     <div
-                                        className="flex justify-center items-center col-span-2 "
-                                        onClick={() => handleNavigate('/room')}
-                                    >
-                                        <h1 className="">138</h1>
+                                        className="flex justify-center items-center col-span-2 cursor-pointer"
+                                        onClick={() => {
+                                            getAllSeatByRoomCode(dispatch, item.code);
 
-                                        <button
-                                            className=" ml-2"
-                                            onClick={() => {
-                                                getRoomByCinemaCode(item.code);
-                                            }}
-                                        >
+                                            getRoomCode(dispatch, item.code);
+                                            handleNavigate('/room');
+                                        }}
+                                    >
+                                        <h1 className="">{item.totalSeats}</h1>
+
+                                        <button className=" ml-2">
                                             <FaRegEye color="black" fontSize={20} />
                                         </button>
                                     </div>
@@ -998,7 +1003,7 @@ const Cinema = () => {
                             onChange={setNameRoom}
                             title="Tên phòng"
                             freeSolo={true}
-                            disableClearable={false}
+                            disableClearable={true}
                             placeholder="Nhập ..."
                             heightSelect={200}
                         />
