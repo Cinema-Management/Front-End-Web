@@ -3,26 +3,28 @@ import { createSlice } from '@reduxjs/toolkit';
 const roomSlice = createSlice({
     name: 'room',
     initialState: {
-        currentUser: null,
-        isFetching: false,
-        error: false,
+        roomByCode: {
+            currentRoomByCode: null,
+            isFetching: false,
+            error: false,
+        },
     },
     reducers: {
-        getRoomStart: (state) => {
-            state.isFetching = true;
+        getRoomByCodeStart: (state) => {
+            state.roomByCode.isFetching = true;
         },
-        getRoomSuccess: (state, action) => {
-            state.isFetching = false;
-            state.currentRoom = action.payload;
-            state.error = false;
+        getRoomByCodeSuccess: (state, action) => {
+            state.roomByCode.isFetching = false;
+            state.roomByCode.currentRoomByCode = action.payload;
+            state.roomByCode.error = false;
         },
-        getRoomFailed: (state) => {
-            state.room.isFetching = false;
-            state.room.error = true;
+        getRoomByCodeFailed: (state) => {
+            state.roomByCode.isFetching = false;
+            state.roomByCode.error = true;
         },
     },
 });
 
-export const { getRoomStart, getRoomSuccess, getRoomFailed } = roomSlice.actions;
+export const { getRoomByCodeStart, getRoomByCodeSuccess, getRoomByCodeFailed } = roomSlice.actions;
 
 export default roomSlice.reducer;

@@ -7,22 +7,7 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from 'axios';
-
-const fetchSeatByRoomCode = async () => {
-    try {
-        const response = await axios.get('api/products/getAllSeatsByRoomCode/PHONG01');
-        const data = response.data;
-        return data;
-    } catch (error) {
-        if (error.response) {
-            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-        } else if (error.request) {
-            throw new Error('Error: No response received from server');
-        } else {
-            throw new Error('Error: ' + error.message);
-        }
-    }
-};
+import { useSelector } from 'react-redux';
 
 const Room = () => {
     const [open, setOpen] = useState(false);
@@ -39,19 +24,40 @@ const Room = () => {
         setSelectSeat(selectedSeat);
     };
 
+    const getRoomCode = useSelector((state) => state.room.roomByCode?.currentRoomByCode);
+    const roomCode = getRoomCode;
+
+    const fetchSeatByRoomCode = async (roomCode) => {
+        try {
+            const response = await axios.get(`api/products/getAllSeatsByRoomCode/${roomCode}`);
+            const data = response.data;
+            return data;
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    // const seat1 = useSelector((state) => state.seat.seat.currentSeat);
+
     const {
         data: seat1 = [],
         isLoading,
+        isFetching,
         error,
-        refetch,
-    } = useQuery('fetchSeatByRoomCode', fetchSeatByRoomCode, {
+        // refetch,
+    } = useQuery(['fetchSeatByRoomCode', roomCode], () => fetchSeatByRoomCode(roomCode), {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
+        enabled: !!roomCode, // Chỉ fetch khi roomCode có giá trị
     });
 
-    console.log('Ghế', seat1);
-
-    if (isLoading) {
+    if (isLoading || isFetching) {
         return <Loading />;
     }
 
@@ -59,27 +65,27 @@ const Room = () => {
     if (error) {
         return <div>Lỗi khi tải danh sách ghế: {error.message}</div>;
     }
-    const roomSize = 'KCP02'; // Kích thước phòng có thể là nhỏ, vừa, lớn
+    const totalSeat = seat1.length; // Kích thước phòng có thể là nhỏ, vừa, lớn
 
-    const gridColumns = roomSize === 'KCP01' ? 'grid-cols-8' : roomSize === 'KCP02' ? 'grid-cols-10' : 'grid-cols-12'; // Số cột tuỳ vào kích thước phòng
+    const gridColumns = totalSeat === 48 ? 'grid-cols-8' : totalSeat === 75 ? 'grid-cols-10' : 'grid-cols-12'; // Số cột tuỳ vào kích thước phòng
 
     return (
         <div className="grid h-[670px] rounded-[10px] custom-height-md1 custom-height-xl1 custom-height-lg1 custom-height-sm17 custom-height-xs1 bg-white">
-            <h1 className=" text-2xl font-bold  uppercase p-2">Phòng 1</h1>
+            <h1 className=" text-2xl font-bold  uppercase m-2 ">Phòng 1</h1>
             <div className=" grid max-lg:row-span-2 ">
                 <div className=" grid h-[80px]">
                     <div className=" items-center grid justify-center col-span-2 max-lg:col-span-1">
-                        <img src={screen} alt="screen" className="object-contain h-[80px] " />
+                        <img src={screen} alt="screen" className="object-contain h-[80px]  " />
                     </div>
                 </div>
             </div>
-            <div className="row-span-4 max-lg:row-span-5 mt-3 custom-height-sm12  ">
+            <div className="row-span-4 max-lg:row-span-5 mt-2 custom-height-sm12  ">
                 <div className=" justify-center items-center flex ">
                     <div
-                        className={`grid ${gridColumns} w-[70%] max-lg:w-[85%] px-36 max-lg:px-5 gap-3 custom-height-sm14 mt-2 `}
+                        className={`grid ${gridColumns} w-[70%] max-lg:w-[85%] px-36 max-lg:px-5 gap-3 custom-height-sm14 `}
                     >
                         {seat1.map((seat, index) => {
-                            const totalColumns = roomSize === 'KCP01' ? 8 : roomSize === 'KCP02' ? 10 : 12;
+                            const totalColumns = totalSeat === 48 ? 8 : totalSeat === 75 ? 10 : 12;
 
                             return (
                                 <div
@@ -116,7 +122,7 @@ const Room = () => {
                         })}
                     </div>
                 </div>
-                <div className="grid grid-cols-4  mt-6 lg:px-32  text-[13px] gap-1 justify-center items-center">
+                <div className="grid grid-cols-4 mx-2  lg:px-32  text-[13px] gap-1 justify-center items-center ">
                     <div className="flex justify-center items-center">
                         <img src={urlImageSeat} alt="seat" className="object-contain h-[28px] " />
                         <h1 className="ml-3">Ghế thường</h1>
