@@ -62,6 +62,15 @@ code {
     scrollbar-width: thin;
     scrollbar-color: #9a9a9a #f1f1f1;
 }
+@media (max-width: 830px) {
+    .custom-air-mini {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+    /* .custom-air-mini1 {
+        p
+    } */
+}
 @media (min-height: 700px) and (max-height: 720px) {
     .custom-height-xs {
         height: 480px !important;
@@ -275,4 +284,13 @@ code {
     100% {
         transform: rotate(360deg);
     }
+}
+
+.gradient-button {
+    background: linear-gradient(to right, #ed999a, #f1c46f);
+    transition: background 0.3s ease; /* Hiệu ứng chuyển tiếp mượt mà */
+}
+
+.gradient-button:hover {
+    background: linear-gradient(to right, #ed999a, #f1c46f); /* Giữ nguyên màu gradient khi hover */
 }

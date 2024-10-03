@@ -1,14 +1,23 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { MdSwapVert } from 'react-icons/md';
+import { useQuery } from 'react-query';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
+import Loading from '~/components/LoadingComponent/Loading';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
+import { DatePicker, Select } from 'antd';
+import dayjs from 'dayjs';
 
+const { Option } = Select;
+const { getFormatteNgay } = require('~/utils/dateUtils');
 const Price = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
@@ -17,11 +26,87 @@ const Price = () => {
     const [openDetail, setOpenDetail] = useState(false);
     const [selectedValue, setSelectedValue] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
-    const handleOpen = (isUpdate) => {
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const [visibleRooms, setVisibleRooms] = useState({});
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [description, setDescription] = useState('');
+    const [typePrice, setTypePrice] = useState('');
+    const [selectedPrice, setSelectedPrice] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [productCode, setProductCode] = useState('');
+    const [detailDescription, setDetailDescription] = useState('');
+    const [detailPrice, setDetailPrice] = useState('');
+    const [selectedProductType, setSelectedProductType] = useState('');
+    const [selectedProductTypeCode, setSelectedProductTypeCode] = useState('');
+    const [selectedRoomType, setSelectedRoomType] = useState('');
+    const [selectedRoomTypeCode, setSelectedRoomTypeCode] = useState('');
+    const [selectDetail, setSelectDetail] = useState(null);
+    const [selectedDayOfWeek, setSelectedDayOfWeek] = useState([]);
+    const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+    const [selectedTimeSlotCode, setSelectedTimeSlotCode] = useState('');
+
+    const fetchPricesAndProducts = async () => {
+        try {
+            const [pricesResponse, productsResponse, productTypeResponse, roomTypeResponse] = await Promise.all([
+                axios.get('api/prices'),
+                axios.get('api/products/getAllNotSeat'),
+                axios.get('api/product-types'),
+                axios.get('api/room-types'),
+            ]);
+
+            const prices = pricesResponse.data;
+            const products = productsResponse.data;
+            const productTypes = productTypeResponse.data;
+            const roomTypes = roomTypeResponse.data;
+
+            const optionRoomTypes = roomTypes.map((item) => ({
+                code: item.code,
+                name: item.name,
+            }));
+
+            // Tạo mảng cho các lựa chọn thực phẩm
+            const optionFood = products.map((item) => ({
+                code: item.code,
+                name: item.name,
+            }));
+
+            const optionProductTypes = productTypes.map((item) => ({
+                code: item.code,
+                name: item.name,
+            }));
+
+            return { prices, products, optionFood, productTypes, optionProductTypes, roomTypes, optionRoomTypes };
+        } catch (error) {
+            console.error(error.message);
+            throw new Error('Failed to fetch data');
+        }
+    };
+
+    const { data, isLoading, error, refetch } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    if (isLoading) return <Loading />;
+    // if (!isFetched) return <div>Fetching...</div>;
+    if (error) return <div>Error loading data: {error.message}</div>;
+
+    const handleOpen = (isUpdate, type) => {
         setOpen(true);
+        setTypePrice(type);
         setIsUpdate(isUpdate);
     };
-    const handleClose = () => setOpen(false);
+    const handleClose = () => {
+        setOpen(false);
+        setTypePrice('');
+        setSelectedPrice(null);
+        setDescription('');
+        setEndDate('');
+        setStartDate('');
+        setSelectedDayOfWeek([]);
+        setSelectedTimeSlot('');
+        setSelectedTimeSlotCode('');
+    };
 
     const handleOpenLoaiKM = (isUpdate, type) => {
         setOpenLoaiKM(true);
@@ -29,20 +114,80 @@ const Price = () => {
         setType(type);
     };
 
-    const handleCloseDetail = () => setOpenDetail(false);
+    const handleCloseDetail = () => {
+        setOpenDetail(false);
+        setSelectedPrice(null);
+        setProductCode('');
+        setSelectedProduct('');
+    };
 
     const handleOpenDetail = (type) => {
         setOpenDetail(true);
         setType(type);
     };
 
-    const handleCloseLoaiKM = () => setOpenLoaiKM(false);
+    const handleChangeDay = (value) => {
+        setSelectedDayOfWeek(value);
+    };
 
+    const handleTimeSlotChang = (value) => {
+        const selectedItem = optionTimeSlot.find((item) => item.label === value);
+        if (selectedItem) {
+            setSelectedTimeSlot(value);
+            setSelectedTimeSlotCode(selectedItem.value);
+        } else {
+            setSelectedTimeSlot('');
+            setSelectedTimeSlotCode('');
+        }
+    };
+
+    const handleProductChang = (value) => {
+        const selectedItem = data.optionFood.find((item) => item.name === value);
+        if (selectedItem) {
+            setSelectedProduct(value);
+            setProductCode(selectedItem.code);
+        } else {
+            setSelectedProduct('');
+            setProductCode('');
+        }
+    };
+
+    const handleProductTypeChang = (value) => {
+        const selectedItem = data.optionProductTypes.find((item) => item.name === value);
+        if (selectedItem) {
+            setSelectedProductType(value);
+            setSelectedProductTypeCode(selectedItem.code);
+        } else {
+            setSelectedProductType('');
+            setSelectedProductTypeCode('');
+        }
+    };
+
+    const handleRoomTypeChang = (value) => {
+        const selectedItem = data.optionRoomTypes.find((item) => item.name === value);
+        if (selectedItem) {
+            setSelectedRoomType(value);
+            setSelectedRoomTypeCode(selectedItem.code);
+        } else {
+            setSelectedRoomType('');
+            setSelectedRoomTypeCode('');
+        }
+    };
+
+    const handleCloseLoaiKM = () => {
+        setOpenLoaiKM(false);
+        setSelectedPrice(null);
+        setProductCode('');
+        setSelectedProduct('');
+        setDetailPrice('');
+        setSelectedProductTypeCode('');
+        setSelectedProductType('');
+        setSelectedRoomTypeCode('');
+        setSelectDetail(null);
+    };
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
     };
-
-    const [visibleRooms, setVisibleRooms] = useState({});
 
     const toggleVisibility = (roomId) => {
         setVisibleRooms((prevState) => ({
@@ -56,95 +201,238 @@ const Price = () => {
             [roomId]: !prevState[roomId],
         }));
     };
-    const promotions = [
-        {
-            id: 1,
-            name: 'Bảng giá 8-2024',
-            start: '1/8/2024',
-            end: '1/9/2024',
-            status: 'Đang diễn ra',
-            promotion: [
-                {
-                    id: '1',
-                    name: 'CoCa',
-                    mota: 'Nước ngọt',
-                    price: 30000,
-                    status: 'Active',
-                    type: 1,
-                },
-                {
-                    id: '2',
-                    name: 'Bắp rang bơ',
-                    mota: 'Bắp',
-                    price: 45000,
-                    status: 'Active',
-                    type: 1,
-                },
-                {
-                    id: '3',
-                    loaiPC: '2D',
-                    name: 'Ghế thường',
-                    mota: 'Giá mặc định',
-                    price: 80000,
-                    status: 'Active',
-                    type: 2,
-                },
-                {
-                    id: '3',
-                    loaiPC: '2D',
-                    name: 'Ghế vip',
-                    mota: 'Giá mặc định',
-                    price: 100000,
-                    status: 'Active',
-                    type: 2,
-                },
-            ],
-        },
-        {
-            id: 2,
-            name: 'Bảng giá 9-2024',
-            start: '1/9/2024',
-            end: '1/10/2024',
-            status: 'Hết hạn',
-            promotion: [
-                {
-                    id: '1',
-                    name: 'CoCa',
-                    mota: 'Nước ngọt',
-                    price: 30000,
-                    status: 'Active',
-                    type: 1,
-                },
-                {
-                    id: '2',
-                    name: 'Bắp rang bơ',
-                    mota: 'Bắp',
-                    price: 45000,
-                    status: 'Active',
-                    type: 1,
-                },
-                {
-                    id: '3',
-                    loaiPC: '2D',
-                    name: 'Ghế thường',
-                    mota: 'Giá mặc định',
-                    price: 80000,
-                    status: 'Active',
-                    type: 2,
-                },
-                {
-                    id: '3',
-                    loaiPC: '2D',
-                    name: 'Ghế vip',
-                    mota: 'Giá mặc định',
-                    price: 100000,
-                    status: 'Active',
-                    type: 2,
-                },
-            ],
-        },
+
+    const clearText = () => {
+        setStartDate('');
+        setEndDate('');
+        setDescription('');
+        setSelectedDayOfWeek([]);
+        setSelectedTimeSlot('');
+    };
+
+    const checkExitsPrice = () => {
+        const price = data.prices.find((item) => {
+            const dayExists = selectedDayOfWeek.some((day) => item.dayOfWeek.includes(day));
+            const descriptionMatch = item.description === description;
+            const timeSlotMatch = item.timeSlot === Number(selectedTimeSlotCode);
+
+            const inputStartDate = new Date(startDate);
+            const itemEndDate = new Date(item.endDate);
+
+            const isDateValid = inputStartDate <= itemEndDate;
+
+            return descriptionMatch && dayExists && timeSlotMatch && isDateValid;
+        });
+
+        return !price;
+    };
+
+    const checkExitsPriceFood = () => {
+        const price = data.prices.find((item) => {
+            const descriptionMatch = item.description === description;
+
+            const inputStartDate = new Date(startDate);
+            const itemEndDate = new Date(item.endDate);
+
+            const isDateValid = inputStartDate <= itemEndDate;
+
+            return descriptionMatch && isDateValid;
+        });
+
+        return !price;
+    };
+
+    const checkPriceFoodNull = () => {
+        if (description !== '' && startDate !== '' && endDate !== '') {
+            return true;
+        }
+        return false;
+    };
+
+    const checkPriceNull = () => {
+        if (
+            description !== '' &&
+            startDate !== '' &&
+            endDate !== '' &&
+            selectedDayOfWeek.length > 0 &&
+            selectedTimeSlotCode !== ''
+        ) {
+            return true;
+        }
+        return false;
+    };
+
+    const handleAddPriceFood = async () => {
+        try {
+            if (!checkPriceFoodNull()) {
+                toast.error('Vui lòng nhập đầy đủ thông tin');
+                return;
+            }
+            if (!checkExitsPriceFood()) {
+                toast.error('Bảng giá đã tồn tại');
+                return;
+            }
+            await axios.post('api/prices', {
+                description: description,
+                startDate: startDate,
+                endDate: endDate,
+                type: String(typePrice),
+            });
+
+            toast.success('Thêm bảng giá thành công');
+            clearText();
+            setOpen(false);
+            refetch();
+        } catch (error) {
+            toast.error('Thêm bảng giá thất bại');
+        }
+    };
+
+    const handleAdd = async () => {
+        try {
+            if (!checkPriceNull()) {
+                toast.error('Vui lòng nhập đầy đủ thông tin');
+                return;
+            }
+            if (!checkExitsPrice()) {
+                toast.error('Bảng giá đã tồn tại');
+                return;
+            }
+            await axios.post('api/prices', {
+                description: description,
+                startDate: startDate,
+                endDate: endDate,
+                dayOfWeek: selectedDayOfWeek,
+                timeSlot: selectedTimeSlotCode,
+                type: String(typePrice),
+            });
+
+            toast.success('Thêm bảng giá thành công');
+            clearText();
+            setOpen(false);
+            refetch();
+        } catch (error) {
+            console.log(error.response.data);
+            // toast.error('Thông tin thêm không hợp lệ');
+        }
+    };
+
+    const handleUpdate = async () => {
+        if (description !== '' || startDate !== '' || endDate !== '') {
+            try {
+                await axios.post(`api/prices/${selectedPrice.code}`, {
+                    description: description,
+                    startDate: startDate,
+                    endDate: endDate,
+                    type: String(typePrice),
+                });
+
+                toast.success('Cập nhật bảng giá thành công');
+                setOpen(false);
+                refetch();
+            } catch (error) {
+                toast.error('Thông tin cập nhật không hợp lệ');
+            }
+        } else {
+            toast.warn('Vui lòng nhập thông tin cần cập nhật');
+            return;
+        }
+    };
+
+    const handleUpdateStatusPrice = async (priceCode, status) => {
+        try {
+            await axios.post(`api/prices/updateStatus/${priceCode}`, {
+                status: status === 1 ? 0 : 1,
+            });
+
+            toast.success('Cập nhật trạng thái thành công');
+            setOpen(false);
+            refetch();
+        } catch (error) {
+            toast.error('Cập nhật trạng thái thất bại');
+        }
+    };
+
+    const handleAddDetailProduct = async () => {
+        if (selectedProduct === '' || detailDescription === '' || detailPrice === '') {
+            toast.warn('Vui lòng nhập đầy đủ thông tin');
+            return;
+        } else {
+            try {
+                await axios.post('api/prices/addPriceDetailProduct', {
+                    priceCode: selectedPrice.code,
+                    productCode: productCode,
+                    description: detailDescription,
+                    price: detailPrice,
+                });
+
+                toast.success('Thêm chi tiết bảng giá đồ ăn thành công!');
+                setOpenLoaiKM(false);
+                setProductCode('');
+                setSelectedProduct('');
+                setSelectedPrice(null);
+                setDetailPrice('');
+                setDetailDescription('');
+
+                refetch();
+            } catch (error) {
+                toast.error('Sản phẩm đã có bảng giá!');
+            }
+        }
+    };
+    const handleAddDetailSeat = async () => {
+        // if (selectedProduct === '' || detailDescription === '' || detailPrice === '') {
+        //     toast.warn('Vui lòng nhập đầy đủ thông tin');
+        //     return;
+        // } else {
+        try {
+            await axios.post('api/prices/addPriceDetailSeat', {
+                productTypeCode: selectedProductTypeCode,
+                roomTypeCode: selectedRoomTypeCode,
+                priceCode: selectedPrice.code,
+                description: detailDescription,
+                price: detailPrice,
+            });
+
+            toast.success('Thêm chi tiết bảng giá ghế thành công!');
+            setOpenLoaiKM(false);
+            setProductCode('');
+            setSelectedProductType('');
+            setSelectedRoomType('');
+            setSelectedPrice(null);
+            setDetailPrice('');
+            setDetailDescription('');
+            refetch();
+        } catch (error) {
+            toast.error('Ghế đã có bảng giá!');
+        }
+    };
+
+    const onChangeStart = (date, dateString) => {
+        setStartDate(dateString);
+    };
+    const onChangeEnd = (date, dateString) => {
+        setEndDate(dateString);
+    };
+    function formatCurrency(amount) {
+        return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+    }
+
+    const optionDayOfWeek = [
+        { value: 2, label: '2' },
+        { value: 3, label: '3' },
+        { value: 4, label: '4' },
+        { value: 5, label: '5' },
+        { value: 6, label: '6' },
+        { value: 7, label: '7' },
+        { value: 8, label: 'CN' },
     ];
 
+    const optionTimeSlot = [
+        { value: '1', label: 'Cả ngày' },
+        { value: '2', label: 'Trước 17h' },
+        { value: '3', label: 'Sau 17h' },
+    ];
     const optionsLoc = [
         { value: '0', label: 'Lọc thể loại' },
         { value: 'KD', label: 'Kinh dị' },
@@ -156,7 +444,6 @@ const Price = () => {
         { value: 'A', label: 'A - Z' },
         { value: 'B', label: 'Z - A' },
     ];
-    const [selectedMovie, setSelectedMovie] = useState('');
     const nuoc = [
         {
             id: 1,
@@ -206,97 +493,123 @@ const Price = () => {
             </div>
             <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border  h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div>
-                    <h1 className="font-bold text-[16px] pl-3 pt-1 ">Vé</h1>
+                    <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
 
-                    <div className="bg-[#eeaf56] text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-7 items-center gap-3 ">
+                    <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 ">
                         <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                        <h1 className="uppercase grid justify-center items-center">Thứ</h1>
+                        <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
                         <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
                         <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
                         <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button
-                                className="border px-4 py-[3px] rounded-[40px] bg-orange-400"
-                                onClick={() => handleOpen(false)}
+                                className="border px-4 py-[3px] rounded-[40px] bg-white"
+                                onClick={() => handleOpen(false, 0)}
                             >
-                                <IoIosAddCircleOutline color="white" size={20} />
+                                <IoIosAddCircleOutline color="orange" size={20} />
                             </button>
                         </div>
                     </div>
                     <div className="h-[92%] height-sm-1">
-                        {promotions.map((promotion) => (
-                            <div key={promotion.id}>
-                                <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
-                                    <div className="grid col-span-3 grid-cols-10 items-center gap-5">
-                                        <div
-                                            className="justify-center col-span-2 grid"
-                                            onClick={() => {
-                                                toggleVisibility(promotion.id);
-                                                toggleDropdown(promotion.id);
-                                            }}
-                                        >
-                                            {isDropdownOpen[promotion.id] ? (
-                                                <FaChevronUp color="gray" size={20} />
-                                            ) : (
-                                                <FaChevronDown color="gray" size={20} />
-                                            )}
-                                        </div>
-                                        <h1 className="uppercase grid col-span-8">{promotion.name}</h1>
-                                    </div>
-                                    <h1 className="grid justify-center items-center">{promotion.start}</h1>
-                                    <h1 className="grid justify-center items-center">{promotion.end}</h1>
-                                    <div className="justify-center items-center grid">
-                                        <button
-                                            className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                promotion.status === 'Đang diễn ra' ? 'bg-green-500' : 'bg-gray-400'
-                                            }`}
-                                        >
-                                            {promotion.status}
-                                        </button>
-                                    </div>
-                                    <div className="justify-center grid items-center ">
-                                        <button className="" onClick={() => handleOpen(true)}>
-                                            <FaRegEdit color="black" size={22} />
-                                        </button>
-                                    </div>
-                                </div>
-                                {visibleRooms[promotion.id] && (
-                                    <>
-                                        <div className="border-b  text-[13px] font-bold uppercase text-slate-500 grid grid-cols-9 items-center gap-2">
-                                            <h1 className="grid col-span-1 justify-center items-center">
-                                                Loại phòng chiếu
-                                            </h1>
-                                            <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
-                                            <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
-                                            <h1 className="grid justify-center items-center">Giá</h1>
-                                            <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
-                                            <div className="grid justify-center col-span-2">
-                                                <button
-                                                    className="border px-4 py-[2px] mb-1 rounded-[40px] bg-orange-400"
-                                                    onClick={() => handleOpenLoaiKM(false, 1)}
-                                                >
-                                                    <IoIosAddCircleOutline color="white" size={20} />
-                                                </button>
+                        {data.prices
+                            .filter((item) => item.type === '0')
+                            .map((item) => (
+                                <div key={item.code}>
+                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
+                                        <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                            <div
+                                                className="justify-center col-span-2 grid"
+                                                onClick={() => {
+                                                    toggleVisibility(item.code);
+                                                    toggleDropdown(item.code);
+                                                }}
+                                            >
+                                                {isDropdownOpen[item.code] ? (
+                                                    <FaChevronUp color="gray" size={20} />
+                                                ) : (
+                                                    <FaChevronDown color="gray" size={20} />
+                                                )}
                                             </div>
+                                            <h1 className="uppercase grid col-span-8">{item.description}</h1>
                                         </div>
-                                        <div className="height-sm-1">
-                                            {promotion.promotion
-                                                .filter((item) => item.type === 2)
-                                                .map((item) => (
+                                        <h1 className="grid justify-center items-center">
+                                            {item.dayOfWeek.map((day) => (day === 8 ? 'CN' : day)).join(', ')}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {item.timeSlot === 1
+                                                ? 'Cả ngày'
+                                                : item.timeSlot === 2
+                                                ? 'Trước 17h'
+                                                : 'Sau 17h'}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.startDate)}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.endDate)}
+                                        </h1>
+                                        <div className="justify-center items-center grid">
+                                            <button
+                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex rounded-[40px] ${
+                                                    item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                                }`}
+                                                onClick={() => handleUpdateStatusPrice(item.code, item.status)}
+                                            >
+                                                {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+                                            </button>
+                                        </div>
+                                        <div className="justify-center grid items-center ">
+                                            <button
+                                                className=""
+                                                onClick={() => {
+                                                    handleOpen(true, 0);
+                                                    setSelectedPrice(item);
+                                                }}
+                                            >
+                                                <FaRegEdit color="black" size={22} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {visibleRooms[item.code] && (
+                                        <>
+                                            <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-9 items-center gap-2">
+                                                <h1 className="grid col-span-1 justify-center items-center">
+                                                    Loại phòng chiếu
+                                                </h1>
+                                                <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
+                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
+                                                <h1 className="grid justify-center items-center">Giá</h1>
+                                                <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
+                                                <div className="grid justify-center col-span-2">
+                                                    <button
+                                                        className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
+                                                        onClick={() => {
+                                                            handleOpenLoaiKM(false, 1);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                    >
+                                                        <IoIosAddCircleOutline color="white" size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="height-sm-1">
+                                                {item?.priceDetails?.map((item) => (
                                                     <div
-                                                        className="border-b text-[15px] py-1 font-normal text-slate-500 grid grid-cols-9 items-center gap-3"
-                                                        key={item.id}
+                                                        className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3"
+                                                        key={item.code}
                                                     >
                                                         <h1 className=" grid col-span-1 justify-center items-center ">
-                                                            {item.loaiPC}
+                                                            {item.roomTypeCode?.name}
                                                         </h1>
                                                         <h1 className=" grid pl-3 col-span-2 items-center">
-                                                            {item.name}
+                                                            {item.productTypeCode?.name}
                                                         </h1>
                                                         <h1 className=" grid col-span-2 pl-3 items-center">
-                                                            {item.mota}
+                                                            {item?.description}
                                                         </h1>
                                                         <h1 className=" grid items-center justify-center">
-                                                            {item.price}
+                                                            {formatCurrency(item?.price)}
                                                         </h1>
                                                         <div className="justify-center items-center grid pl-5">
                                                             <button
@@ -306,13 +619,16 @@ const Price = () => {
                                                                         : 'bg-gray-400'
                                                                 }`}
                                                             >
-                                                                {item.status}
+                                                                {item?.status}
                                                             </button>
                                                         </div>
                                                         <div className="justify-center space-x-5 items-center col-span-2 flex  ">
                                                             <button
                                                                 className=""
-                                                                onClick={() => handleOpenLoaiKM(true, 1)}
+                                                                onClick={() => {
+                                                                    handleOpenLoaiKM(true, 1);
+                                                                    setSelectDetail(item);
+                                                                }}
                                                             >
                                                                 <FaRegEdit color="black" size={20} />
                                                             </button>
@@ -325,96 +641,114 @@ const Price = () => {
                                                         </div>
                                                     </div>
                                                 ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
                     </div>
                 </div>
-                <div className="bg-slate-200 h-6"></div>
+                <div className="bg-slate-200 h-8"></div>
                 <div>
-                    <h1 className="font-bold text-[16px] pl-3 py-1">Đồ ăn và nước uống</h1>
-                    <div className="bg-[#eeaf56] text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-7 items-center gap-3 ">
+                    <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
+                    <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-7 items-center gap-3 ">
                         <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
                         <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
                         <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
                         <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button
-                                className="border px-4 py-[3px] rounded-[40px] bg-orange-400"
-                                onClick={() => handleOpen(false)}
+                                className="border px-4 py-1 rounded-[40px] bg-white"
+                                onClick={() => handleOpen(false, 1)}
                             >
-                                <IoIosAddCircleOutline color="white" size={20} />
+                                <IoIosAddCircleOutline color="orange" size={20} />
                             </button>
                         </div>
                     </div>
-                    <div className="h-[70%] height-sm-1 ">
-                        {promotions.map((promotion) => (
-                            <div key={promotion.id}>
-                                <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
-                                    <div className="grid col-span-3 grid-cols-10 items-center gap-5">
-                                        <div
-                                            className="justify-center col-span-2 grid"
-                                            onClick={() => {
-                                                toggleVisibility(promotion.id);
-                                                toggleDropdown(promotion.id);
-                                            }}
-                                        >
-                                            {isDropdownOpen[promotion.id] ? (
-                                                <FaChevronUp color="gray" size={20} />
-                                            ) : (
-                                                <FaChevronDown color="gray" size={20} />
-                                            )}
-                                        </div>
-                                        <h1 className="uppercase grid col-span-8">{promotion.name}</h1>
-                                    </div>
-                                    <h1 className="grid justify-center items-center">{promotion.start}</h1>
-                                    <h1 className="grid justify-center items-center">{promotion.end}</h1>
-                                    <div className="justify-center items-center grid">
-                                        <button
-                                            className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                promotion.status === 'Đang diễn ra' ? 'bg-green-500' : 'bg-gray-400'
-                                            }`}
-                                        >
-                                            {promotion.status}
-                                        </button>
-                                    </div>
-                                    <div className="justify-center grid items-center ">
-                                        <button className="" onClick={() => handleOpen(true)}>
-                                            <FaRegEdit color="black" size={22} />
-                                        </button>
-                                    </div>
-                                </div>
-                                {visibleRooms[promotion.id] && (
-                                    <>
-                                        <div className="border-b text-[13px] font-bold uppercase text-slate-500 grid grid-cols-8 items-center gap-3">
-                                            <h1 className="grid col-span-2 justify-center items-center">Tên</h1>
-                                            <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
-                                            <h1 className="grid justify-center items-center">Giá</h1>
-                                            <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
-                                            <div className="grid justify-center col-span-2">
-                                                <button
-                                                    className="border px-4 py-1 rounded-[40px] bg-orange-400"
-                                                    onClick={() => handleOpenLoaiKM(false, 2)}
-                                                >
-                                                    <IoIosAddCircleOutline color="white" size={20} />
-                                                </button>
+                    <div className="h-[70%] height-sm-1 mb-8">
+                        {data.prices
+                            .filter((item) => item.type === '1')
+                            .map((item) => (
+                                <div key={item.code}>
+                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
+                                        <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                            <div
+                                                className="justify-center col-span-2 grid"
+                                                onClick={() => {
+                                                    toggleVisibility(item.code);
+                                                    toggleDropdown(item.code);
+                                                }}
+                                            >
+                                                {isDropdownOpen[item.code] ? (
+                                                    <FaChevronUp color="gray" size={20} />
+                                                ) : (
+                                                    <FaChevronDown color="gray" size={20} />
+                                                )}
                                             </div>
+                                            <h1 className="uppercase grid col-span-8">{item.description}</h1>
                                         </div>
-                                        <div className="height-sm-1">
-                                            {promotion.promotion
-                                                .filter((item) => item.type === 1)
-                                                .map((item) => (
+
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.startDate)}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.endDate)}
+                                        </h1>
+                                        <div className="justify-center items-center grid">
+                                            <button
+                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex rounded-[40px] ${
+                                                    item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                                }`}
+                                            >
+                                                {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+                                            </button>
+                                        </div>
+                                        <div className="justify-center grid items-center ">
+                                            <button
+                                                className=""
+                                                onClick={() => {
+                                                    handleOpen(true, 1);
+                                                    setSelectedPrice(item);
+                                                }}
+                                            >
+                                                <FaRegEdit color="black" size={22} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {visibleRooms[item.code] && (
+                                        <>
+                                            <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3">
+                                                <h1 className="grid col-span-2 justify-center items-center">Tên</h1>
+                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
+                                                <h1 className="grid justify-center items-center">Giá</h1>
+                                                <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
+                                                <div className="grid justify-center col-span-2">
+                                                    <button
+                                                        className="border px-4 py-1 rounded-[40px] gradient-button"
+                                                        onClick={() => {
+                                                            handleOpenLoaiKM(false, 2);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                    >
+                                                        <IoIosAddCircleOutline color="white" size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="height-sm-1">
+                                                {item.priceDetails.map((item) => (
                                                     <div
-                                                        className="border-b py-1 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-3"
-                                                        key={item.id}
+                                                        className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3"
+                                                        key={item.code}
                                                     >
                                                         <h1 className=" grid col-span-2 pl-3 items-center ">
-                                                            {item.name}
+                                                            {item.productCode.name}
                                                         </h1>
-                                                        <h1 className=" grid col-span-2  items-center">{item.mota}</h1>
-                                                        <h1 className=" grid items-center">{item.price}</h1>
+                                                        <h1 className=" grid col-span-2  items-center">
+                                                            {item.description}
+                                                        </h1>
+                                                        <h1 className=" grid items-center justify-center">
+                                                            {formatCurrency(item.price)}
+                                                        </h1>
                                                         <div className="justify-center items-center grid pl-5">
                                                             <button
                                                                 className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
@@ -429,7 +763,10 @@ const Price = () => {
                                                         <div className="justify-center space-x-5 items-center col-span-2 flex  ">
                                                             <button
                                                                 className=""
-                                                                onClick={() => handleOpenLoaiKM(true, 2)}
+                                                                onClick={() => {
+                                                                    handleOpenLoaiKM(true, 2);
+                                                                    setSelectDetail(item);
+                                                                }}
                                                             >
                                                                 <FaRegEdit color="black" size={20} />
                                                             </button>
@@ -442,11 +779,11 @@ const Price = () => {
                                                         </div>
                                                     </div>
                                                 ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
                     </div>
                 </div>
             </div>
@@ -455,7 +792,9 @@ const Price = () => {
                 open={open}
                 handleClose={handleClose}
                 width="35%"
-                height="35%"
+                height={typePrice === 0 ? '46%' : '36%'}
+                top="30%"
+                left="55%"
                 smallScreenWidth="60%"
                 smallScreenHeight="28%"
                 mediumScreenWidth="60%"
@@ -467,11 +806,11 @@ const Price = () => {
                 heightScreen="36%"
                 title={isUpdate ? 'Chỉnh sửa bảng giá' : 'Thêm bảng giá'}
             >
-                <div className=" h-[80%] grid grid-rows-3 gap-3 ">
+                <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-3`}>
                     <div className="grid p-3 ">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            value={isUpdate ? selectedPrice?.description : description}
+                            onChange={setDescription}
                             title="Mô tả"
                             freeSolo={true}
                             disableClearable={false}
@@ -479,15 +818,94 @@ const Price = () => {
                             heightSelect={200}
                         />
                     </div>
-
-                    <div className="grid items-center row-span-2  gap-2 ">
-                        <div className="grid grid-cols-2 gap-8 p-3">
-                            <InputComponent title="Ngày bắt đầu" className="rounded-[5px] " type="date" />
-                            <InputComponent title="Ngày kết thúc" className="rounded-[5px] " type="date" />
+                    <div className="grid items-center gap-2 ">
+                        <div className="grid grid-cols-2 gap-8 p-3 ">
+                            <div>
+                                <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
+                                <DatePicker
+                                    value={
+                                        startDate
+                                            ? dayjs(startDate)
+                                            : isUpdate && selectedPrice?.startDate
+                                            ? dayjs(selectedPrice.startDate)
+                                            : null
+                                    }
+                                    minDate={startDate ? dayjs(startDate) : dayjs().add(1, 'day')}
+                                    onChange={onChangeStart}
+                                    getPopupContainer={(trigger) => trigger.parentNode}
+                                    placeholder="Chọn ngày"
+                                    format="YYYY-MM-DD"
+                                    className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                />
+                            </div>
+                            <div>
+                                <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
+                                <DatePicker
+                                    value={
+                                        endDate
+                                            ? dayjs(endDate)
+                                            : isUpdate && selectedPrice?.endDate
+                                            ? dayjs(selectedPrice.endDate)
+                                            : null
+                                    }
+                                    onChange={onChangeEnd}
+                                    getPopupContainer={(trigger) => trigger.parentNode}
+                                    placeholder="Chọn ngày"
+                                    minDate={startDate ? dayjs(startDate) : dayjs().add(1, 'day')}
+                                    format="YYYY-MM-DD"
+                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                />
+                            </div>
                         </div>
+                    </div>
+
+                    <div className={`grid items-center ${typePrice === 0 ? 'row-span-2' : 'row-span-1'}  gap-2 `}>
+                        {typePrice === 0 && (
+                            <div className="grid grid-cols-2 gap-8 p-3 z-50">
+                                <div className="">
+                                    <h1 className="text-[16px] truncate mb-1 ">Thứ</h1>
+
+                                    <Select
+                                        mode="multiple"
+                                        allowClear
+                                        placeholder="Chọn tùy chọn"
+                                        value={selectedDayOfWeek}
+                                        onChange={handleChangeDay}
+                                        className="h-[36px] w-full border border-black rounded-[5px]"
+                                        dropdownStyle={{ maxHeight: '200px', overflow: 'auto' }}
+                                        getPopupContainer={(trigger) => trigger.parentNode}
+                                        maxTagCount={3}
+                                    >
+                                        {optionDayOfWeek.map((option) => (
+                                            <Option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <AutoInputComponent
+                                    value={selectedTimeSlot}
+                                    onChange={handleTimeSlotChang}
+                                    options={optionTimeSlot.map((item) => item.label)}
+                                    title="Khung giờ"
+                                    freeSolo={true}
+                                    disableClearable={false}
+                                    placeholder="Nhập ..."
+                                    heightSelect={200}
+                                    height={40}
+                                    disabled={isUpdate}
+                                />
+                            </div>
+                        )}
                         <div className="justify-end flex space-x-3 border-t py-[6px] px-4 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                            <ButtonComponent
+                                text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
+                                className=" bg-blue-500 "
+                                onClick={() => {
+                                    isUpdate ? handleUpdate() : typePrice === 0 ? handleAdd() : handleAddPriceFood();
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -496,7 +914,7 @@ const Price = () => {
             <ModalComponent
                 open={openLoaiKM}
                 handleClose={handleCloseLoaiKM}
-                width="35%"
+                width="30%"
                 height={type === 1 ? '55%' : '46%'}
                 smallScreenWidth="45%"
                 smallScreenHeight={type === 1 ? '40%' : '34%'}
@@ -507,34 +925,53 @@ const Price = () => {
                 maxHeightScreenHeight={type === 1 ? '65%' : '56%'}
                 maxHeightScreenWidth="45%"
                 heightScreen={type === 1 ? '50%' : '43%'}
-                title={isUpdate ? 'Thêm chi tiết bảng giá' : 'Chỉnh sửa chi tiết bảng giá'}
+                title={isUpdate ? 'Chỉnh sửa chi tiết bảng giá' : 'Thêm chi tiết bảng giá'}
             >
                 <div className={`h-[80%] grid ${type === 1 ? 'grid-rows-5' : 'grid-rows-4'} gap-2`}>
                     {type === 1 && (
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            className="border border-[gray]"
-                            className1="p-3"
+                        <AutoInputComponent
+                            value={isUpdate ? selectDetail?.roomTypeCode?.name : selectedRoomType}
+                            onChange={handleRoomTypeChang}
+                            options={data.optionRoomTypes.map((item) => item.name)}
                             title="Loại phòng chiếu"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={130}
+                            className1="p-3"
                         />
                     )}
 
+                    {type === 2 && (
+                        <AutoInputComponent
+                            value={isUpdate ? selectDetail?.productCode?.name : selectedProduct}
+                            onChange={handleProductChang}
+                            options={data.optionFood.map((item) => item.name)}
+                            title="Tên"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={130}
+                            className1="p-3"
+                        />
+                    )}
+
+                    {type === 1 && (
+                        <AutoInputComponent
+                            value={isUpdate ? selectDetail?.productTypeCode?.name : selectedProductType}
+                            onChange={handleProductTypeChang}
+                            options={data.optionProductTypes.map((item) => item.name)}
+                            title="Loại ghế"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Nhập ..."
+                            heightSelect={130}
+                            className1="p-3"
+                        />
+                    )}
                     <AutoInputComponent
-                        options={nuoc.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Tên"
-                        className1="p-3"
-                        freeSolo={false}
-                        disableClearable={true}
-                        placeholder="Nhập ..."
-                        heightSelect={200}
-                    />
-                    <AutoInputComponent
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
+                        value={isUpdate ? selectDetail?.description : detailDescription}
+                        onChange={setDetailDescription}
                         title="Mô tả"
                         freeSolo={true}
                         disableClearable={false}
@@ -545,8 +982,8 @@ const Price = () => {
 
                     <div className="grid items-center row-span-2  gap-2 ">
                         <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
+                            value={isUpdate ? String(selectDetail?.price) : String(detailPrice)}
+                            onChange={setDetailPrice}
                             title="Giá"
                             freeSolo={true}
                             disableClearable={false}
@@ -557,7 +994,11 @@ const Price = () => {
 
                         <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseLoaiKM} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                            <ButtonComponent
+                                text="Thêm mới"
+                                className=" bg-blue-500 "
+                                onClick={type === 1 ? handleAddDetailSeat : handleAddDetailProduct}
+                            />
                         </div>
                     </div>
                 </div>
@@ -592,15 +1033,14 @@ const Price = () => {
                     )}
 
                     <AutoInputComponent
-                        options={nuoc.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
+                        value={selectedProduct} // Hiển thị tên
+                        onChange={(newValue) => setSelectedProduct(newValue)}
+                        options={data.products.map((item) => item.name)}
                         title="Tên"
-                        className1="p-3"
                         freeSolo={false}
                         disableClearable={true}
                         placeholder="Nhập ..."
-                        heightSelect={200}
+                        heightSelect={130}
                     />
                     <AutoInputComponent
                         value={selectedMovie}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaRegEdit } from 'react-icons/fa';
@@ -14,9 +14,10 @@ import { FixedSizeList as List } from 'react-window';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from '~/setup/axios';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { set } from 'lodash';
-
-const { getFormattedDate } = require('~/utils/dateUtils');
+const { getFormattedDate, getFormatteNgay } = require('~/utils/dateUtils');
 
 const Food = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -29,7 +30,7 @@ const Food = () => {
     const [openDelete, setOpenDelete] = useState(false);
     const [foodFilter, setFoodFilter] = useState([]);
     const [inputSearch, setInputSearch] = useState('');
-
+    const [selectDate, setSelectDate] = useState('');
     const [inputSets, setInputSets] = useState([
         { code: '', name: '', quantity: 0 },
         { code: '', name: '', quantity: 0 },
@@ -151,6 +152,25 @@ const Food = () => {
         setInputSearch('');
         setSelectedStatus(optionStatus[0]);
     };
+    const onChange1 = (date, dateString) => {
+        setSelectDate(dateString);
+        if (dateString === '') {
+            setFoodFilter(product);
+            return;
+        } else {
+            const filterDate = product.filter((item) => getFormatteNgay(item.createdAt) === dateString);
+            if (filterDate.length === 0) {
+                toast.info('Không có sản phẩm nào!');
+                return;
+            }
+            setSelectedSort(optionsSort[0]);
+            setSelectedStatus(optionStatus[0]);
+            setInputSearch('');
+            setFoodFilter(filterDate);
+        }
+    };
+
+    const dateObject = dayjs();
 
     const sortedStatus = (option) => {
         if (!option) {
@@ -538,7 +558,16 @@ const Food = () => {
                                 }}
                             />
                         </div>
-                        <InputComponent className="rounded-[10px]" title="Ngày tạo" type="date" />
+                        <div>
+                            <h1 className="text-[16px] truncate mb-1">Ngày tạo</h1>
+                            <DatePicker
+                                onChange={onChange1}
+                                defaultValue={dateObject}
+                                placeholder="Chọn ngày"
+                                format="DD/MM/YYYY"
+                                className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
+                            />
+                        </div>
                         <div className="relative w-full ">
                             <AutoInputComponent
                                 value={selectedSort.name}
