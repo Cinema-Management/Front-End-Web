@@ -57,10 +57,6 @@ const Room = () => {
         enabled: !!roomCode, // Chỉ fetch khi roomCode có giá trị
     });
 
-    if (isLoading || isFetching) {
-        return <Loading />;
-    }
-
     // Kiểm tra lỗi khi tải rạp chiếu phim
     if (error) {
         return <div>Lỗi khi tải danh sách ghế: {error.message}</div>;
