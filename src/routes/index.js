@@ -1,5 +1,4 @@
 import { lazy } from 'react';
-
 const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
 const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
 const Film = lazy(() => import('~/pages/FilmPage/Film'));
@@ -9,11 +8,12 @@ const Login = lazy(() => import('~/pages/LoginPage/Login'));
 const Order = lazy(() => import('~/pages/OrderPage/Order'));
 const Price = lazy(() => import('~/pages/PricePage/Price'));
 const Promotion = lazy(() => import('~/pages/PromotionPage/Promotion'));
-// const Register = lazy(() => import('~/pages/RegisterPage/Register'));
 const Room = lazy(() => import('~/pages/RoomPage/Room'));
 const Schedule = lazy(() => import('~/pages/SchedulePage/Schedule'));
 const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 const Staff = lazy(() => import('~/pages/StaffPage/Staff'));
+const Register = lazy(() => import('~/pages/RegisterPage/Register'));
+const ForgotPassword = lazy(() => import('~/pages/ForgotPasswordPage/ForgotPassword'));
 
 export const routes = [
     {
@@ -81,7 +81,11 @@ export const routes = [
         page: Login,
     },
     {
-        path: '/resgiter',
-        page: Login,
+        path: '/register',
+        page: Register,
+    },
+    {
+        path: '/forgot-password',
+        page: ForgotPassword,
     },
 ];
