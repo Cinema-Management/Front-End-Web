@@ -15,6 +15,7 @@ import { MultiSelect } from 'react-multi-select-component';
 import { toast } from 'react-toastify';
 import { getAllSeatByRoomCode, getRoomCode } from '~/redux/apiRequest';
 import { useDispatch } from 'react-redux';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Cinema = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -86,7 +87,7 @@ const Cinema = () => {
 
         const filteredCinemas = cinemas.filter(
             (cinema) =>
-                cinema.name.includes(searchValue.name) ||
+                cinema.code === searchValue.code ||
                 cinema.status === searchValue.value ||
                 cinema.roomsCount === searchValue,
         );
@@ -414,6 +415,8 @@ const Cinema = () => {
 
     const handleUpdateCinema = async (cinemaCode) => {
         try {
+            setNameCinema(selectedCinema?.name);
+
             if (!validateCinema()) return;
             const hierarchyValues = [
                 { name: selectedProvince, level: 0 },
