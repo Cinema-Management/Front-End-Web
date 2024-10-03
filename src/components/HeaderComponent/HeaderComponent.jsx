@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Logo from '~/assets/logo.png';
+import Logo from '~/assets/Logo.png';
 import { GoHome } from 'react-icons/go';
 import { FaChevronDown, FaChevronUp, FaFilm, FaUser, FaRegUser } from 'react-icons/fa6';
 import { SlScreenDesktop } from 'react-icons/sl';

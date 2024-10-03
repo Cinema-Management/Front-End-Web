@@ -14,6 +14,9 @@ module.exports = {
                 '95p': '95%',
                 '60p': '60%',
             },
+            backgroundImage: {
+                'custom-bg': "url('./assets/imgbg.png')", // Đảm bảo đường dẫn đúng
+            },
         },
         screens: {
             xs: '320px',
