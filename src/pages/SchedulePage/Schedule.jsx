@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdSwapVert } from 'react-icons/md';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
@@ -46,15 +44,27 @@ const fetchCinemasFullAddress = async () => {
     }
 };
 
-const fetchMovies = async () => {
-    const movie = await axios.get('api/movies');
-    const data = movie.data;
+const fetchMoviesStatus = async () => {
+    try {
+        const response = await axios.get('api/movies');
+        const movies = response.data;
 
-    const arrayNameMovie = data.map((movie) => ({
-        name: movie.name, // Hiển thị tên
-        code: movie.code, // Giá trị sẽ được gửi về
-    }));
-    return arrayNameMovie;
+        // Lọc các phim có status = 1
+        const filteredMovies = movies.filter((movie) => movie.status === 1);
+
+        // Tạo mảng chứa tên và mã phim
+        const arrayNameMovie = filteredMovies.map((movie) => ({
+            name: movie.name, // Hiển thị tên
+            code: movie.code, // Giá trị sẽ được gửi về
+        }));
+
+        // Nếu có ít nhất một phim có status = 1, thông báo tên phim đầu tiên
+
+        return arrayNameMovie;
+    } catch (error) {
+        console.error('Error fetching movies:', error);
+        return []; // Trả về mảng rỗng nếu có lỗi
+    }
 };
 
 const fetchAudio = async () => {
@@ -81,19 +91,18 @@ const fetchSubtitle = async () => {
 const Schedule = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
-    const [selectedValue, setSelectedValue] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [roomsFilter, setRoomsFilter] = useState([]);
 
     const [selectedDate, setSelectedDate] = useState(dayjs());
     const [selectedTime, setSelectedTime] = useState(dayjs());
-    const [selectedMovieName, setSelectedMovieName] = useState([]);
-    const [selectedFilterMovieName, setSelectedFilterMovieName] = useState([]);
-    const [selectedSubtitle, setSelectedSubtitle] = useState([]);
+    const [selectedMovieName, setSelectedMovieName] = useState();
+    const [selectedFilterMovieName, setSelectedFilterMovieName] = useState('');
+    const [selectedSubtitle, setSelectedSubtitle] = useState('');
     const [selectedRoom, setSelectedRoom] = useState('');
-    const [selectedScreeningFormat, setSelectedScreeningFormat] = useState([]);
+    const [selectedScreeningFormat, setSelectedScreeningFormat] = useState('');
     const [optionScreeningFormat, setOptionScreeningFormat] = useState([]);
-    const [selectedAudio, setSelectedAudio] = useState([]);
+    const [selectedAudio, setSelectedAudio] = useState('');
     const [selectedSchedule, setSelectedSchedule] = useState([]);
     const isDisabledAdd = dayjs(selectedDate).isBefore(dayjs(), 'day');
 
@@ -130,16 +139,16 @@ const Schedule = () => {
     };
 
     const cleanText = () => {
-        setSelectedMovieName([]);
-        setSelectedScreeningFormat([]);
-        setSelectedAudio([]);
-        setSelectedSubtitle([]);
+        setSelectedMovieName('');
+        setSelectedScreeningFormat('');
+        setSelectedAudio('');
+        setSelectedSubtitle('');
         setSelectedTime();
     };
     // action
     const handleAddSchedule = async () => {
         if (validateSchedule() === false) return; // Kiểm tra dữ liệu nhập vào có hợp lệ không
-        if (checkAdd() === false) return;
+        if (checkAddAndUpdate() === false) return;
         if (!selectedRoom) return; // Nếu cinemaCode rỗng thì không gọi API
 
         const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
@@ -149,14 +158,20 @@ const Schedule = () => {
         // Định dạng thời gian thành ISO string
         const startTime = combinedDateTime.toISOString(); // Định dạng giờ
 
+        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
+        const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
+
+        const audio = optionAudio.find((option) => option.name === selectedAudio);
+        const subtitle = optionSubtitle.find((option) => option.name === selectedSubtitle);
+
         const schedule = {
             roomCode: selectedRoom?.code,
-            movieCode: selectedMovieName.code,
-            screeningFormatCode: selectedScreeningFormat.code,
+            movieCode: movie?.code,
+            screeningFormatCode: screeningFormat?.code,
             date: formattedDate,
             startTime: startTime,
-            audioCode: selectedAudio.code,
-            subtitleCode: selectedSubtitle.code,
+            audioCode: audio?.code,
+            subtitleCode: subtitle?.code,
         };
 
         try {
@@ -175,7 +190,7 @@ const Schedule = () => {
     };
     const handleUpdateSchedule = async () => {
         if (validateSchedule() === false) return; // Kiểm tra dữ liệu nhập vào có hợp lệ không
-        if (checkAdd() === false) return;
+        if (checkAddAndUpdate() === false) return;
         if (!selectedSchedule.code) return; // Nếu cinemaCode rỗng thì không gọi API
 
         const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
@@ -185,19 +200,24 @@ const Schedule = () => {
         // Định dạng thời gian thành ISO string
         const startTime = combinedDateTime.toISOString(); // Định dạng giờ
 
+        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
+        const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
+
+        const audio = optionAudio.find((option) => option.name === selectedAudio);
+        const subtitle = optionSubtitle.find((option) => option.name === selectedSubtitle);
+
         const schedule = {
-            code: selectedSchedule?.code,
-            // roomCode: selectedRoom?.code,
-            movieCode: selectedMovieName.code,
-            screeningFormatCode: selectedScreeningFormat.code,
+            roomCode: selectedRoom?.code,
+            movieCode: movie?.code,
+            screeningFormatCode: screeningFormat?.code,
             date: formattedDate,
             startTime: startTime,
-            audioCode: selectedAudio.code,
-            subtitleCode: selectedSubtitle.code,
+            audioCode: audio?.code,
+            subtitleCode: subtitle?.code,
         };
 
         try {
-            const response = await axios.put(`api/schedules/${schedule.code}`, schedule);
+            const response = await axios.put(`api/schedules/${selectedSchedule?.code}`, schedule);
             if (response.data) {
                 toast.success('Cập nhật thành công');
                 refetchRoom();
@@ -211,8 +231,21 @@ const Schedule = () => {
         }
     };
 
+    const handleUpdateStatus = async (code) => {
+        try {
+            const response = await axios.put(`api/schedules/status/${code}`);
+            if (response.data) {
+                toast.success('Cập nhật trạng thái thành công!');
+                refetchRoom();
+            } else {
+                toast.error('Cập nhật thất bại thất bại');
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
+        }
+    };
+
     const handleDateChange = (date) => {
-        toast.success('Chọn ngày thành công: ' + date.format('DD/MM/YYYY'));
         setSelectedDate(date);
     };
 
@@ -270,7 +303,12 @@ const Schedule = () => {
         cacheTime: 1000 * 60 * 10,
     });
 
-    const { data: optionMovieName = [] } = useQuery('fetchMovies', fetchMovies, {
+    const {
+        data: optionMovieName = [],
+        isLoading: isLoadingOptionMovieName,
+        isFetching: isFetchingOptionMovieName,
+        error: optionCinemaNameError,
+    } = useQuery('movie1', fetchMoviesStatus, {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
     });
@@ -291,10 +329,6 @@ const Schedule = () => {
         if (!selectedOptionFilterCinema) {
             const option = optionNameCinema.find((option) => option.code === cinemaCode);
             setSelectedFilterCinema(option?.name);
-        }
-
-        if (selectedOptionFilterCinema && selectedOptionFilterCinema.code) {
-            getCinemaCode(dispatch, selectedOptionFilterCinema?.code); // Cập nhật cinemaCode qua dispatch
         }
     }, [selectedOptionFilterCinema, cinemaCode, dispatch, optionNameCinema]); // Theo
 
@@ -321,52 +355,52 @@ const Schedule = () => {
             toast.warning('Vui lòng chọn giờ chiếu');
             return false;
         }
-        if (selectedMovieName.length === 0) {
+        if (!selectedMovieName) {
             toast.warning('Vui lòng chọn phim');
             return false;
         }
-        if (selectedScreeningFormat.length === 0) {
+        if (!selectedScreeningFormat) {
             toast.warning('Vui lòng chọn định dạng chiếu');
             return false;
         }
-        if (selectedAudio.length === 0) {
+        if (!selectedAudio) {
             toast.warning('Vui lòng chọn âm thanh');
             return false;
         }
-        if (selectedSubtitle.length === 0) {
+        if (!selectedSubtitle) {
             toast.warning('Vui lòng chọn phụ đề');
             return false;
         }
 
         return true;
     };
-    const [duration, setDuration] = useState(0);
+    const [movieByCode, setMovieByCode] = useState('');
 
     useEffect(() => {
         const fetchMovieByCode = async () => {
-            const movie = await axios.get(`api/movies/${selectedMovieName.code}`);
-            setDuration(movie.data.duration);
+            const optionFind = optionMovieName.find((map) => map.name === selectedMovieName);
+            const movie = await axios.get(`api/movies/${optionFind?.code}`);
+            setMovieByCode(movie.data);
         };
 
         if (selectedMovieName) {
             fetchMovieByCode();
         }
-    }, [selectedMovieName]); // Only re-run when selectedMovieName changes
+    }, [selectedMovieName, optionMovieName]); // Only re-run when selectedMovieName changes
 
-    (isLoadingRoom || isLoadingCinemas) && <Loading />;
-    (errorRoom || CinemaError) && toast.error('Lỗi: ' + (errorRoom || CinemaError));
+    (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName || isFetchingOptionMovieName) && <Loading />;
+    (errorRoom || CinemaError || optionCinemaNameError) &&
+        toast.error('Lỗi: ' + (errorRoom || CinemaError || optionCinemaNameError));
 
-    // useEffect(() => {
-    //     if (selectedMovieName) {
-    //         refetchMovieByCode();
-    //     }
-    // }, [selectedMovieName]);
+    const checkAddAndUpdate = () => {
+        let rooms = [];
+        if (isUpdate) {
+            rooms = room.find((r) => r.code === selectedSchedule.roomCode);
+        } else {
+            rooms = room.find((r) => r.code === selectedRoom?.code);
+        }
+        const duration = movieByCode?.duration;
 
-    const checkAdd = () => {
-        toast.success('Thời lượng phim: ' + duration);
-        // const duration = movie?.duration || 0;
-
-        const rooms = room.find((r) => (r.code === isUpdate ? selectedSchedule.roomCode : selectedRoom?.code));
         if (!selectedDate) return false;
 
         const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
@@ -377,6 +411,15 @@ const Schedule = () => {
 
         const startTime = new Date(startTime1);
 
+        const startDate = new Date(movieByCode?.startDate);
+        // Kiểm tra xem ngày tạo suất chiếu có nằm trong khoảng 1 đến 3 ngày so với ngày phát hành không
+        const differenceInTime = startDate.getDay() - startTime.getDay();
+
+        if (differenceInTime < 1 || differenceInTime > 3) {
+            toast.warning('Suất chiếu phải trước ngày phát hành phim tối đa 3 ngày.');
+            return false; // Ngày không hợp lệ
+        }
+
         const endTime = new Date(startTime.getTime() + duration * 60000 + 15 * 60000);
 
         const schedules = rooms.schedules || []; // Đảm bảo schedules là một mảng
@@ -385,20 +428,21 @@ const Schedule = () => {
         });
 
         if (conflictingSchedules.length > 0) {
-            toast.warning('Lịch trình xung đột với lịch trình hiện có trong phòng này');
+            toast.warning('Lịch trình xung đột với lịch trình hiện có trong phòng :' + rooms.name);
             return false;
         }
+        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
 
         for (const room1 of room) {
             const existingSchedules = room1.schedules || []; // Lịch chiếu hiện có trong phòng
 
             // Kiểm tra xung đột lịch chiếu trong phòng
             const isConflict = existingSchedules.some(
-                (schedule) => schedule.movieCode.code === selectedMovieName.code && schedule.startTime === startTime1, // Kiểm tra thời gian bắt đầu
+                (schedule) => schedule.movieCode.code === movie?.code && schedule.startTime === startTime1, // Kiểm tra thời gian bắt đầu
             );
 
             if (isConflict) {
-                toast.warning('Phim này đã có giờ chiếu tại phòng khác');
+                toast.warning('Phim này đã có giờ chiếu tại:' + room1.name);
 
                 return false; // Có xung đột
             }
@@ -406,10 +450,12 @@ const Schedule = () => {
         return true;
     };
 
-    const handleSearch = (searchValue, type) => {
-        if (type === 'name') {
+    const handleSearch = (searchValue) => {
+        if (searchValue) {
             setSelectedFilterCinema(searchValue);
-        } else if (type === 'status') {
+            const optionFind = optionNameCinema.find((option) => option.name === searchValue);
+
+            getCinemaCode(dispatch, optionFind?.code); // Cập nhật cinemaCode qua dispatch
         }
     };
 
@@ -425,9 +471,7 @@ const Schedule = () => {
         const filteredRooms = room
             .map((room) => {
                 // Lọc lịch chiếu trong từng phòng theo mã phim được chọn
-                const filteredSchedules = room.schedules.filter(
-                    (schedule) => schedule.movieCode.code === searchValue.code,
-                );
+                const filteredSchedules = room.schedules.filter((schedule) => schedule.movieCode.name === searchValue);
 
                 // Trả về phòng với lịch chiếu đã lọc
                 return {
@@ -436,7 +480,6 @@ const Schedule = () => {
                 };
             })
             .filter((room) => room.schedules.length > 0);
-        toast.success('Tìm kiếm phim thành công: ' + filteredRooms.length);
 
         // Update the filtered list of rooms
         if (filteredRooms.length > 0) {
@@ -451,9 +494,6 @@ const Schedule = () => {
     const handleClose = () => {
         setOpen(false);
         cleanText();
-    };
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
     };
 
     const [visibleRooms, setVisibleRooms] = useState({});
@@ -470,32 +510,27 @@ const Schedule = () => {
             [roomId]: !prevState[roomId],
         }));
     };
-    const optionCV = [
-        { value: '0', label: 'Chọn' },
-        { value: 'GLX', label: 'Galaxy Quang Trung' },
-        { value: 'LT', label: 'Lotte Gò Vấp' },
-    ];
 
     const handleOnChangeOptionMovie = (option) => {
-        if (option.code) {
+        if (option) {
             setSelectedMovieName(option);
         }
     };
 
     const handleOnChangeOptionSubtitle = (option) => {
-        if (option.code) {
+        if (option) {
             setSelectedSubtitle(option);
         }
     };
 
     const handleOnChangeOptionAudio = (option) => {
-        if (option.code) {
+        if (option) {
             setSelectedAudio(option);
         }
     };
 
     const handleOnChangeOptionScreeningFormat = (option) => {
-        if (option.code) {
+        if (option) {
             setSelectedScreeningFormat(option);
         }
     };
@@ -590,30 +625,46 @@ const Schedule = () => {
                                         <div className="justify-center  col-span-2  items-center grid ">
                                             <button
                                                 className={`uppercase border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
-                                                    item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                                                    item.status === 0
+                                                        ? 'bg-gray-400'
+                                                        : item.status === 2
+                                                        ? 'bg-yellow-400'
+                                                        : 'bg-green-500'
                                                 }`}
+                                                onClick={() => {
+                                                    if (!isDisabledAdd || item.status === 0) {
+                                                        handleUpdateStatus(item.code);
+                                                    }
+                                                }}
+                                                disabled={isDisabledAdd || item.status !== 0}
                                             >
-                                                {item.status === 0 ? 'Sắp chiếu' : 'Đang chiếu'}
+                                                {item.status === 0
+                                                    ? 'Chưa chiếu'
+                                                    : item.status === 2
+                                                    ? 'Đã chiếu'
+                                                    : 'Đang chiếu'}
                                             </button>
                                         </div>
                                         <div className="justify-center space-x-5 items-center col-span-1 flex ">
                                             <button
                                                 className=""
                                                 onClick={() => {
-                                                    if (!isDisabledAdd) {
+                                                    if (!isDisabledAdd || item.status === 0) {
                                                         handleOpen(true);
                                                         setSelectedSchedule(item);
                                                         setSelectedTime(dayjs(item.startTime));
-                                                        setSelectedMovieName(item.movieCode);
-                                                        setSelectedAudio(item.audioCode);
-                                                        setSelectedSubtitle(item.subtitleCode);
-                                                        setSelectedScreeningFormat(item.screeningFormatCode);
+                                                        setSelectedMovieName(item.movieCode.name);
+                                                        setSelectedAudio(item.audioCode.name);
+                                                        setSelectedSubtitle(item.subtitleCode.name);
+                                                        setSelectedScreeningFormat(item.screeningFormatCode.name);
                                                     }
                                                 }}
-                                                disabled={isDisabledAdd}
+                                                disabled={isDisabledAdd || item.status !== 0}
                                             >
                                                 <FaRegEdit
-                                                    color={` ${!isDisabledAdd ? 'black' : 'bg-gray-200'}  `}
+                                                    color={` ${
+                                                        isDisabledAdd || item.status !== 0 ? 'bg-gray-100' : 'black'
+                                                    }  `}
                                                     size={20}
                                                 />
                                             </button>
@@ -635,29 +686,17 @@ const Schedule = () => {
             <div className="max-h-screen">
                 <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                     <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Suất chiếu</h1>
-                    <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <div className="grid grid-cols-3 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
                         <AutoInputComponent
-                            options={optionNameCinema}
+                            options={optionNameCinema.map((option) => option.name)}
                             value={selectedOptionFilterCinema}
-                            onChange={(newValue) => handleSearch(newValue, 'name')}
+                            onChange={(newValue) => handleSearch(newValue)}
                             title="Tên rạp"
                             freeSolo={false}
                             disableClearable={true}
                             placeholder="Tất cả"
                             heightSelect={200}
                             borderRadius="10px"
-                        />
-
-                        <AutoInputComponent
-                            options={optionMovieName}
-                            value={selectedFilterMovieName}
-                            onChange={(newValue) => handleSearchMovie(newValue)}
-                            title="Tên phim"
-                            freeSolo={false}
-                            disableClearable={false}
-                            placeholder="Tất cả"
-                            heightSelect={200}
-                            borderRadius={'10px'}
                         />
                         <div>
                             <h1 className="text-[16px] truncate mb-1">Ngày chiếu</h1>
@@ -670,17 +709,18 @@ const Schedule = () => {
                                 className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
                             />
                         </div>
-                        <div className="relative w-full ">
-                            <MdSwapVert className="absolute bottom-[10px] left-2" />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
-                                options={optionCV}
-                                title="Sắp xếp"
-                                className="pl-3"
-                                selectStyles={{ borderRadius: '10px' }}
-                            />
-                        </div>
+
+                        <AutoInputComponent
+                            options={optionMovieName.map((option) => option.name)}
+                            value={selectedFilterMovieName}
+                            onChange={(newValue) => handleSearchMovie(newValue)}
+                            title="Tên phim"
+                            freeSolo={false}
+                            disableClearable={false}
+                            placeholder="Tất cả"
+                            heightSelect={200}
+                            borderRadius={'10px'}
+                        />
                     </div>
                 </div>
                 <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
@@ -719,7 +759,7 @@ const Schedule = () => {
                         <div className="grid grid-cols-2 gap-16 p-2  ">
                             <TimePicker
                                 label="Chọn giờ"
-                                value={selectedTime}
+                                value={selectedTime || null}
                                 onChange={handleTimeChange}
                                 minTime={selectedDate.hour(9).minute(0).second(0)}
                                 ampm={false} // Vô hiệu hóa AM/PM
@@ -741,7 +781,7 @@ const Schedule = () => {
                                 )}
                             />
                             <AutoInputComponent
-                                options={optionMovieName}
+                                options={optionMovieName.map((option) => option.name)}
                                 value={selectedMovieName}
                                 onChange={handleOnChangeOptionMovie}
                                 title="Tên phim"
@@ -773,7 +813,7 @@ const Schedule = () => {
                                 onChange={handleOnChangeOptionAudio}
                                 title="Âm thanh"
                                 placeholder="Chọn"
-                                options={optionAudio}
+                                options={optionAudio.map((option) => option.name)}
                                 freeSolo={false}
                                 disableClearable={true}
                                 className="grid  "
@@ -788,7 +828,7 @@ const Schedule = () => {
                                         onChange={handleOnChangeOptionScreeningFormat}
                                         title="Dạng chiếu"
                                         placeholder="Chọn"
-                                        options={optionScreeningFormat}
+                                        options={optionScreeningFormat.map((option) => option.name)}
                                         freeSolo={false}
                                         disableClearable={true}
                                         className="grid  "
@@ -799,7 +839,7 @@ const Schedule = () => {
                                         onChange={handleOnChangeOptionSubtitle}
                                         title="Phụ đề"
                                         placeholder="Chọn"
-                                        options={optionSubtitle}
+                                        options={optionSubtitle.map((option) => option.name)}
                                         freeSolo={false}
                                         disableClearable={true}
                                         className="grid "

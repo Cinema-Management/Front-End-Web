@@ -6,6 +6,42 @@ import AutoInputComponent from '~/components/AutoInputComponent/AutoInputCompone
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
+import axios from 'axios';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+// import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+// import dayjs from 'dayjs';
+// import TextField from '@mui/material/TextField';
+// import { DatePicker } from 'antd';
+import 'react-toastify/dist/ReactToastify.css';
+import { useQuery } from 'react-query';
+import { toast } from 'react-toastify';
+import Loading from '~/components/LoadingComponent/Loading';
+
+const fetchPromotionsWithLines = async () => {
+    try {
+        const response = await axios.get('api/promotions/getPromotionsWithLines');
+
+        const data = response.data;
+
+        // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+        const arrayPromotion = data.map((promotion) => ({
+            name: promotion.name, // Hiển thị tên
+            code: promotion.code, // Giá trị sẽ được gửi về
+        }));
+
+        return { promotions: data, optionNameCinema: arrayPromotion };
+    } catch (error) {
+        // Handle errors based on response or other criteria
+        if (error.response) {
+            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+        } else if (error.request) {
+            throw new Error('Error: No response received from server');
+        } else {
+            throw new Error('Error: ' + error.message);
+        }
+    }
+};
 
 const Promotion = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -15,6 +51,19 @@ const Promotion = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [openDetail, setOpenDetail] = useState(false);
     const [openKM, setOpenKM] = useState(false);
+
+    const {
+        data: { promotions = [], optionNameCinema = [] } = {},
+        isLoading: isLoadingPromotions,
+        error: PromotionError,
+        refetch,
+    } = useQuery('fetchPromotionsWithLines', fetchPromotionsWithLines, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    isLoadingPromotions && <Loading />;
+    PromotionError && toast.error(PromotionError.message);
+
     const handleOpen = (isUpdate) => {
         setOpen(true);
         setIsUpdate(isUpdate);
@@ -56,89 +105,6 @@ const Promotion = () => {
             [roomId]: !prevState[roomId],
         }));
     };
-    const promotions = [
-        {
-            id: 1,
-            name: 'Chương trình khuyến mãi 8-2024',
-            start: '1/8/2024',
-            end: '1/9/2024',
-            status: 'Đang diễn ra',
-            promotion: [
-                {
-                    id: '1',
-                    loai: 'Khuyến mãi tiền',
-                    mota: 'Giảm trực tiếp vào hóa đơn.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'Active',
-                    type: 1,
-                },
-                {
-                    id: '2',
-                    loai: 'Khuyến mãi sản phẩm',
-                    mota: 'Mua đủ số lượng sẩn phẩm sẽ được tặng  thêm sản phẩm.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'Active',
-                    type: 2,
-                },
-                {
-                    id: '3',
-                    loai: 'Khuyến mãi hóa đơn',
-                    mota: 'Giảm % giá trị hóa đơn.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'Active',
-                    type: 3,
-                },
-            ],
-        },
-        {
-            id: 2,
-            name: 'Chương trình khuyến mãi 9-2024',
-            start: '1/9/2024',
-            end: '1/10/2024',
-            status: 'Hết hạn',
-            promotion: [
-                {
-                    id: '1',
-                    loai: 'Khuyến mãi sản phẩm',
-                    mota: 'Mua đủ số lượng sẩn phẩm sẽ được tặng  thêm sản phẩm.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'Active',
-                    type: 2,
-                },
-                {
-                    id: '2',
-                    loai: 'Khuyến mãi hóa đơn',
-                    mota: 'Giảm % giá trị hóa đơn.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'InActive',
-                    type: 3,
-                },
-            ],
-        },
-        {
-            id: 3,
-            name: 'Chương trình khuyến mãi 10-2024',
-            start: '1/10/2024',
-            end: '1/11/2024',
-            status: 'Đang diễn ra',
-            promotion: [
-                {
-                    id: '1',
-                    loai: 'Khuyến mãi hóa đơn',
-                    mota: 'Giảm % giá trị hóa đơn.',
-                    start: '1/8/2024',
-                    end: '21/8/2024',
-                    status: 'Active',
-                    type: 3,
-                },
-            ],
-        },
-    ];
 
     const data = [
         {
@@ -208,6 +174,108 @@ const Promotion = () => {
             status: 'InActive',
         },
     ];
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+    const renderPromotion = (promotions) => {
+        return promotions.map((promotion) => (
+            <div key={promotion.code}>
+                <div className="bg-[#E6E6E6] text-[14px] py-[6px]  font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-2 ">
+                    <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                        <div
+                            className="justify-center col-span-2 grid"
+                            onClick={() => {
+                                toggleVisibility(promotion.code);
+                                toggleDropdown(promotion.code);
+                            }}
+                        >
+                            {isDropdownOpen[promotion.id] ? (
+                                <FaChevronUp color="gray" size={20} />
+                            ) : (
+                                <FaChevronDown color="gray" size={20} />
+                            )}
+                        </div>
+                        <h1 className="uppercase grid col-span-8">{promotion.description}</h1>
+                    </div>
+                    <h1 className="grid justify-center items-center">{formatDate(promotion.startDate)}</h1>
+                    <h1 className="grid justify-center items-center">{formatDate(promotion.endDate)}</h1>
+                    <div className="justify-center items-center grid">
+                        <button
+                            className={`border px-2 text-white text-base h-auto py-[1px] flex  rounded-[40px] ${
+                                promotion.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                            }`}
+                        >
+                            {promotion.status}
+                        </button>
+                    </div>
+                    <div className="justify-center grid items-center ">
+                        <button className="" onClick={() => handleOpen(true)}>
+                            <FaRegEdit color="black" size={20} />
+                        </button>
+                    </div>
+                </div>
+                {visibleRooms[promotion.code] && (
+                    <>
+                        <div className="border-b text-[13px] font-bold uppercase text-slate-500 grid grid-cols-10 items-center gap-3">
+                            <h1 className="grid col-span-2 justify-center items-center">Loại KM</h1>
+                            <h1 className="grid col-span-3 justify-center items-center">Mô tả</h1>
+                            <h1 className="grid justify-center items-center">Ngày bắt đầu</h1>
+                            <h1 className="grid justify-center items-center">Ngày kết thúc</h1>
+                            <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
+                            <div className="grid justify-center col-span-2">
+                                <button
+                                    className="border px-4 py-1 rounded-[40px] bg-orange-400"
+                                    onClick={() => handleOpenLoaiKM(false)}
+                                >
+                                    <IoIosAddCircleOutline color="white" size={20} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="height-sm-1">
+                            {promotion.promotionLines &&
+                                promotion.promotionLines.map((item) => (
+                                    <div
+                                        className="border-b py-2 text-[15px] font-normal text-slate-500 grid grid-cols-10 items-center gap-3"
+                                        key={item.id}
+                                    >
+                                        <h1 className=" grid col-span-2 pl-3 items-center ">{item.loai}</h1>
+                                        <h1 className=" grid col-span-3  items-center">{item.description}</h1>
+                                        <h1 className=" grid items-center justify-center break-all">
+                                            {formatDate(item.startDate)}
+                                        </h1>
+                                        <h1 className=" grid items-center justify-center break-all">
+                                            {formatDate(item.endDate)}
+                                        </h1>
+                                        <div className="justify-center items-center grid pl-5">
+                                            <button
+                                                className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                                    item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
+                                                }`}
+                                            >
+                                                {item.status}
+                                            </button>
+                                        </div>
+                                        <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                            <button className="" onClick={() => handleOpenLoaiKM(true)}>
+                                                <FaRegEdit color="black" size={20} />
+                                            </button>
+                                            <button className="" onClick={() => handOpenDetail(item.type)}>
+                                                <FaRegEye color="black" fontSize={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    </>
+                )}
+            </div>
+        ));
+    };
+
     return (
         <div className="max-h-screen">
             <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
@@ -254,102 +322,7 @@ const Promotion = () => {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-auto h-[92%] height-sm-1 ">
-                    {promotions.map((promotion) => (
-                        <div key={promotion.id}>
-                            <div className="bg-[#E6E6E6] text-[14px] py-[6px]  font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-2 ">
-                                <div className="grid col-span-3 grid-cols-10 items-center gap-5">
-                                    <div
-                                        className="justify-center col-span-2 grid"
-                                        onClick={() => {
-                                            toggleVisibility(promotion.id);
-                                            toggleDropdown(promotion.id);
-                                        }}
-                                    >
-                                        {isDropdownOpen[promotion.id] ? (
-                                            <FaChevronUp color="gray" size={20} />
-                                        ) : (
-                                            <FaChevronDown color="gray" size={20} />
-                                        )}
-                                    </div>
-                                    <h1 className="uppercase grid col-span-8">{promotion.name}</h1>
-                                </div>
-                                <h1 className="grid justify-center items-center">{promotion.start}</h1>
-                                <h1 className="grid justify-center items-center">{promotion.end}</h1>
-                                <div className="justify-center items-center grid">
-                                    <button
-                                        className={`border px-2 text-white text-base h-auto py-[1px] flex  rounded-[40px] ${
-                                            promotion.status === 'Đang diễn ra' ? 'bg-green-500' : 'bg-gray-400'
-                                        }`}
-                                    >
-                                        {promotion.status}
-                                    </button>
-                                </div>
-                                <div className="justify-center grid items-center ">
-                                    <button className="" onClick={() => handleOpen(true)}>
-                                        <FaRegEdit color="black" size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                            {visibleRooms[promotion.id] && (
-                                <>
-                                    <div className="border-b text-[13px] font-bold uppercase text-slate-500 grid grid-cols-10 items-center gap-3">
-                                        <h1 className="grid col-span-2 justify-center items-center">Loại KM</h1>
-                                        <h1 className="grid col-span-3 justify-center items-center">Mô tả</h1>
-                                        <h1 className="grid justify-center items-center">Ngày bắt đầu</h1>
-                                        <h1 className="grid justify-center items-center">Ngày kết thúc</h1>
-                                        <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
-                                        <div className="grid justify-center col-span-2">
-                                            <button
-                                                className="border px-4 py-1 rounded-[40px] bg-orange-400"
-                                                onClick={() => handleOpenLoaiKM(false)}
-                                            >
-                                                <IoIosAddCircleOutline color="white" size={20} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="height-sm-1">
-                                        {promotion.promotion &&
-                                            promotion.promotion.map((item) => (
-                                                <div
-                                                    className="border-b py-2 text-[15px] font-normal text-slate-500 grid grid-cols-10 items-center gap-3"
-                                                    key={item.id}
-                                                >
-                                                    <h1 className=" grid col-span-2 pl-3 items-center ">{item.loai}</h1>
-                                                    <h1 className=" grid col-span-3  items-center">{item.mota}</h1>
-                                                    <h1 className=" grid items-center justify-center break-all">
-                                                        {item.start}
-                                                    </h1>
-                                                    <h1 className=" grid items-center justify-center break-all">
-                                                        {item.end}
-                                                    </h1>
-                                                    <div className="justify-center items-center grid pl-5">
-                                                        <button
-                                                            className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
-                                                                item.status === 'Active'
-                                                                    ? 'bg-green-500'
-                                                                    : 'bg-gray-400'
-                                                            }`}
-                                                        >
-                                                            {item.status}
-                                                        </button>
-                                                    </div>
-                                                    <div className="justify-center space-x-5 items-center col-span-2 flex  ">
-                                                        <button className="" onClick={() => handleOpenLoaiKM(true)}>
-                                                            <FaRegEdit color="black" size={20} />
-                                                        </button>
-                                                        <button className="" onClick={() => handOpenDetail(item.type)}>
-                                                            <FaRegEye color="black" fontSize={20} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                <div className="overflow-auto h-[92%] height-sm-1 ">{renderPromotion(promotions)}</div>
             </div>
 
             <ModalComponent
