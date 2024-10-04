@@ -17,7 +17,7 @@ import { DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
-const { getFormatteNgay } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
 const Price = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
@@ -307,35 +307,44 @@ const Price = () => {
                 type: String(typePrice),
             });
 
-            toast.success('Thêm bảng giá thành công');
+            toast.success('Thêm bảng giá thành công!');
             clearText();
             setOpen(false);
             refetch();
         } catch (error) {
-            console.log(error.response.data);
-            // toast.error('Thông tin thêm không hợp lệ');
+            toast.error('Thêm bảng giá thất bại!');
         }
     };
 
-    const handleUpdate = async () => {
-        if (description !== '' || startDate !== '' || endDate !== '') {
-            try {
-                await axios.post(`api/prices/${selectedPrice.code}`, {
-                    description: description,
-                    startDate: startDate,
-                    endDate: endDate,
-                    type: String(typePrice),
-                });
+    const checkStatus = () => {
+        const check = selectedPrice?.status;
+        if (check === 1) {
+            return false;
+        }
+        return true;
+    };
 
-                toast.success('Cập nhật bảng giá thành công');
-                setOpen(false);
-                refetch();
-            } catch (error) {
-                toast.error('Thông tin cập nhật không hợp lệ');
+    const handleUpdate = async () => {
+        try {
+            if (!checkStatus()) {
+                toast.error('Bảng giá đang sử dụng chỉ được chỉnh sửa ngày kết thúc!');
+                return;
             }
-        } else {
-            toast.warn('Vui lòng nhập thông tin cần cập nhật');
-            return;
+
+            await axios.post(`api/prices/${selectedPrice.code}`, {
+                description: description || selectedPrice.description,
+                startDate: startDate || selectedPrice.startDate,
+                endDate: endDate || selectedPrice.endDate,
+                dayOfWeek: selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek,
+                timeSlot: selectedTimeSlotCode || selectedPrice.timeSlot,
+                type: String(typePrice),
+            });
+
+            toast.success('Cập nhật bảng giá thành công');
+            setOpen(false);
+            refetch();
+        } catch (error) {
+            toast.error('Thông tin cập nhật không hợp lệ');
         }
     };
 
@@ -429,9 +438,9 @@ const Price = () => {
     ];
 
     const optionTimeSlot = [
-        { value: '1', label: 'Cả ngày' },
-        { value: '2', label: 'Trước 17h' },
-        { value: '3', label: 'Sau 17h' },
+        { value: 1, label: 'Cả ngày' },
+        { value: 2, label: 'Trước 17h' },
+        { value: 3, label: 'Sau 17h' },
     ];
     const optionsLoc = [
         { value: '0', label: 'Lọc thể loại' },
@@ -444,6 +453,11 @@ const Price = () => {
         { value: 'A', label: 'A - Z' },
         { value: 'B', label: 'Z - A' },
     ];
+
+    const getTimeSlotLabel = (timeSlot) => {
+        const found = optionTimeSlot.find((item) => item.value === timeSlot);
+        return found ? found.label : '';
+    };
     const nuoc = [
         {
             id: 1,
@@ -792,18 +806,19 @@ const Price = () => {
                 open={open}
                 handleClose={handleClose}
                 width="35%"
-                height={typePrice === 0 ? '46%' : '36%'}
+                height={typePrice === 0 ? '49%' : '36%'}
                 top="30%"
                 left="55%"
-                smallScreenWidth="60%"
-                smallScreenHeight="28%"
-                mediumScreenWidth="60%"
-                mediumScreenHeight="24%"
-                largeScreenHeight="21%"
+                smallScreenWidth="65%"
+                smallScreenHeight={typePrice === 0 ? '33%' : '26%'}
+                mediumScreenWidth="65%"
+                mediumScreenHeight={typePrice === 0 ? '30%' : '23%'}
+                largeScreenHeight={typePrice === 0 ? '25%' : '20%'}
                 largeScreenWidth="50%"
-                maxHeightScreenHeight="48%"
+                maxHeightScreenHeight={typePrice === 0 ? '55%' : '44%'}
                 maxHeightScreenWidth="45%"
-                heightScreen="36%"
+                heightScreen={typePrice === 0 ? '45%' : '33%'}
+                widthScreen="40%"
                 title={isUpdate ? 'Chỉnh sửa bảng giá' : 'Thêm bảng giá'}
             >
                 <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-3`}>
@@ -830,7 +845,7 @@ const Price = () => {
                                             ? dayjs(selectedPrice.startDate)
                                             : null
                                     }
-                                    minDate={startDate ? dayjs(startDate) : dayjs().add(1, 'day')}
+                                    minDate={dayjs().add(1, 'day')}
                                     onChange={onChangeStart}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
@@ -851,7 +866,7 @@ const Price = () => {
                                     onChange={onChangeEnd}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
-                                    minDate={startDate ? dayjs(startDate) : dayjs().add(1, 'day')}
+                                    minDate={startDate ? dayjs(startDate) : dayjs()}
                                     format="YYYY-MM-DD"
                                     className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                 />
@@ -869,7 +884,13 @@ const Price = () => {
                                         mode="multiple"
                                         allowClear
                                         placeholder="Chọn tùy chọn"
-                                        value={selectedDayOfWeek}
+                                        value={
+                                            isUpdate
+                                                ? selectedDayOfWeek.length > 0
+                                                    ? selectedDayOfWeek
+                                                    : selectedPrice?.dayOfWeek
+                                                : selectedDayOfWeek
+                                        }
                                         onChange={handleChangeDay}
                                         className="h-[36px] w-full border border-black rounded-[5px]"
                                         dropdownStyle={{ maxHeight: '200px', overflow: 'auto' }}
@@ -884,7 +905,7 @@ const Price = () => {
                                     </Select>
                                 </div>
                                 <AutoInputComponent
-                                    value={selectedTimeSlot}
+                                    value={isUpdate ? getTimeSlotLabel(selectedPrice?.timeSlot) : selectedTimeSlot}
                                     onChange={handleTimeSlotChang}
                                     options={optionTimeSlot.map((item) => item.label)}
                                     title="Khung giờ"
@@ -893,11 +914,10 @@ const Price = () => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     height={40}
-                                    disabled={isUpdate}
                                 />
                             </div>
                         )}
-                        <div className="justify-end flex space-x-3 border-t py-[6px] px-4 ">
+                        <div className="justify-end flex space-x-3 border-t py-[6px] px-4 mt-3 pt-3 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                             <ButtonComponent
                                 text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
@@ -939,6 +959,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
+                            disabled={isUpdate}
                         />
                     )}
 
@@ -953,6 +974,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
+                            disabled={isUpdate}
                         />
                     )}
 
@@ -967,6 +989,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
+                            disabled={isUpdate}
                         />
                     )}
                     <AutoInputComponent
