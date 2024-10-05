@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LuArmchair } from 'react-icons/lu';
 import { IoIosArrowBack } from 'react-icons/io';
-import phim1 from '~/assets/phim1.png';
 import { ImSpoonKnife } from 'react-icons/im';
 import { Box, Button, Tab, Tabs } from '@mui/material';
 import { GrFormNext } from 'react-icons/gr';
@@ -9,6 +8,11 @@ import { styled } from '@mui/system';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
+import { useDispatch, useSelector } from 'react-redux';
+import { getIsSchedule } from '~/redux/apiRequest';
+import { resetSeats, toggleSeat } from '~/redux/seatSlice';
+const { FormatSchedule } = require('~/utils/dateUtils');
+
 const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
 const FoodComponent = React.lazy(() => import('~/components/OrderComponent/FoodComponent'));
 const PayComponent = React.lazy(() => import('~/components/OrderComponent/PayComponent'));
@@ -25,24 +29,22 @@ const CustomTab = styled(({ isActive, ...other }) => <Tab {...other} />)(({ isAc
     },
 }));
 
-const Seat = ({ setSelectSchedule }) => {
+const Seat = () => {
     const [value, setValue] = useState(0);
     const [open, setOpen] = useState(false);
     const [setGhe, setSetGhe] = useState([]);
     // const [priceSeat, setPriceSeat] = useState(0);
     const [selectedCombos, setSelectedCombos] = useState([]);
-
+    const dispatch = useDispatch();
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
     const [selectedMovie, setSelectedMovie] = useState('');
-    // const handlePrice = () => {
-    //     // Add seat prices and combo prices together
-    //     const seatPrice = setGhe.reduce((total, item) => total + item.gia, 0);
-    //     const totalPrice = seatPrice + 0;
-    //     setPriceSeat(totalPrice);
-    // };
 
+    const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
+    const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
+
+    // console.log('arraySeat', arraySeat);
     const handleNext = () => {
         if (value < 2) setValue(value + 1);
     };
@@ -50,6 +52,31 @@ const Seat = ({ setSelectSchedule }) => {
     const handlePrevious = () => {
         if (value > 0) setValue(value - 1);
     };
+
+    const handleChangDoTuoi = (age) => {
+        if (age === 13) {
+            return 'C13';
+        } else if (age === 16) {
+            return 'C16';
+        } else if (age === 18) {
+            return 'C18';
+        } else {
+            return 'P';
+        }
+    };
+
+    const calculateTotalPrice = (seats) => {
+        return seats.reduce((total, seat) => {
+            return total + (seat.price || 0); // Thêm giá của ghế vào tổng, nếu không có giá thì cộng 0
+        }, 0);
+    };
+
+    function formatCurrency(amount) {
+        return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+    }
+
+    const totalPrice = useMemo(() => calculateTotalPrice(arraySeat), [arraySeat]);
+    console.log('totalPriceSeat', totalPrice);
 
     return (
         <div className="max-h-screen">
@@ -59,7 +86,8 @@ const Seat = ({ setSelectSchedule }) => {
                         variant="contained"
                         sx={{ textTransform: 'none', padding: '2px 8px 2px 4px' }}
                         onClick={() => {
-                            setSelectSchedule(false);
+                            getIsSchedule(dispatch, false);
+                            dispatch(resetSeats());
                         }}
                     >
                         <IoIosArrowBack size={20} />
@@ -72,58 +100,74 @@ const Seat = ({ setSelectSchedule }) => {
                 >
                     <div
                         className=" text-white max-lg:row-span-2 max-lg:w-[300px] max-lg:mx-[50%] custom-height-sm5 custom-height-sm8
-                      bg-[#334767] text-[13px] rounded-[10px]  grid grid-rows-8"
+                      bg-[#334767] text-[13px] rounded-[10px]  grid grid-rows-10"
                     >
-                        <div className="  row-span-5 grid grid-rows-5 p-2">
+                        <div className="  row-span-6 grid grid-rows-5 p-2">
                             <div className="grid grid-cols-5 row-span-3 gap-3 max-lg:gap-0">
                                 <div className="col-span-2 ">
                                     <img
-                                        src={phim1}
+                                        src={schedule.image}
                                         alt="phim1"
                                         className="object-contain h-[160px] max-lg:h-[120px]"
                                     />
                                 </div>
                                 <div className="pt-4 col-span-3 space-y-2 max-lg:space-y-0">
-                                    <h1 className="uppercase font-bold text-[13px]">Đẹp trai thấy sai sai</h1>
-                                    <div className="flex  space-x-3  justify-center items-center">
-                                        <h1 className="bg-[#95989D] p-1 text-white text-[12px] w-[30%] text-center rounded-md ">
-                                            13+
-                                        </h1>
-                                        <h1 className="bg-[#95989D] p-1 text-white w-[70%] text-[12px] text-center rounded-md ">
-                                            2D Phụ Đề Anh
-                                        </h1>
-                                    </div>
-                                    <h1 className="text-[12px] font-[200px]">Hài, Kinh dị</h1>
-                                    <h1 className="text-[12px] ">100 phút</h1>
+                                    <h1 className="uppercase font-bold text-[13px]">{schedule.movieName}</h1>
+
+                                    <h1 className="bg-[#1565C0] w-8 p-1 text-center text-white text-[12px] rounded-md ">
+                                        {handleChangDoTuoi(schedule.ageRestriction)}
+                                    </h1>
+
+                                    <h1 className=" rounded-md ">
+                                        {schedule.screeningFormat} {schedule.audio === 'Gốc' ? '' : 'lồng tiếng'} phụ đề{' '}
+                                        {schedule.subtitle}
+                                    </h1>
+                                    <h1 className="text-[12px] font-[200px]">
+                                        {schedule.movieGenreCode.map((genre) => genre.name).join(', ')}
+                                    </h1>
+                                    <h1 className="text-[12px] ">{schedule.duration} phút</h1>
                                 </div>
                             </div>
                             <div className="row-span-2 grid grid-rows-3 ">
                                 <div className="grid grid-cols-6 gap-2">
                                     <h1 className="col-span-2">Rạp:</h1>
-                                    <h1 className="font-bold grid col-span-4 justify-items-end">Lotte Gò Vấp</h1>
+                                    <h1 className="font-bold grid col-span-4 justify-items-end">
+                                        {schedule.cinemaName}
+                                    </h1>
                                 </div>
                                 <div className="grid grid-cols-6 gap-2">
                                     <h1 className="col-span-2">Phòng:</h1>
-                                    <h1 className="font-bold grid col-span-4 justify-items-end">Phòng 1</h1>
+                                    <h1 className="font-bold grid col-span-4 justify-items-end">{schedule.roomName}</h1>
                                 </div>
                                 <div className="grid grid-cols-6 gap-2">
                                     <h1 className="col-span-2">Suất chiếu:</h1>
-                                    <h1 className="font-bold grid col-span-4 justify-items-end">17:00, 18/09/2024</h1>
+                                    <h1 className="font-bold grid col-span-4 justify-items-end">
+                                        {FormatSchedule(schedule.startTime)}
+                                    </h1>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="border-t-2 border-b-2 row-span-1  border-dashed items-center justify-between flex p-2 space-x-4">
-                            <div className=" flex items-center ">
-                                <LuArmchair className="text-white" size={25} />
-                                <h1 className="ml-2">Ghế:</h1>
-                            </div>
-                            <div className="flex space-x-1 flex-wrap">
-                                {setGhe.map((seat) => (
-                                    <h1 key={seat.id} className="font-bold">
-                                        {seat.so_ghe}
+                        <div className="border-t-2  border-b-2 row-span-2 border-dashed flex-row p-2 ">
+                            <div className="flex h-[50%] justify-center">
+                                <div className=" items-center flex ">
+                                    <LuArmchair className="text-white" size={25} />
+                                    <h1 className="ml-1">Ghế:</h1>
+                                </div>
+                                <div className="flex ml-3 items-center flex-wrap w-full">
+                                    <h1 className="w-full text-right">
+                                        {arraySeat.map((item) => item.seatNumber).join(', ')}
                                     </h1>
-                                ))}
+                                </div>
+                            </div>
+                            <div className=" flex h-[50%] r">
+                                <div className=" items-center flex">
+                                    <ImSpoonKnife className="text-white" size={25} />
+                                    <h1 className="ml-1">Combo:</h1>
+                                </div>
+                                <div className="flex ml-3 items-center flex-wrap w-full">
+                                    <h1 className="w-full text-right">{''}</h1>
+                                </div>
                             </div>
                         </div>
 
@@ -135,7 +179,9 @@ const Seat = ({ setSelectSchedule }) => {
                                         Ghế:
                                     </h1>
                                 </div>
-                                <h1 className="font-bold grid col-span-4 justify-items-end">0 đ</h1>
+                                <h1 className="font-bold grid col-span-4 justify-items-end">
+                                    {formatCurrency(totalPrice)}
+                                </h1>
                             </div>
                             <div className="grid items-center grid-cols-6 gap-2 ">
                                 <div className=" grid  col-span-2 ">
