@@ -3,6 +3,14 @@ import axios from 'axios';
 import { getSeatStart, getSeatSuccess, getSeatFailed } from './seatSlice';
 import { getRoomByCodeStart, getRoomByCodeSuccess, getRoomByCodeFailed } from './roomSlice';
 import { getCinemaCodeStart, getCinemaCodeSuccess, getCinemaCodeFailed } from './cinemaSlice';
+import {
+    getScheduleStart,
+    getScheduleSuccess,
+    getScheduleFailed,
+    getIsScheduleFailed,
+    getIsScheduleSuccess,
+    getIsScheduleStart,
+} from './scheduleSlice';
 
 //npm install axios
 
@@ -32,5 +40,23 @@ export const getCinemaCode = async (dispatch, cinemaCode) => {
         dispatch(getCinemaCodeSuccess(cinemaCode));
     } catch (err) {
         dispatch(getCinemaCodeFailed());
+    }
+};
+
+export const getSchedule = async (dispatch, schedule) => {
+    dispatch(getScheduleStart());
+    try {
+        dispatch(getScheduleSuccess(schedule));
+    } catch (err) {
+        dispatch(getScheduleFailed());
+    }
+};
+
+export const getIsSchedule = async (dispatch, isSchedule) => {
+    dispatch(getIsScheduleStart());
+    try {
+        dispatch(getIsScheduleSuccess(isSchedule));
+    } catch (err) {
+        dispatch(getIsScheduleFailed());
     }
 };

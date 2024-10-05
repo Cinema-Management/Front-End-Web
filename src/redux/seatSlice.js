@@ -7,6 +7,7 @@ const seatSlice = createSlice({
             currentSeat: null,
             isFetching: false,
             error: false,
+            selectedSeats: [],
         },
     },
     reducers: {
@@ -22,9 +23,24 @@ const seatSlice = createSlice({
             state.seat.isFetching = false;
             state.seat.error = true;
         },
+
+        toggleSeat: (state, action) => {
+            const seat = action.payload;
+            const index = state.seat.selectedSeats.findIndex((s) => s.code === seat.code);
+
+            if (index >= 0) {
+                state.seat.selectedSeats.splice(index, 1);
+            } else {
+                state.seat.selectedSeats.push(seat);
+            }
+        },
+
+        resetSeats: (state) => {
+            state.seat.selectedSeats = [];
+        },
     },
 });
 
-export const { getSeatStart, getSeatSuccess, getSeatFailed } = seatSlice.actions;
+export const { getSeatStart, getSeatSuccess, getSeatFailed, toggleSeat, resetSeats } = seatSlice.actions;
 
 export default seatSlice.reducer;

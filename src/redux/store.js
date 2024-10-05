@@ -3,6 +3,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import seatReducer from './seatSlice';
 import roomReducer from './roomSlice';
 import cinemaReducer from './cinemaSlice';
+import scheduleReducer from './scheduleSlice';
 
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 
@@ -16,6 +17,7 @@ const rootReducers = combineReducers({
     seat: seatReducer,
     room: roomReducer,
     cinema: cinemaReducer,
+    schedule: scheduleReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducers);
