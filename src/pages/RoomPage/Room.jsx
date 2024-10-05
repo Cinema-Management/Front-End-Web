@@ -81,8 +81,6 @@ const Room = () => {
                         className={`grid ${gridColumns} w-[70%] max-lg:w-[85%] px-36 max-lg:px-5 gap-3 custom-height-sm14 `}
                     >
                         {seat1.map((seat, index) => {
-                            const totalColumns = totalSeat === 48 ? 8 : totalSeat === 75 ? 10 : 12;
-
                             return (
                                 <div
                                     key={seat.code}
@@ -96,7 +94,6 @@ const Room = () => {
                                     }}
                                     onClick={() => {
                                         handleClickSeat(seat);
-                                        console.log('seat', seat);
                                     }}
                                 >
                                     <div className="relative w-full h-full ">
@@ -106,11 +103,6 @@ const Room = () => {
                                                 seat.status === 4 ? 'bg-[#f4bd33]' : 'bg-transparent'
                                             } opacity-99 mix-blend-overlay`}
                                         />
-                                        {index % totalColumns === totalColumns - 1 && (
-                                            <button className="absolute right-[-50px] bottom-2">
-                                                <FaRegEdit size={25} />
-                                            </button>
-                                        )}
                                     </div>
                                     <div className="absolute text-[12px] text-center">{seat.seatNumber}</div>
                                 </div>

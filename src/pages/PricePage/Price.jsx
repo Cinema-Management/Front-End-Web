@@ -17,7 +17,7 @@ import { DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
-const { getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
+const { getFormatteNgay } = require('~/utils/dateUtils');
 const Price = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
@@ -87,6 +87,7 @@ const Price = () => {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
     });
+
     if (isLoading) return <Loading />;
     // if (!isFetched) return <div>Fetching...</div>;
     if (error) return <div>Error loading data: {error.message}</div>;
