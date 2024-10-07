@@ -1,8 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import screen from '~/assets/screen.png';
-import seatvip from '~/assets/Seatvip.png';
-import seat from '~/assets/Seat.png';
-import seatcouple from '~/assets/Seatcouple.png';
+
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
@@ -14,7 +12,9 @@ const SeatComponent = memo(({ setSetGhe }) => {
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
     const fetchSeatByRoomCode = async () => {
         try {
-            const response = await axios.get(`api/products/getAllSeatsByRoomCode/${schedule.roomCode}`);
+            const response = await axios.get(
+                `api/seat-status-in-schedules/getAllSeatsStatusInSchedule?scheduleCode=${schedule.scheduleCode}`,
+            );
             const data = response.data;
             return data;
         } catch (error) {
@@ -31,145 +31,82 @@ const SeatComponent = memo(({ setSetGhe }) => {
     const {
         data: seat1 = [],
         isLoading,
-        // isFetching,
+        isFetching,
         error,
-        // refetch,
+        refetch,
     } = useQuery(['fetchSeatByRoomCode', schedule.roomCode], () => fetchSeatByRoomCode(schedule.roomCode), {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
         enabled: !!schedule.roomCode,
     });
-    isLoading && <Loading />;
+    isLoading || (isFetching && <Loading />);
     error && toast.error('Lỗi: ' + error);
 
-    // const handleSeatClick = (seatId) => {
-    //     console.log(seatId);
-    // };
-    // const handleSeatClick = (seatId) => {
-    //     setSelectedSeats((prevSelected) => {
-    //         // Tìm ghế được click
-    //         const clickedSeat = seat1.find((seat) => seat.seatNumber === seatId);
-    //         console.log(clickedSeat);
-    //         if (clickedSeat) {
-    //             const isSelected = prevSelected.some((seat) => seat.id === seatId);
-
-    //             if (isSelected && clickedSeat.trang_thai === 1) {
-    //                 // Nếu ghế đã được chọn và có trạng thái 1, bỏ chọn ghế (trả lại trạng thái 0)
-    //                 const updatedSeats = seats.map((seat) => (seat.id === seatId ? { ...seat, trang_thai: 0 } : seat));
-    //                 setSeats(updatedSeats);
-
-    //                 // Trả về mảng mới sau khi loại bỏ ghế khỏi selectedSeats
-    //                 return prevSelected.filter((seat) => seat.id !== seatId);
-    //             } else if (clickedSeat.trang_thai === 0) {
-    //                 // Nếu ghế có trạng thái 0, chọn ghế (đổi thành trạng thái 1)
-    //                 const updatedSeats = seats.map((seat) => (seat.id === seatId ? { ...seat, trang_thai: 1 } : seat));
-    //                 setSeats(updatedSeats);
-
-    //                 // Log object ghế đã chọn
-
-    //                 // Thêm object ghế vào mảng selectedSeats
-    //                 return [...prevSelected, clickedSeat];
-    //             }
-    //         }
-
-    //         // Trả về mảng trước đó nếu không có thay đổi
-    //         return prevSelected;
-    //     });
-    // };
-
     const dispatch = useDispatch();
-    function convertTimeToNumber(timeString) {
-        const [hours, minutes] = timeString.split(':').map(Number); // Tách giờ và phút
-        return hours * 100 + minutes; // Ghép lại thành số
-    }
+    const selectedSeatsFromStore = useSelector((state) => state.seat.seat.selectedSeats);
+    const arraySeat = selectedSeatsFromStore.map((seat) => seat.code);
+    const [selectedSeat, setSelectedSeat] = useState(arraySeat || []);
 
-    const handleSeatClick = async (seat) => {
-        const dayOfWeek = getDayAndTime(schedule.startTime).day;
-        const hours = getDayAndTime(schedule.startTime).time;
-        const timeNumber = convertTimeToNumber(hours);
+    const handleSelectSeat = (seat) => {
+        setSelectedSeat((prev) => {
+            let updatedSeats;
 
-        // Determine the time slot for the pricing
-        let time;
-        if (dayOfWeek === 3) {
-            time = 1;
-        } else {
-            if (timeNumber < 1700) {
-                time = 2;
-            } else if (timeNumber >= 1700 && timeNumber < 2359) {
-                time = 3;
+            // Check if the seat is already selected, remove it if yes, otherwise add it
+            if (prev.includes(seat.code)) {
+                updatedSeats = prev.filter((code) => code !== seat.code);
             } else {
-                time = 1;
+                updatedSeats = [...prev, seat.code];
             }
+
+            // Dispatch selected seats into Redux for state management
+            // dispatch(toggleSeat(updatedSeats));
+            return updatedSeats;
+        });
+    };
+    const getSeatClass = (seat) => {
+        if (selectedSeat && selectedSeat.includes(seat.code)) {
+            return 'bg-[#3ad3f6]'; // Màu khi ghế được chọn
         }
-
-        const timeSlot = time;
-        const productTypeCode = seat.productTypeCode;
-        const roomTypeCode = schedule.screenCode;
-
-        try {
-            // Fetch the price from API
-            const response = await axios.get('/api/prices/getPrice', {
-                params: {
-                    dayOfWeek,
-                    timeSlot,
-                    productTypeCode,
-                    roomTypeCode,
-                },
-            });
-
-            // Kiểm tra và lấy giá từ phản hồi
-            const priceData = response.data.find(
-                (priceInfo) =>
-                    priceInfo.productTypeCode === productTypeCode &&
-                    priceInfo.priceCode.dayOfWeek.includes(dayOfWeek) &&
-                    priceInfo.priceCode.timeSlot === timeSlot,
-            );
-
-            if (priceData && priceData.price !== undefined) {
-                const seatWithPrice = { ...seat, price: priceData.price };
-
-                dispatch(toggleSeat(seatWithPrice));
-            } else {
-                const seatWithDefaultPrice = { ...seat, price: 0 };
-                dispatch(toggleSeat(seatWithDefaultPrice));
-            }
-        } catch (err) {
-            console.error('Failed to fetch price', err);
+        switch (seat.status) {
+            case 2:
+                return 'bg-[#3c3cf4]'; // Ghế đã giữ
+            case 3:
+                return 'bg-[#ec3a3a]'; // Ghế đã đặt
+            default:
+                return 'bg-transparent'; // Trạng thái mặc định
         }
     };
 
-    function getDayAndTime(startTime) {
-        const date = new Date(startTime);
+    // function convertTimeToNumber(timeString) {
+    //     const [hours, minutes] = timeString.split(':').map(Number); // Tách giờ và phút
+    //     return hours * 100 + minutes; // Ghép lại thành số
+    // }
 
-        const dayOfWeek = date.getUTCDay();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+    const handleSeatClick = async (seat) => {
+        // Find the seat with additional data (like price) from the fetched seat1 array
+        const seatFilter = seat1.find((t) => t.code === seat.code);
 
-        const dayNames = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
-        const dayName = dayNames[dayOfWeek];
-        let thu;
-        if (dayName === 'Chủ nhật') {
-            thu = 8;
-        } else if (dayName === 'Thứ hai') {
-            thu = 2;
-        } else if (dayName === 'Thứ ba') {
-            thu = 3;
-        } else if (dayName === 'Thứ tư') {
-            thu = 4;
-        } else if (dayName === 'Thứ năm') {
-            thu = 5;
-        } else if (dayName === 'Thứ sáu') {
-            thu = 6;
-        } else if (dayName === 'Thứ bảy') {
-            thu = 7;
+        // If seat exists, create a new object with the price
+        if (seatFilter) {
+            const seatWithPrice = { ...seatFilter, price: seatFilter.price };
+
+            // Dispatch the selected seat into Redux
+            dispatch(toggleSeat(seatWithPrice));
+        } else {
+            toast.error('Seat not found!');
         }
+    };
+    useEffect(() => {
+        refetch();
+    }, []);
 
-        // Trả về kết quả
-        return {
-            day: thu,
-            time: `${hours}:${minutes}`,
-        };
-    }
+    useEffect(() => {
+        const savedSeats = JSON.parse(localStorage.getItem('selectedSeats'));
+        if (savedSeats) {
+            setSelectedSeat(savedSeats);
+            dispatch(toggleSeat(savedSeats)); // Khôi phục trạng thái ghế trong Redux (nếu cần)
+        }
+    }, [dispatch]);
 
     // console.log('priceDetails', priceDetails);
 
@@ -183,15 +120,27 @@ const SeatComponent = memo(({ setSetGhe }) => {
                 <div className=" grid grid-cols-4 max-lg:grid-cols-3  h-[100px]">
                     <div className="grid grid-rows-3  text-[13px] gap-1 pt-3 pl-3">
                         <div className="flex ">
-                            <img src={seat} alt="seat" className="object-contain h-[20px] " />
+                            <img
+                                src="https://td-cinemas.s3.ap-southeast-1.amazonaws.com/Seat.png"
+                                alt="seat"
+                                className="object-contain h-[20px] "
+                            />
                             <h1 className="ml-3">Ghế thường</h1>
                         </div>
                         <div className="flex">
-                            <img src={seatvip} alt="seat" className="object-contain h-[25px] " />
+                            <img
+                                src="https://td-cinemas.s3.ap-southeast-1.amazonaws.com/seat_vip.png"
+                                alt="seat"
+                                className="object-contain h-[25px] "
+                            />
                             <h1 className="ml-3">Ghế vip</h1>
                         </div>
                         <div className="flex">
-                            <img src={seatcouple} alt="seat" className="object-contain h-[25px] " />
+                            <img
+                                src="https://td-cinemas.s3.ap-southeast-1.amazonaws.com/seat_couple.png"
+                                alt="seat"
+                                className="object-contain h-[25px] "
+                            />
                             <h1 className="ml-3">Ghế đôi</h1>
                         </div>
                     </div>
@@ -271,20 +220,23 @@ const SeatComponent = memo(({ setSetGhe }) => {
                                         ${seat.name === 'Ghế thường' ? 'h-[25px]' : 'h-[38px]'} 
                                         ${seat.name === 'Ghế thường' ? 'custom-height-md3' : 'custom-height-md4'} 
                                         ${seat.name === 'Ghế thường' ? 'custom-height-sm18' : 'custom-height-sm19'} 
-                                        w-full cursor-pointer`}
+                                        w-full ${seat.status === 1 ? 'cursor-pointer' : 'cursor-default'}`}
                                     style={{
                                         gridColumn: seat.name === 'Ghế đôi' ? 'span 2' : 'span 1',
                                     }}
                                     onClick={() => {
-                                        handleSeatClick(seat);
+                                        if (seat.status === 1) {
+                                            handleSeatClick(seat);
+                                            handleSelectSeat(seat);
+                                        }
                                     }}
                                 >
                                     <div className="relative w-full h-full ">
                                         <img src={seat.image} alt={seat.name} className="object-cover w-full h-full" />
                                         <div
-                                            className={`absolute inset-0 ${
-                                                seat.status === 4 ? 'bg-[#f4bd33]' : 'bg-transparent'
-                                            } opacity-99 mix-blend-overlay`}
+                                            className={`absolute inset-0 ${getSeatClass(
+                                                seat,
+                                            )} opacity-99 mix-blend-overlay`}
                                         />
                                     </div>
                                     <div className="absolute text-[12px] text-center">{seat.seatNumber}</div>
