@@ -294,3 +294,10 @@ code {
 .gradient-button:hover {
     background: linear-gradient(to right, #ed999a, #f1c46f); /* Giữ nguyên màu gradient khi hover */
 }
+.ticket-bg {
+    background-image: url('assets/background.png'); /* Đường dẫn đến hình nền */
+    background-size: cover; /* Đảm bảo hình nền phủ kín */
+    background-position: center; /* Căn giữa hình nền */
+    opacity: 0.9; /* Độ trong suốt */
+    border-radius: 8px; /* Đường bo góc */
+}

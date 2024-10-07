@@ -18,6 +18,7 @@ import dayjs from 'dayjs';
 import TextField from '@mui/material/TextField';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
+import { format } from 'date-fns';
 
 const fetchCinemasFullAddress = async () => {
     try {
@@ -177,10 +178,17 @@ const Schedule = () => {
         try {
             const response = await axios.post('api/schedules', schedule);
             if (response.data) {
-                toast.success('Thêm suất chiếu thành công');
-                refetchRoom();
-                cleanText();
-                handleClose();
+                const seatStatus = {
+                    scheduleCode: response.data.code,
+                };
+
+                const seatStatusInSchedules = await axios.post('api/seat-status-in-schedules', seatStatus);
+                if (seatStatusInSchedules.data) {
+                    toast.success('Thêm suất chiếu thành công');
+                    refetchRoom();
+                    cleanText();
+                    handleClose();
+                }
             } else {
                 toast.error('Thêm suất chiếu thất bại');
             }
@@ -412,10 +420,13 @@ const Schedule = () => {
         const startTime = new Date(startTime1);
 
         const startDate = new Date(movieByCode?.startDate);
-        // Kiểm tra xem ngày tạo suất chiếu có nằm trong khoảng 1 đến 3 ngày so với ngày phát hành không
-        const differenceInTime = startDate.getDay() - startTime.getDay();
 
-        if (differenceInTime < 1 || differenceInTime > 3) {
+        // Kiểm tra xem ngày tạo suất chiếu có nằm trong khoảng 1 đến 3 ngày so với ngày phát hành không
+        const selectedDay1 = new Date(`${formattedDate}T00:00:00.000Z`);
+        const differenceInTime = startDate.getTime() - selectedDay1.getTime();
+        const differenceInDays = differenceInTime / (1000 * 3600 * 24);
+
+        if (differenceInDays > 3) {
             toast.warning('Suất chiếu phải trước ngày phát hành phim tối đa 3 ngày.');
             return false; // Ngày không hợp lệ
         }
@@ -424,11 +435,16 @@ const Schedule = () => {
 
         const schedules = rooms.schedules || []; // Đảm bảo schedules là một mảng
         const conflictingSchedules = schedules.filter((schedule) => {
-            return new Date(schedule.startTime) < endTime && new Date(schedule.endTime) > startTime;
+            // Kiểm tra xung đột với lịch chiếu khác, bỏ qua lịch có mã là selectedSchedule?.code
+            return (
+                new Date(schedule.startTime) < endTime &&
+                new Date(schedule.endTime) > startTime &&
+                schedule.code !== selectedSchedule?.code
+            ); // Bỏ qua lịch chiếu hiện tại
         });
 
         if (conflictingSchedules.length > 0) {
-            toast.warning('Lịch trình xung đột với lịch trình hiện có trong phòng :' + rooms.name);
+            toast.warning('Khung giờ này đang chiếu phim khác');
             return false;
         }
         const movie = optionMovieName.find((option) => option.name === selectedMovieName);
@@ -438,7 +454,10 @@ const Schedule = () => {
 
             // Kiểm tra xung đột lịch chiếu trong phòng
             const isConflict = existingSchedules.some(
-                (schedule) => schedule.movieCode.code === movie?.code && schedule.startTime === startTime1, // Kiểm tra thời gian bắt đầu
+                (schedule) =>
+                    schedule.movieCode.code === movie?.code &&
+                    schedule.startTime === startTime1 &&
+                    schedule.code !== selectedSchedule?.code, // Kiểm tra thời gian bắt đầu
             );
 
             if (isConflict) {
@@ -627,9 +646,11 @@ const Schedule = () => {
                                                 className={`uppercase border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
                                                     item.status === 0
                                                         ? 'bg-gray-400'
+                                                        : item.status === 1
+                                                        ? 'bg-green-500'
                                                         : item.status === 2
                                                         ? 'bg-yellow-400'
-                                                        : 'bg-green-500'
+                                                        : 'bg-gray-400'
                                                 }`}
                                                 onClick={() => {
                                                     if (!isDisabledAdd || item.status === 0) {
@@ -640,9 +661,11 @@ const Schedule = () => {
                                             >
                                                 {item.status === 0
                                                     ? 'Chưa chiếu'
+                                                    : item.status === 1
+                                                    ? 'Đang chiếu'
                                                     : item.status === 2
-                                                    ? 'Đã chiếu'
-                                                    : 'Đang chiếu'}
+                                                    ? 'Suất chiếu sớm'
+                                                    : 'Đã chiếu'}
                                             </button>
                                         </div>
                                         <div className="justify-center space-x-5 items-center col-span-1 flex ">

@@ -120,6 +120,7 @@ const Order = () => {
             enabled: !!cinemaCode && !!selectedDate,
         },
     );
+    console.log('t', room);
 
     (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName || isFetchingOptionMovieName) && <Loading />;
     (errorRoom || CinemaError || optionCinemaNameError) &&
@@ -224,6 +225,7 @@ const Order = () => {
                     image: image,
                     screeningFormat: schedule.screeningFormatCode?.name,
                     screenCode: schedule.screeningFormatCode?.code,
+                    fullAddress: room.fullAddress,
                 });
             });
         });

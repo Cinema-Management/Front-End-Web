@@ -31,5 +31,21 @@ module.exports = {
             mh850: '850px',
         },
     },
-    plugins: [],
+    plugins: [
+        function ({ addUtilities }) {
+            const newUtilities = {
+                '.print\\:block': {
+                    '@media print': {
+                        display: 'block',
+                    },
+                },
+                '.print\\:hidden': {
+                    '@media print': {
+                        display: 'none',
+                    },
+                },
+            };
+            addUtilities(newUtilities);
+        },
+    ],
 };
