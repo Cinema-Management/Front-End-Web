@@ -178,10 +178,17 @@ const Schedule = () => {
         try {
             const response = await axios.post('api/schedules', schedule);
             if (response.data) {
-                toast.success('Thêm suất chiếu thành công');
-                refetchRoom();
-                cleanText();
-                handleClose();
+                const seatStatus = {
+                    scheduleCode: response.data.code,
+                };
+
+                const seatStatusInSchedules = await axios.post('api/seat-status-in-schedules', seatStatus);
+                if (seatStatusInSchedules.data) {
+                    toast.success('Thêm suất chiếu thành công');
+                    refetchRoom();
+                    cleanText();
+                    handleClose();
+                }
             } else {
                 toast.error('Thêm suất chiếu thất bại');
             }

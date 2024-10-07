@@ -429,13 +429,13 @@ const Price = () => {
     }
 
     const optionDayOfWeek = [
-        { value: 2, label: '2' },
-        { value: 3, label: '3' },
-        { value: 4, label: '4' },
-        { value: 5, label: '5' },
-        { value: 6, label: '6' },
-        { value: 7, label: '7' },
-        { value: 8, label: 'CN' },
+        { value: 0, label: 'CN' }, // Chủ Nhật
+        { value: 1, label: '2' }, // Thứ Hai
+        { value: 2, label: '3' }, // Thứ Ba
+        { value: 3, label: '4' }, // Thứ Tư
+        { value: 4, label: '5' }, // Thứ Năm
+        { value: 5, label: '6' }, // Thứ Sáu
+        { value: 6, label: '7' }, // Thứ Bảy
     ];
 
     const optionTimeSlot = [
@@ -549,7 +549,27 @@ const Price = () => {
                                             <h1 className="uppercase grid col-span-8">{item.description}</h1>
                                         </div>
                                         <h1 className="grid justify-center items-center">
-                                            {item.dayOfWeek.map((day) => (day === 8 ? 'CN' : day)).join(', ')}
+                                            {item.dayOfWeek
+                                                .map((day) => {
+                                                    if (day === 0) {
+                                                        return 'CN'; // Thay 0 bằng 'CN' cho Chủ nhật
+                                                    } else {
+                                                        return day === 1
+                                                            ? '2'
+                                                            : day === 2
+                                                            ? '3'
+                                                            : day === 3
+                                                            ? '4'
+                                                            : day === 4
+                                                            ? '5'
+                                                            : day === 5
+                                                            ? '6'
+                                                            : day === 6
+                                                            ? '7'
+                                                            : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
+                                                    }
+                                                })
+                                                .join(', ')}
                                         </h1>
                                         <h1 className="grid justify-center items-center">
                                             {item.timeSlot === 1
