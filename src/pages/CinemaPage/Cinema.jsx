@@ -657,7 +657,7 @@ const Cinema = () => {
                             onClick={() => {
                                 handleOpenCinema(true);
                                 setSelectedCinema(item);
-                                getAddress(item.hierarchyValueCode);
+                                getAddress(item.code);
                             }}
                         >
                             <FaRegEdit color="black" size={20} />

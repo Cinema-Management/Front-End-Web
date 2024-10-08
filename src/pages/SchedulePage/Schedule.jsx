@@ -646,11 +646,11 @@ const Schedule = () => {
                                                 className={`uppercase border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
                                                     item.status === 0
                                                         ? 'bg-gray-400'
-                                                        : item.status === 1
-                                                        ? 'bg-green-500'
+                                                        : item.status === 1 && isDisabledAdd
+                                                        ? 'bg-gray-400'
                                                         : item.status === 2
                                                         ? 'bg-yellow-400'
-                                                        : 'bg-gray-400'
+                                                        : 'bg-green-500'
                                                 }`}
                                                 onClick={() => {
                                                     if (!isDisabledAdd || item.status === 0) {
@@ -661,11 +661,11 @@ const Schedule = () => {
                                             >
                                                 {item.status === 0
                                                     ? 'Chưa chiếu'
-                                                    : item.status === 1
-                                                    ? 'Đang chiếu'
+                                                    : item.status === 1 && isDisabledAdd
+                                                    ? 'Đã chiếu'
                                                     : item.status === 2
                                                     ? 'Suất chiếu sớm'
-                                                    : 'Đã chiếu'}
+                                                    : 'Đang chiếu'}
                                             </button>
                                         </div>
                                         <div className="justify-center space-x-5 items-center col-span-1 flex ">
