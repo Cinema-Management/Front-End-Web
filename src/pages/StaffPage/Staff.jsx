@@ -8,39 +8,30 @@ import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useQuery } from 'react-query';
+import Loading from '~/components/LoadingComponent/Loading';
+import { FixedSizeList as List } from 'react-window';
+import HeightComponent from '~/components/HeightComponent/HeightComponent';
 
 const Staff = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [isDetail, setIsDetail] = useState(false);
     const [open, setOpen] = useState(false);
     const [selectedValue, setSelectedValue] = useState('');
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const [inputSearch, setInputSearch] = useState('');
+    const [staffFilter, setStaffFilter] = useState([]);
     const handleOpen = (isUpdate, isDetail) => {
         setOpen(true);
         setIsUpdate(isUpdate);
         setIsDetail(isDetail);
     };
+    const height = HeightComponent();
     const handleClose = () => setOpen(false);
 
-    const user = [
-        {
-            id: 1,
-            name: 'Cao Trùng Dương',
-            email: 'caotrungduong11@gmail.com',
-            sdt: '0123456789',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            role: 'Admin',
-            status: 'Active',
-        },
-        {
-            id: 2,
-            name: 'Bùi Ngọc Tùng',
-            email: 'buingoctung1009@gmail.com',
-            sdt: '0123456789',
-            address: '11a Thạnh Xuân 13, Phường Thạnh Xuân, Quận 12, TP Hồ Chí Minh',
-            role: 'Staff',
-            status: 'InActive',
-        },
-    ];
     const optionCV = [
         { value: '0', label: 'Lọc chức vụ' },
         { value: 'AD', label: 'Admin' },
@@ -57,10 +48,38 @@ const Staff = () => {
         { value: 'TL', label: 'Thái Lan' },
     ];
 
+    const fetchStaff = async () => {
+        const staffResponse = await axios.get('api/users/staff');
+
+        const arrayStaff = staffResponse.data.map((movie) => ({
+            code: movie.code,
+            name: movie.name,
+        }));
+        return { staffs: staffResponse.data, optionStaff: arrayStaff };
+    };
+
+    const {
+        data: { staffs = [], optionStaff = [] } = {},
+        isLoading,
+        isFetched,
+        isError,
+        // refetch,
+    } = useQuery('fetchStaff', fetchStaff, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        // onSuccess: (data) => {
+        //     setFoodFilter(data.product);
+        // },
+    });
+
+    if (isLoading) return <Loading />;
+    if (!isFetched) return <div>Fetching...</div>;
+    if (isError) return <div>Error loading data: {isError.message}</div>;
+
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
     };
-    const [selectedMovie, setSelectedMovie] = useState('');
+
     const rap = [
         {
             id: 1,
@@ -77,103 +96,152 @@ const Staff = () => {
             status: 'InActive',
         },
     ];
-    return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
-                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Nhân viên</h1>
-                <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
-                    <AutoInputComponent
-                        options={rap.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Tên nhân viên"
-                        freeSolo={false}
-                        disableClearable={false}
-                        placeholder="Nhập ..."
-                        heightSelect={200}
-                        borderRadius="10px"
-                    />
-                    <AutoInputComponent
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Số điện thoại"
-                        freeSolo={true}
-                        disableClearable={false}
-                        placeholder="Nhập ..."
-                        heightSelect={200}
-                        borderRadius="10px"
-                    />
-                    <SelectComponent
-                        value={selectedValue}
-                        onChange={handleChange}
-                        options={optionCV}
-                        title="Vai trò"
-                        selectStyles={{ borderRadius: '10px' }}
-                    />
-                    <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-[10px] left-2" />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsSort}
-                            title="Sắp xếp"
-                            className="pl-3"
-                            selectStyles={{ borderRadius: '10px' }}
-                        />
-                    </div>
+
+    const handleSearch = (value) => {
+        setInputSearch(value);
+        if (value === '' || value === null) {
+            setStaffFilter(staffs);
+
+            return;
+        }
+        const search = staffs.filter((item) => item.name.includes(value));
+
+        if (search.length === 0) {
+            toast.info('Không tìm thấy hóa đơn nào nào!');
+        } else {
+            setStaffFilter(search);
+        }
+    };
+
+    const rowRenderer = ({ index, style }, data) => {
+        const reversedData = [...data].reverse();
+        const item = reversedData[index];
+
+        return (
+            <div
+                className="border-b py-3 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-2  pr-2 max-lg:pr-12 custom-hubmax2"
+                key={item.code}
+                style={style}
+            >
+                <div className="grid  grid-cols-3">
+                    <h1 className="grid pl-2 items-center">{index + 1}</h1>
+                    <h1 className="grid pl-2 col-span-2 items-center">{item.code}</h1>
                 </div>
-            </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-7 items-center ">
-                    <h1 className="grid justify-center items-center">Họ tên</h1>
-                    <h1 className="grid justify-center items-center">Số điện thoại</h1>
-                    <h1 className="grid col-span-2 justify-center items-center">Địa chỉ</h1>
-                    <h1 className="grid justify-center items-center">Vai trò</h1>
-                    <h1 className="grid justify-center items-center">Trạng thái</h1>
-                    <div className=" grid justify-center">
+                <h1 className="grid items-center pl-3 ">{item.name}</h1>
+                <h1 className="grid justify-center items-center break-all ">{item.phone}</h1>
+                <h1 className="grid col-span-2 items-center ">{item.address}</h1>
+                <h1 className="grid justify-center items-center">
+                    {item.isAdmin === false ? 'Nhân viên' : item.isAdmin === true ? 'Quản lý' : 'Chưa cấp quyền'}
+                </h1>
+                <div className="  justify-center items-center grid">
+                    <button
+                        className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                            item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                    >
+                        {item.status === 1 ? 'Hoạt động' : 'Ngưng hoạt động'}
+                    </button>
+                </div>
+                <div className=" justify-center items-center grid  ">
+                    <div className="grid grid-cols-3 max-mh850:grid-cols-2">
                         <button
-                            className="border px-4 py-1 rounded-[40px] bg-orange-400"
-                            onClick={() => handleOpen(false, false)}
+                            className="col-span-2 max-mh850:col-span-1 max-mh850:mr-2"
+                            onClick={() => handleOpen(true, false)}
                         >
-                            <IoIosAddCircleOutline color="white" size={20} />
+                            <FaRegEdit color="black" size={20} />
+                        </button>
+                        <button onClick={() => handleOpen(false, true)}>
+                            <FaRegEye color="black" fontSize={20} />
                         </button>
                     </div>
                 </div>
+            </div>
+        );
+    };
 
-                <div className="overflow-auto h-90p height-sm-1">
-                    {user.map((item) => (
-                        <div
-                            className="border-b py-3 text-base font-normal text-slate-500 grid grid-cols-7 items-center gap-5 "
-                            key={item.id}
-                        >
-                            <h1 className="grid items-center pl-3 ">{item.name}</h1>
-                            <h1 className="grid justify-center items-center break-all ">{item.sdt}</h1>
-                            <h1 className="grid col-span-2 items-center ">{item.address}</h1>
-                            <h1 className="grid justify-center items-center ">{item.role}</h1>
-                            <div className="  justify-center items-center grid">
-                                <button
-                                    className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
-                                        item.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'
-                                    }`}
-                                >
-                                    {item.status}
-                                </button>
-                            </div>
-                            <div className=" justify-center items-center grid  ">
-                                <div className="grid grid-cols-3 max-mh850:grid-cols-2">
-                                    <button
-                                        className="col-span-2 max-mh850:col-span-1 max-mh850:mr-2"
-                                        onClick={() => handleOpen(true, false)}
-                                    >
-                                        <FaRegEdit color="black" size={20} />
-                                    </button>
-                                    <button onClick={() => handleOpen(false, true)}>
-                                        <FaRegEye color="black" fontSize={20} />
-                                    </button>
-                                </div>
-                            </div>
+    return (
+        <div className=" ">
+            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Nhân viên</h1>
+                <div className="overflow-x-auto  xl:overflow-hidden">
+                    <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3  ">
+                        <AutoInputComponent
+                            options={optionStaff.map((item) => item.name)}
+                            value={inputSearch}
+                            onChange={(newValue) => handleSearch(newValue)}
+                            title="Tên nhân viên"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập"
+                            heightSelect={200}
+                            borderRadius="10px"
+                        />
+                        <AutoInputComponent
+                            value={selectedMovie}
+                            onChange={setSelectedMovie}
+                            title="Số điện thoại"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                            borderRadius="10px"
+                        />
+                        <SelectComponent
+                            value={selectedValue}
+                            onChange={handleChange}
+                            options={optionCV}
+                            title="Vai trò"
+                            selectStyles={{ borderRadius: '10px' }}
+                        />
+                        <div className="relative w-full ">
+                            <MdSwapVert className="absolute bottom-[10px] left-2" />
+                            <SelectComponent
+                                value={selectedValue}
+                                onChange={handleChange}
+                                options={optionsSort}
+                                title="Sắp xếp"
+                                className="pl-3"
+                                selectStyles={{ borderRadius: '10px' }}
+                            />
                         </div>
-                    ))}
+                    </div>
+                </div>
+            </div>
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
+                <div className="overflow-auto overflow-y-hidden h-[100%]">
+                    <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2  max-lg:pr-12 custom-hubmax2 xxl:pr-3 ">
+                        <div className="grid grid-cols-3">
+                            <h1 className="grid justify-center items-center">STT</h1>
+                            <h1 className="grid justify-center col-span-2 items-center">Mã NV</h1>
+                        </div>
+                        <h1 className="grid justify-center items-center">Họ tên</h1>
+                        <h1 className="grid justify-center items-center">Số điện thoại</h1>
+                        <h1 className="grid col-span-2 justify-center items-center">Địa chỉ</h1>
+                        <h1 className="grid justify-center items-center">Vai trò</h1>
+                        <h1 className="grid justify-center items-center">Trạng thái</h1>
+                        <div className=" grid justify-center">
+                            <button
+                                className="border px-4 py-1 rounded-[40px] bg-orange-400"
+                                onClick={() => handleOpen(false, false)}
+                            >
+                                <IoIosAddCircleOutline color="white" size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="py-1 ">
+                        <List
+                            itemCount={staffFilter.length === 0 ? staffs?.length : staffFilter.length}
+                            itemSize={60}
+                            height={height}
+                            width={1200}
+                            // style={{ minWidth: '1200px' }}
+                        >
+                            {({ index, style }) =>
+                                rowRenderer({ index, style }, staffFilter.length === 0 ? staffs : staffFilter)
+                            }
+                        </List>
+                    </div>
                 </div>
             </div>
 
