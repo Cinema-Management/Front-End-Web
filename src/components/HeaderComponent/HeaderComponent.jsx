@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocati
 import { BsTag } from 'react-icons/bs';
 import { ImSpoonKnife } from 'react-icons/im';
 import { MdOutlineAttachMoney } from 'react-icons/md';
-
+import { FaMoneyBills } from 'react-icons/fa6';
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();
@@ -31,7 +31,7 @@ const HeaderComponent = () => {
         return paths.some((path) => location.pathname.startsWith(path)) ? 'bg-orange-200' : '';
     };
     return (
-        <div className="bg-white xl:w-1/5 max-xl:w-28p min-w-[230px] custom-hubmax1 custom-height-lg3 custom-height-sm21 custom-height-xxl4">
+        <div className="bg-white xl:w-1/5 max-xl:w-28p  min-w-[300px] custom-mini custom-air1  custom-hubmax1 custom-height-lg3 custom-height-sm21 custom-height-xxl4">
             <div className="py-2 flex flex-col justify-center items-center cursor-pointer">
                 <div className="text-center" onClick={() => handleNavigate('/')}>
                     <img src={Logo} alt="Logo" width={90} height={90} className="mx-auto mb-2" />
@@ -155,10 +155,19 @@ const HeaderComponent = () => {
                             Đặt vé
                         </button>
                     </li>
+                    <li className={`hover:bg-orange-500 w-full ${isActive('/sale-invoice')}`}>
+                        <button
+                            className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full"
+                            onClick={() => handleNavigate('/sale-invoice')}
+                        >
+                            <FaMoneyBills className="mr-2" color="green" />
+                            Hóa đơn bán
+                        </button>
+                    </li>
                     <li className={`hover:bg-orange-500 w-full ${isActive('/seat')}`}>
                         <button
                             className="flex max-xl:ml-16 max-lg:ml-3 ml-12 items-center py-2 w-full"
-                            onClick={() => handleNavigate('/seat')}
+                            // onClick={() => handleNavigate('/seat')}
                         >
                             <FcStatistics className="mr-2" />
                             Thống kê
