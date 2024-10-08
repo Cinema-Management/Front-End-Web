@@ -1,9 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { MdSwapVert } from 'react-icons/md';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import { FaRegEdit } from 'react-icons/fa';
 import InputComponent from '~/components/InputComponent/InputComponent';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import axios from 'axios';
@@ -18,7 +16,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import dayjs from 'dayjs';
 import { FixedSizeList as List } from 'react-window';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
-import { set } from 'date-fns';
 const { Option } = Select;
 
 const { getFormattedDate, getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
@@ -48,7 +45,6 @@ const Film = React.memo(() => {
     const [selectedImage, setSelectedImage] = useState(null);
     const [open, setOpen] = useState(false);
     const descriptionRef = useRef('');
-    const [selectedMovie, setSelectedMovie] = useState('');
     const [name, setName] = useState('');
     const [selectedGenre, setSelectedGenre] = useState(null);
     const [duration, setDuration] = useState('');
@@ -61,14 +57,11 @@ const Film = React.memo(() => {
     const [endDate, setEndDate] = useState('');
     const [selectedFilm, setSelectedFilm] = useState(null);
     const [detailMovie, setDetailMovie] = useState(false);
-    const [selectedValue, setSelectedValue] = useState('');
     const maxTagCount = window.innerWidth < 1025 ? 1 : 2;
     const [movieFilter, setMovieFilter] = useState([]);
-    const [selectDate, setSelectDate] = useState('');
     const [inputSearch, setInputSearch] = useState('');
     const [selectedSort, setSelectedSort] = useState(null);
     const height = HeightComponent();
-    const [selectedDates, setSelectedDates] = useState([null, null]);
     const { RangePicker } = DatePicker;
 
     const optionStatus = [
@@ -119,37 +112,12 @@ const Film = React.memo(() => {
         setStartDate('');
     };
 
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
-        setAgeRestriction(event.target.value);
-        setName(event.target.value);
-    };
     const handleChangeDay = (value) => {
         setSelectedGenre(value);
     };
 
     const handleInputChange = (event) => {
         descriptionRef.current = event.target.value; // Cập nhật giá trị vào ref
-    };
-
-    const onChange1 = (date, dateString) => {
-        setSelectDate(dateString);
-
-        if (dateString === '') {
-            setMovieFilter(movies);
-            return;
-        } else {
-            const filterDate = movies.filter((item) => getFormatteNgay(new Date(item.startDate)) === dateString);
-            if (filterDate.length === 0) {
-                toast.info('Không tìm thấy phim nào!');
-                setMovieFilter([]);
-                return;
-            }
-            setSelectedSort(null);
-            // setSelectedStatus(optionStatus[0]);
-            setInputSearch('');
-            setMovieFilter(filterDate);
-        }
     };
 
     const handleSearch = (value) => {
@@ -162,7 +130,6 @@ const Film = React.memo(() => {
         setMovieFilter(search);
         setSelectedSort(null);
         setSelectedStatus(optionStatus[0]);
-        setSelectDate('');
     };
 
     const sortMovie = (selectedGenre) => {
@@ -181,7 +148,7 @@ const Film = React.memo(() => {
 
         setSelectedSort(selectedGenre);
         setInputSearch('');
-        setSelectDate('');
+
         setSelectedStatus(optionStatus[0]);
     };
 
@@ -206,7 +173,7 @@ const Film = React.memo(() => {
         }
         setMovieFilter(sortedStatus);
         setInputSearch('');
-        setSelectDate('');
+
         setSelectedSort(null);
     };
 
@@ -282,12 +249,6 @@ const Film = React.memo(() => {
         { value: '16', label: 'C16' },
         { value: '18', label: 'C18' },
         { value: '0', label: 'Không giới hạn' },
-    ];
-
-    const optionsSort = [
-        { value: '0', label: 'Xếp theo tên' },
-        { value: 'A', label: 'A - Z' },
-        { value: 'B', label: 'Z - A' },
     ];
 
     const handleFormData = () => {
@@ -463,7 +424,9 @@ const Film = React.memo(() => {
                     </h1>
                 </div>
 
-                <LazyLoadImage src={item.image} alt={item.name} width={65} />
+                <div className=" justify-center grid">
+                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
+                </div>
 
                 <h1 className="grid items-center pl-3 col-span-2 uppercase">{item.name}</h1>
                 <h1 className="grid justify-center items-center">{item.duration} phút</h1>

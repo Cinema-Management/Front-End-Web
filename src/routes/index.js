@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+const SaleInvoice = lazy(() => import('~/pages/SaleInvoicePage/SaleInvoice'));
 const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
 const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
 const Film = lazy(() => import('~/pages/FilmPage/Film'));
@@ -74,6 +75,11 @@ export const routes = [
     {
         path: '/room',
         page: Room,
+        isShowSidebar: true,
+    },
+    {
+        path: '/sale-invoice',
+        page: SaleInvoice,
         isShowSidebar: true,
     },
     {

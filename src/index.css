@@ -78,6 +78,9 @@ code {
     .custom-height-xs1 {
         height: 640px !important;
     }
+    .custom-height-xs2 {
+        height: 415px !important;
+    }
 }
 @media (max-height: 704px) {
     .custom-height-sm {
@@ -159,6 +162,9 @@ code {
     .custom-height-sm24 {
         height: 69px;
     }
+    .custom-height-sm25 {
+        height: 320px;
+    }
 }
 
 @media (min-height: 780px) and (max-height: 850px) {
@@ -191,6 +197,12 @@ code {
     .custom-height-md4 {
         height: 30px;
     }
+    .custom-height-md5 {
+        height: 740px;
+    }
+    .custom-mini {
+        min-width: 210px;
+    }
 }
 @media (min-height: 1025px) and (max-height: 1299px) {
     .custom-height-xl {
@@ -204,6 +216,12 @@ code {
     }
     .custom-air {
         height: 850px;
+    }
+    .custom-height-xl3 {
+        height: 900px;
+    }
+    .custom-air1 {
+        min-width: 210px;
     }
 }
 
@@ -219,6 +237,9 @@ code {
     }
     .custom-height-lg3 {
         min-width: 260px;
+    }
+    .custom-height-lg4 {
+        height: 1080px;
     }
 }
 
@@ -247,13 +268,11 @@ code {
     .custom-hubmax2 {
         padding-right: 100px;
     }
-}
-
-@media (min-height: 1180px) and (max-width: 1370px) {
-    .air-pro {
-        padding-right: 105px !important;
+    .custom-hubmax3 {
+        height: 520px;
     }
 }
+
 .select-rap {
     border: none;
 }

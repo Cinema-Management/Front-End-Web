@@ -1,7 +1,6 @@
 import React, { lazy, useEffect, useState } from 'react';
 import { IoIosArrowBack } from 'react-icons/io';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
-import phim1 from '~/assets/phim1.png';
 import { Button } from '@mui/material';
 import axios from 'axios';
 import { useQuery } from 'react-query';
@@ -12,7 +11,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
-import { set } from 'date-fns';
 
 const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 const Order = () => {
@@ -82,7 +80,6 @@ const Order = () => {
 
             return arrayNameMovie;
         } catch (error) {
-            console.error('Error fetching movies:', error);
             return []; // Trả về mảng rỗng nếu có lỗi
         }
     };
@@ -120,7 +117,6 @@ const Order = () => {
             enabled: !!cinemaCode && !!selectedDate,
         },
     );
-    console.log('t', room);
 
     (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName || isFetchingOptionMovieName) && <Loading />;
     (errorRoom || CinemaError || optionCinemaNameError) &&

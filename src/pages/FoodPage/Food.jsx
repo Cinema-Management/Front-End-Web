@@ -16,7 +16,6 @@ import axios from '~/setup/axios';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { set } from 'lodash';
 const { getFormattedDate, getFormatteNgay } = require('~/utils/dateUtils');
 
 const Food = () => {
@@ -78,7 +77,7 @@ const Food = () => {
         data: { product = [], optionFood = [] } = {},
         error,
         isLoading,
-        // isFetched,
+        isFetched,
         // isFetching,
         refetch,
     } = useQuery('productNotSeat', fetchProductNotSeat, {
@@ -90,7 +89,7 @@ const Food = () => {
     });
 
     if (isLoading) return <Loading />;
-    // if (!isFetched) return <div>Fetching...</div>;
+    if (!isFetched) return <div>Fetching...</div>;
     if (error) return <div>Error loading data: {error.message}</div>;
 
     const handleImageChange = (e) => {
@@ -169,8 +168,6 @@ const Food = () => {
             setFoodFilter(filterDate);
         }
     };
-
-    const dateObject = dayjs();
 
     const sortedStatus = (option) => {
         if (!option) {
@@ -474,12 +471,12 @@ const Food = () => {
 
     const rowRenderer = ({ index, style }, data) => {
         const item = data[index];
-        // console.log(`Rendering comment ${index + 1}: ${product[index].name}`);
+
         return (
             <div
-                className=" border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 max-lg:pr-[95px] custom-hubmax2 min-h-[120px] "
+                className="border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 max-lg:pr-12 custom-hubmax2  "
                 key={item.code}
-                style={style} // Áp dụng style để điều chỉnh vị trí
+                style={style}
             >
                 <div className="grid col-span-2 gap-2 grid-cols-9 justify-center items-center">
                     <h1 className="grid pl-3 col-span-2">{index + 1}</h1>
@@ -491,7 +488,7 @@ const Food = () => {
                 </div>
 
                 <h1 className="grid">{item.description}</h1>
-                <h1 className="grid break-all">{getFormattedDate(item.createdAt)}</h1>
+                <h1 className="grid break-all ">{getFormattedDate(item.createdAt)}</h1>
                 <h1 className="grid break-all">{getFormattedDate(item.updatedAt)}</h1>
                 <div className="grid justify-center">
                     <button
@@ -531,7 +528,7 @@ const Food = () => {
             <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Đồ ăn & nước</h1>
                 <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="grid grid-cols-4  gap-12 items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
+                    <div className="grid grid-cols-4  gap-12 items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-16 custom-hubmax2">
                         <AutoInputComponent
                             options={optionFood.map((item) => item.name)}
                             value={inputSearch}
@@ -562,7 +559,8 @@ const Food = () => {
                             <h1 className="text-[16px] truncate mb-1">Ngày tạo</h1>
                             <DatePicker
                                 onChange={onChange1}
-                                defaultValue={dateObject}
+                                value={selectDate ? dayjs(selectDate, 'DD/MM/YYYY') : null}
+                                placement="bottomRight"
                                 placeholder="Chọn ngày"
                                 format="DD/MM/YYYY"
                                 className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
@@ -588,17 +586,17 @@ const Food = () => {
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] max-lg:pr-24 custom-hubmax2 air-pro xxl:pr-3">
+                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] lg: max-lg:pr-[52px] custom-hubmax2 xxl:pr-3">
                         <div className="grid col-span-2 grid-cols-9 gap-2 justify-center items-center">
                             <h1 className="grid justify-center col-span-2 items-center ">STT </h1>
                             <h1 className="grid justify-center col-span-2 items-center ">Mã SP </h1>
                             <h1 className="grid justify-center items-center col-span-5">Tên </h1>
                         </div>
 
-                        <h1 className="grid  justify-center">Hình ảnh</h1>
+                        <h1 className="grid  justify-center ">Hình ảnh</h1>
                         <h1 className="grid justify-center">Mô tả</h1>
-                        <h1 className="grid  justify-center">Ngày tạo</h1>
-                        <h1 className="grid justify-center">Ngày sửa</h1>
+                        <h1 className="grid  justify-center ">Ngày tạo</h1>
+                        <h1 className="grid justify-center ">Ngày sửa</h1>
                         <h1 className="grid justify-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button

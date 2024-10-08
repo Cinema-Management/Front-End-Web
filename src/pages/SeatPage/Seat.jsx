@@ -7,11 +7,10 @@ import { Box, Button, Tab, Tabs } from '@mui/material';
 import { GrFormNext } from 'react-icons/gr';
 import { styled } from '@mui/system';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
-import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { useDispatch, useSelector } from 'react-redux';
 import { getIsSchedule } from '~/redux/apiRequest';
-import { resetSeats, toggleSeat, resetCombo } from '~/redux/seatSlice';
+import { resetSeats, resetCombo } from '~/redux/seatSlice';
 
 import { increment, decrement, resetValue } from '~/redux/valueSlice';
 import { toast } from 'react-toastify';
@@ -38,7 +37,7 @@ const fetchAddressCinemaCode = async (code) => {
     try {
         const response = await axios.get(`api/hierarchy-values/${code}`);
         const addressCinema = response.data;
-        return addressCinema;
+        return addressCinema.fullAddress;
     } catch (error) {
         if (error.response) {
             throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
@@ -53,8 +52,7 @@ const fetchAddressCinemaCode = async (code) => {
 const Seat = () => {
     const value = useSelector((state) => state.value.value);
     const [open, setOpen] = useState(false);
-    const [setGhe, setSetGhe] = useState([]);
-    // const [priceSeat, setPriceSeat] = useState(0);
+
     const [selectedCombos, setSelectedCombos] = useState([]);
     const dispatch = useDispatch();
     const handleOpen = () => setOpen(true);
@@ -140,7 +138,7 @@ const Seat = () => {
         }
     };
     const groupProductsByCode = (products) => {
-        return products.reduce((acc, product) => {
+        return products?.reduce((acc, product) => {
             const existingProduct = acc.find((item) => item.code === product.productCode);
 
             if (existingProduct) {
@@ -165,12 +163,12 @@ const Seat = () => {
     const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
 
     const calculateTotalPrice = (seats) => {
-        return seats.reduce((total, seat) => {
+        return seats?.reduce((total, seat) => {
             return total + (seat.price || 0); // Thêm giá của ghế vào tổng, nếu không có giá thì cộng 0
         }, 0);
     };
     const calculateTotalPriceForCombos = (groupedCombos) => {
-        return groupedCombos.reduce((total, combo) => total + combo.totalPrice, 0);
+        return groupedCombos?.reduce((total, combo) => total + combo.totalPrice, 0);
     };
     const totalPriceCombo = useMemo(() => calculateTotalPriceForCombos(groupedCombos), [groupedCombos]);
 
@@ -230,7 +228,7 @@ const Seat = () => {
     };
 
     function formatCurrency(amount) {
-        return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+        return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
     const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
 
@@ -259,12 +257,12 @@ const Seat = () => {
     });
 
     /// action
-    console.log(groupedCombos);
     const handleAddSalesInvoice = async () => {
         try {
             const salesInvoice = {
+                staffCode: 'NV02',
                 scheduleCode: schedule?.scheduleCode,
-                paymentMethod: 'tiền mặt',
+                paymentMethod: 0,
                 type: 0,
             };
             const response = await axios.post('api/sales-invoices', salesInvoice);
@@ -318,11 +316,11 @@ const Seat = () => {
 
         return `${hours}:${minutes}`;
     }
-    const salesInvoiceTicketPrint = arraySeat.map((seat) => ({
+    const salesInvoiceTicketPrint = arraySeat?.map((seat) => ({
         cinemaName: schedule.cinemaName,
         cinemaAddress: addressCinema,
         createdAt: FormatSchedule(new Date()),
-        staffName: 'Nguyễn Văn Vũ',
+        staffName: 'Cao Trùng Dương',
         movieName: schedule.movieName,
         ageRestriction: handleChangDoTuoi(schedule.ageRestriction),
         date: getFormatteNgay(schedule.startTime),
@@ -338,10 +336,10 @@ const Seat = () => {
         cinemaName: schedule.cinemaName,
         cinemaAddress: addressCinema,
         createdAt: FormatSchedule(new Date()),
-        staffName: 'Nguyễn Văn Vũ',
+        staffName: 'Cao Trùng Dương',
     };
 
-    const foodPrint = groupedCombos.map((combo) => ({
+    const foodPrint = groupedCombos?.map((combo) => ({
         productName: combo.name,
         price: combo.price,
         quantity: combo.quantity,
@@ -440,7 +438,7 @@ const Seat = () => {
                                 </div>
                                 <div className="flex ml-3 items-center flex-wrap w-full">
                                     <h1 className="w-full text-right">
-                                        {groupedCombos.map((combo) => combo.name + ' x' + combo.quantity).join(', ')}
+                                        {groupedCombos?.map((combo) => combo.name + ' x' + combo.quantity).join(', ')}
                                     </h1>
                                 </div>
                             </div>
@@ -513,7 +511,7 @@ const Seat = () => {
                                 </Tabs>
                             </Box>
 
-                            {value === 0 && <SeatComponent setSetGhe={setSetGhe} />}
+                            {value === 0 && <SeatComponent />}
                             {value === 1 && (
                                 <FoodComponent selectedCombos={selectedCombos} setSelectedCombos={setSelectedCombos} />
                             )}
@@ -647,7 +645,7 @@ const Seat = () => {
                 <div className=" grid   h-[600px]">
                     {/* Danh sách vé */}
                     <div className="overflow-y-auto  px-4 ">
-                        {salesInvoiceTicketPrint.map((ticket, index) => (
+                        {salesInvoiceTicketPrint?.map((ticket, index) => (
                             <div
                                 key={index}
                                 className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 "
@@ -711,7 +709,7 @@ const Seat = () => {
                             </div>
                         ))}
                         {/* Danh sách bắp nước */}
-                        {groupedCombos.length > 0 && (
+                        {groupedCombos?.length > 0 && (
                             <div className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 ">
                                 {/* Tiêu đề vé */}
                                 <p className="text-center font-bold text-2xl pb-5">Bắp Nước</p>
@@ -805,7 +803,7 @@ const Seat = () => {
 
                 {/* Phần in ẩn */}
                 <div ref={printRef} className="hidden print:block">
-                    {salesInvoiceTicketPrint.map((ticket, index) => (
+                    {salesInvoiceTicketPrint?.map((ticket, index) => (
                         <div
                             key={index}
                             className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 "
