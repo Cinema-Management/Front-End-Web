@@ -5,6 +5,7 @@ import roomReducer from './roomSlice';
 import cinemaReducer from './cinemaSlice';
 import scheduleReducer from './scheduleSlice';
 import valueReducer from './valueSlice';
+import authReducer from './authSlice';
 
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 
@@ -15,6 +16,7 @@ const persistConfig = {
     storage,
 };
 const rootReducers = combineReducers({
+    auth: authReducer,
     seat: seatReducer,
     room: roomReducer,
     cinema: cinemaReducer,

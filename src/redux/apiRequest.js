@@ -1,4 +1,5 @@
 import axios from 'axios';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { getSeatStart, getSeatSuccess, getSeatFailed } from './seatSlice';
 import { getRoomByCodeStart, getRoomByCodeSuccess, getRoomByCodeFailed } from './roomSlice';
@@ -11,7 +12,7 @@ import {
     getIsScheduleSuccess,
     getIsScheduleStart,
 } from './scheduleSlice';
-
+import { loginFailed, loginStart, loginSuccess, registerFailed, registerStart, registerSuccess } from './authSlice';
 //npm install axios
 
 export const getAllSeatByRoomCode = async (dispatch, roomCode) => {
@@ -58,5 +59,32 @@ export const getIsSchedule = async (dispatch, isSchedule) => {
         dispatch(getIsScheduleSuccess(isSchedule));
     } catch (err) {
         dispatch(getIsScheduleFailed());
+    }
+};
+
+export const loginUser = async (user, dispatch, navigate) => {
+    dispatch(loginStart());
+
+    try {
+        const res = await axios.post('api/auth/login', user);
+
+        dispatch(loginSuccess(res.data));
+        navigate('/');
+        return;
+    } catch (err) {
+        dispatch(loginFailed());
+        return err;
+    }
+};
+export const registerUser = async (user, dispatch, navigate) => {
+    dispatch(registerStart());
+    try {
+        const res = await axios.post('/api/auth/register', user);
+        dispatch(registerSuccess(res.data));
+        navigate('/');
+        return;
+    } catch (err) {
+        dispatch(registerFailed());
+        return err;
     }
 };
