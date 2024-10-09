@@ -1,16 +1,49 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Form, Input, Button, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Logo from '~/assets/Logo.png';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { loginUser } from '~/redux/apiRequest';
+import { useDispatch } from 'react-redux';
+import 'react-toastify/dist/ReactToastify.css';
+
 const Login = () => {
-    const onFinish = (values) => {
-        console.log('Received values of form: ', values);
-    };
+    const dispatch = useDispatch();
 
     const navigate = useNavigate();
     const handleNavigate = (path) => {
         navigate(path);
+    };
+
+    const onFinishLogin = async (object) => {
+        try {
+            const newUser = {
+                phone: object.phone,
+                password: object.password,
+                type: 1, // Thêm type với giá trị là 0
+            };
+
+            const error = await loginUser(newUser, dispatch, navigate);
+
+            if (error) {
+                toast.error('Tài khoản hoặc mật khẩu không chính xác!');
+                return;
+            } else {
+                toast.success('Đăng nhập thành công!');
+            }
+        } catch (e) {}
+    };
+    const validatePhone = (rule, value) => {
+        if (!value) {
+            return Promise.reject(new Error('Nhập SĐT!'));
+        }
+        const phoneRegex = /^[0-9]{10,15}$/;
+
+        if (phoneRegex.test(value)) {
+            return Promise.resolve();
+        }
+        return Promise.reject(new Error('SĐT không hợp lệ!'));
     };
 
     return (
@@ -23,12 +56,12 @@ const Login = () => {
                         name="login_form"
                         className="login-form bg-[#d0d0d0] px-8 py-4 text-[20px] rounded-[10px]"
                         initialValues={{ remember: true }}
-                        onFinish={onFinish}
+                        onFinish={onFinishLogin}
                     >
                         <h2 className="text-[22px] font-bold text-center pt-2 pb-4">ĐĂNG NHẬP</h2>
                         <Form.Item
-                            name="username"
-                            rules={[{ required: true, message: 'Nhập số điện thoại hoặc email!' }]}
+                            name="phone"
+                            rules={[{ validator: validatePhone, required: true, message: 'Nhập số điện thoại ' }]}
                         >
                             <Input
                                 prefix={<UserOutlined className="mr-2" />}
@@ -67,9 +100,7 @@ const Login = () => {
                             <button
                                 type="submit"
                                 className="login-form-button rounded-[10px] w-full gradient-button h-[38px] text-[18px] font-bold text-black"
-                                onClick={() => {
-                                    handleNavigate('/');
-                                }}
+                                // onClick={handleLogin}
                             >
                                 Đăng nhập
                             </button>
