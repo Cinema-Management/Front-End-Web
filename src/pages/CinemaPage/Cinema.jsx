@@ -669,10 +669,10 @@ const Cinema = () => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white border overflow-x-auto overflow-y-hidden  xl:overflow-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Rạp</h1>
-                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                     <AutoInputComponent
                         options={optionNameCinema}
                         value={selectedOptionFilterCinema}
@@ -733,41 +733,43 @@ const Cinema = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="border-b py-1 text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-2">
-                    <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
-                        <h1 className=" grid justify-center col-span-3 items-center  ">Stt</h1>
-                        <h1 className="grid justify-center col-span-7 items-center    ">Mã phim</h1>
-                    </div>
+            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-2 h-[515px] max-h-screen custom-height-sm custom-height-md custom-hubmax custom-height-lg custom-height-xl">
+                <div className="overflow-auto overflow-y-hidden h-[100%]">
+                    <div className="border-b text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1200px] ">
+                        <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
+                            <h1 className=" grid justify-center col-span-3 items-center">Stt</h1>
+                            <h1 className="grid justify-center col-span-7 items-center  ">Mã phim</h1>
+                        </div>
 
-                    <div className="uppercase grid justify-center grid-cols-10 col-span-7 gap-4 items-center">
-                        <h1 className="grid justify-center col-span-3 items-center  ">Tên rạp</h1>
-                        <h1 className="grid justify-center col-span-5 items-center   m-4 ">Địa chỉ</h1>
-                        <h1 className="grid justify-center col-span-2 items-center   ">Số lượng phòng</h1>
-                    </div>
-                    <div className="uppercase grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
-                        <h1 className="grid justify-center col-span-7 items-center    ">Trạng thái</h1>
+                        <div className="uppercase grid justify-center grid-cols-10 col-span-7 gap-4 items-center">
+                            <h1 className="grid justify-center col-span-3 items-center">Tên rạp</h1>
+                            <h1 className="grid justify-center col-span-5 items-center m-4 ">Địa chỉ</h1>
+                            <h1 className="grid justify-center col-span-2 items-center ">Số lượng phòng</h1>
+                        </div>
+                        <div className="uppercase grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
+                            <h1 className="grid justify-center col-span-7 items-center">Trạng thái</h1>
 
-                        <div
-                            className="flex justify-center col-span-3   "
-                            onClick={() => {
-                                handleOpenCinema(false);
-                                clearTextModalCinema();
-                            }}
-                        >
-                            <button className="border px-4 py-1 rounded-[40px] bg-orange-400">
-                                <IoIosAddCircleOutline color="white" size={20} />
-                            </button>
+                            <div
+                                className="flex justify-center col-span-3   "
+                                onClick={() => {
+                                    handleOpenCinema(false);
+                                    clearTextModalCinema();
+                                }}
+                            >
+                                <button className="border px-4 py-1 rounded-[40px] gradient-button">
+                                    <IoIosAddCircleOutline color="white" size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="overflow-auto h-90p height-sm-1">
-                    {Array.isArray(cinemasFilter) &&
-                    cinemasFilter.length > 0 &&
-                    (selectedOptionFilterCinema || selectedOptionFilterStatus || inputValue || selectedSort)
-                        ? renderCinemas(cinemasFilter)
-                        : renderCinemas(cinemas)}
+                    <div className="overflow-auto h-90p height-sm-1 min-w-[1200px]">
+                        {Array.isArray(cinemasFilter) &&
+                        cinemasFilter.length > 0 &&
+                        (selectedOptionFilterCinema || selectedOptionFilterStatus || inputValue || selectedSort)
+                            ? renderCinemas(cinemasFilter)
+                            : renderCinemas(cinemas)}
+                    </div>
                 </div>
             </div>
 

@@ -1,10 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { MdSwapVert } from 'react-icons/md';
 import { FaRegEye } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RiRefund2Fill } from 'react-icons/ri';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
@@ -15,21 +13,28 @@ import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import { FixedSizeList as List } from 'react-window';
 import HeightInVoiceComponent from '~/components/HeightComponent/HeightInVoiceComponent';
-import { set } from 'date-fns';
 
 const SaleInvoice = () => {
-    const [selectedMovie, setSelectedMovie] = useState('');
     const [open, setOpen] = useState(false);
-    const [selectedValue, setSelectedValue] = useState('');
     const [openDelete, setOpenDelete] = useState(false);
     const descriptionRef = useRef('');
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [invoiceFilter, setInvoiceFilter] = useState([]);
     const [selectedOptionFilterCinema, setSelectedOptionFilterCinema] = useState('');
     const [inputSearch, setInputSearch] = useState('');
+    const [staffFilter, setStaffFilter] = useState('');
     const [searchSDT, setSearchSDT] = useState('');
     const [searchCodeHD, setSearchCodeHD] = useState('');
+    const [rangePickerValue, setRangePickerValue] = useState(['', '']);
+
     const height = HeightInVoiceComponent();
+    const optionStatus = [
+        { value: 3, name: 'Tất cả' },
+        { value: 1, name: 'Đã thanh toán' },
+        { value: 2, name: 'Đã hủy' },
+    ];
+
+    const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
     const handleOpen = () => {
         setOpen(true);
     };
@@ -53,6 +58,14 @@ const SaleInvoice = () => {
             name: movie.name,
         }));
         return { optionMovie: arrayMovies };
+    };
+    const fetchStaff = async () => {
+        const staffResponse = await axios.get('api/users/staff');
+        const arrayStaff = staffResponse.data.map((item) => ({
+            code: item.code,
+            name: item.name,
+        }));
+        return { optionStaff: arrayStaff };
     };
     const fetchSaleInvoice = async () => {
         try {
@@ -112,6 +125,16 @@ const SaleInvoice = () => {
     });
 
     const {
+        data: { optionStaff = [] } = {},
+        isError: isErrorStaff,
+        isLoading: isLoadingStaff,
+        isFetched: isFetchedStaff,
+    } = useQuery('staffInvoice', fetchStaff, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+
+    const {
         data: { optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
@@ -121,67 +144,79 @@ const SaleInvoice = () => {
         cacheTime: 1000 * 60 * 10,
     });
 
-    if (isLoading || isLoadingMovies || isLoadingCinemas) return <Loading />;
-    if (!isFetched || !isFetchedMovies || !isFetchedCinemas) return <div>Fetching...</div>;
-    if (isError || isErrorMovies || CinemaError)
-        return <div>Error loading data: {isError.message || isErrorMovies.message || CinemaError.message}</div>;
+    if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff) return <Loading />;
+    if (!isFetched || !isFetchedMovies || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
+    if (isError || isErrorMovies || CinemaError || isErrorStaff)
+        return (
+            <div>
+                Error loading data:{' '}
+                {isError.message || isErrorMovies.message || CinemaError.message || isErrorStaff.message}
+            </div>
+        );
 
-    const optionsSort = [
-        { value: '0', label: 'Xếp theo tên' },
-        { value: 'A', label: 'A - Z' },
-        { value: 'B', label: 'Z - A' },
-    ];
-
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
-    };
-    const rap = [
-        {
-            id: 1,
-            name: 'Rạp Lotte',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-            slRoom: '3',
-            status: 'Active',
-        },
-        {
-            id: 2,
-            name: 'Rạp Galaxy',
-            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            slRoom: '2',
-            status: 'InActive',
-        },
-    ];
-
-    const onChangeRanger = (dates, dateStrings) => {
+    const onChangeRanger = (dates) => {
         if (!Array.isArray(dates) || dates.length !== 2) {
-            // setMovieFilter(movies);
+            setInvoiceFilter(invoices);
             return;
         }
+        setRangePickerValue(dates);
 
-        const [startDate, endDate] = dates;
-        const startDateFormatted = FormatDate(startDate);
-        const endDateFormatted = FormatDate(endDate);
-        console.log(startDateFormatted, endDateFormatted);
+        const startDateFormatted = FormatDate(dates[0]);
+        const endDateFormatted = FormatDate(dates[1]);
 
-        const filterDate = rap.filter((item) => {
-            const itemDate = FormatDate(new Date(item.startDate));
+        const filterDate = invoices.filter((item) => {
+            const itemDate = FormatDate(new Date(item.createdAt));
             console.log(itemDate);
             return itemDate >= startDateFormatted && itemDate <= endDateFormatted;
         });
-        console.log(filterDate);
+
         if (filterDate.length === 0) {
             toast.info('Không tìm thấy phim nào!');
-            // setMovieFilter([]);
-            // setSelectedSort(null);
-            // setInputSearch('');
-            // setSelectedStatus(optionStatus[0]);
+            setInvoiceFilter(invoices);
+            setInputSearch('');
+            setSelectedStatus(optionStatus[0]);
+            setSearchSDT('');
+            setSearchCodeHD('');
+            setSelectedOptionFilterCinema('');
+            setStaffFilter('');
             return;
         }
 
-        // setSelectedSort(null);
-        // setInputSearch('');
-        // setMovieFilter(filterDate);
-        // setSelectedStatus(optionStatus[0]);
+        setInvoiceFilter(filterDate);
+        setInputSearch('');
+        setSelectedStatus(optionStatus[0]);
+        setSearchSDT('');
+        setSearchCodeHD('');
+        setSelectedOptionFilterCinema('');
+        setStaffFilter('');
+    };
+
+    const sortedStatus = (option) => {
+        if (!option) {
+            setInvoiceFilter(invoices);
+            return;
+        }
+        setSelectedStatus(option);
+        let sortedStatus = [];
+        if (option.value === 1) {
+            sortedStatus = invoices.filter((item) => item.status === 1);
+            setInvoiceFilter(sortedStatus);
+        } else if (option.value === 2) {
+            sortedStatus = invoices.filter((item) => item.status === 0);
+            setInvoiceFilter(sortedStatus);
+        } else if (option.value === 3) {
+            sortedStatus = invoices;
+        }
+        if (sortedStatus.length === 0) {
+            toast.info('Không tìm thấy hóa đơn nào nào!');
+        }
+        setInvoiceFilter(sortedStatus);
+        setSearchSDT('');
+        setSearchCodeHD('');
+        setSelectedOptionFilterCinema('');
+        setInputSearch('');
+        setStaffFilter('');
+        setRangePickerValue(['', '']);
     };
 
     const handleSearch = (value) => {
@@ -203,6 +238,29 @@ const SaleInvoice = () => {
         setSearchSDT('');
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
+        setSelectedStatus(optionStatus[0]);
+        setStaffFilter('');
+        setRangePickerValue(['', '']);
+    };
+    const handleStaff = (value) => {
+        setStaffFilter(value);
+        if (value === '' || value === null) {
+            setInvoiceFilter(invoices);
+            return;
+        }
+        const search = invoices.filter((item) => item.staffCode.name === value);
+
+        if (search.length === 0) {
+            toast.info('Không tìm thấy hóa đơn nào nào!');
+        } else {
+            setInvoiceFilter(search);
+        }
+        setSearchSDT('');
+        setSearchCodeHD('');
+        setSelectedOptionFilterCinema('');
+        setInputSearch('');
+        setSelectedStatus(optionStatus[0]);
+        setRangePickerValue(['', '']);
     };
 
     const handleSearchSDT = (value) => {
@@ -219,9 +277,12 @@ const SaleInvoice = () => {
         } else {
             setInvoiceFilter(search);
         }
+        setStaffFilter('');
         setInputSearch('');
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
+        setRangePickerValue(['', '']);
+        setSelectedStatus(optionStatus[0]);
     };
 
     const handleSearchCodeHD = (value) => {
@@ -237,9 +298,12 @@ const SaleInvoice = () => {
         } else {
             setInvoiceFilter(search);
         }
+        setStaffFilter('');
         setInputSearch('');
         setSearchSDT('');
         setSelectedOptionFilterCinema('');
+        setSelectedStatus(optionStatus[0]);
+        setRangePickerValue(['', '']);
     };
 
     const handleEnterPress = (newValue) => {
@@ -263,9 +327,11 @@ const SaleInvoice = () => {
         } else {
             setInvoiceFilter(fillter);
         }
+        setStaffFilter('');
         setInputSearch('');
         setSearchSDT('');
         setSearchCodeHD('');
+        setSelectedStatus(optionStatus[0]);
     };
 
     const calculateTotal = (details) => {
@@ -289,6 +355,7 @@ const SaleInvoice = () => {
             return acc;
         }, {});
     };
+
     const groupedDetails = groupByProductName(selectedInvoice?.details || {});
 
     const rowRenderer = ({ index, style }, data) => {
@@ -297,7 +364,7 @@ const SaleInvoice = () => {
 
         return (
             <div
-                className="border-b py-3 text-[15px] font-normal gap-2 text-slate-500 grid grid-cols-8 items-center  min-w-[1100px] max-lg:pr-24 custom-hubmax2"
+                className="border-b py-3 text-[15px] font-normal gap-2 text-slate-500 grid grid-cols-8 items-center pr-2"
                 key={item.code}
                 style={style}
             >
@@ -345,50 +412,29 @@ const SaleInvoice = () => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[195px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[195px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Hóa đơn bán</h1>
-                <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="min-w-[1100px] max-lg:pr-24 custom-hubmax2">
-                        <div className="grid grid-cols-4  max-lg:gap-3 gap-12 mb-2 items-center w-full h-16 px-3">
-                            <AutoInputComponent
-                                value={searchCodeHD}
-                                onChange={(newValue) => handleSearchCodeHD(newValue)}
-                                title="Mã hóa đơn"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Nhập ..."
-                                heightSelect={200}
-                                borderRadius="10px"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        handleEnterPress1(e.target.value);
-                                    }
-                                }}
-                            />
-                            <AutoInputComponent
-                                value={selectedMovie}
-                                onChange={setSelectedMovie}
-                                title="Nhân viên lập"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Nhập ..."
-                                heightSelect={200}
-                                borderRadius="10px"
-                            />
 
-                            <div className="col-span-2">
-                                <h1 className="text-[16px] truncate mb-1">Ngày lập</h1>
-                                <RangePicker
-                                    onChange={onChangeRanger}
-                                    placeholder={['Từ ngày', 'Đến ngày']}
-                                    placement="bottomRight"
-                                    format={'YYYY-MM-DD'}
-                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                <div className="min-w-[900px]">
+                    <div className="grid grid-cols-4  gap-10 mb-2 items-center w-full h-16 px-3">
+                        <AutoInputComponent
+                            value={searchCodeHD}
+                            onChange={(newValue) => handleSearchCodeHD(newValue)}
+                            title="Mã hóa đơn"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                            borderRadius="10px"
+                            className1="col-span-1"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleEnterPress1(e.target.value);
+                                }
+                            }}
+                        />
+                        <div className="col-span-3 grid grid-cols-7 gap-10">
                             <AutoInputComponent
                                 options={optionMovie.map((item) => item.name.toUpperCase())}
                                 value={inputSearch}
@@ -399,51 +445,81 @@ const SaleInvoice = () => {
                                 placeholder="Nhập"
                                 heightSelect={200}
                                 borderRadius="10px"
+                                className1="col-span-3"
                             />
-                            <AutoInputComponent
-                                options={optionNameCinema.map((option) => option.name)}
-                                value={selectedOptionFilterCinema}
-                                onChange={(newValue) => handleOptionCinemas(newValue)}
-                                title="Rạp"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Chọn"
-                                heightSelect={200}
-                                borderRadius="10px"
-                            />
-                            <AutoInputComponent
-                                value={searchSDT}
-                                onChange={(newValue) => handleSearchSDT(newValue)}
-                                title="Số điện thoại"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Nhập ..."
-                                heightSelect={200}
-                                borderRadius="10px"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        handleEnterPress(e.target.value); // Pass the current input value when Enter is pressed
-                                    }
-                                }}
-                            />
-                            <div className="relative w-full ">
-                                <MdSwapVert className="absolute bottom-[10px] left-2" />
-                                <SelectComponent
-                                    value={selectedValue}
-                                    onChange={handleChange}
-                                    options={optionsSort}
-                                    title="Sắp xếp"
-                                    className="pl-3"
-                                    selectStyles={{ borderRadius: '10px' }}
+
+                            <div className="col-span-4">
+                                <h1 className="text-[16px] truncate mb-1">Ngày lập</h1>
+                                <RangePicker
+                                    value={rangePickerValue}
+                                    onChange={onChangeRanger}
+                                    placeholder={['Từ ngày', 'Đến ngày']}
+                                    placement="bottomRight"
+                                    format={'YYYY-MM-DD'}
+                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
                                 />
                             </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-10 items-center w-full h-16 px-3">
+                        <AutoInputComponent
+                            options={optionStaff.map((item) => item.name)}
+                            value={staffFilter}
+                            onChange={(newValue) => handleStaff(newValue)}
+                            title="Nhân viên lập"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập"
+                            heightSelect={200}
+                            borderRadius="10px"
+                        />
+                        <AutoInputComponent
+                            options={optionNameCinema.map((option) => option.name)}
+                            value={selectedOptionFilterCinema}
+                            onChange={(newValue) => handleOptionCinemas(newValue)}
+                            title="Rạp"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Chọn"
+                            heightSelect={200}
+                            borderRadius="10px"
+                        />
+                        <AutoInputComponent
+                            value={searchSDT}
+                            onChange={(newValue) => handleSearchSDT(newValue)}
+                            title="Số điện thoại"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                            borderRadius="10px"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleEnterPress(e.target.value);
+                                }
+                            }}
+                        />
+                        <div className="relative w-full ">
+                            <AutoInputComponent
+                                value={selectedStatus.name}
+                                onChange={(newValue) => sortedStatus(newValue)}
+                                options={optionStatus}
+                                title="Trạng thái"
+                                freeSolo={true}
+                                disableClearable={true}
+                                heightSelect={200}
+                                borderRadius="10px"
+                                onBlur={(event) => {
+                                    event.preventDefault();
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
             <div className="bg-white border shadow-md rounded-[10px] box-border  py-2 h-[455px] custom-height-xs2 max-h-screen custom-height-sm25 custom-height-md5 custom-height-lg4 custom-height-xl3 custom-hubmax3">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="border-b py-2 gap-2 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] max-lg:pr-24 custom-hubmax2 air-pro xxl:pr-3">
+                    <div className="border-b py-2 gap-2 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] pr-2">
                         <div className="grid grid-cols-3">
                             <h1 className="grid justify-center items-center ">STT</h1>
                             <h1 className="grid justify-center items-center col-span-2  ">Mã HĐ</h1>
@@ -460,13 +536,13 @@ const SaleInvoice = () => {
                         </div>
                     </div>
 
-                    <div className="py-1 min-w-[1100px]">
+                    <div className="py-1 min-w-[1200px]">
                         <List
                             itemCount={invoiceFilter.length === 0 ? invoices?.length : invoiceFilter.length}
                             itemSize={60}
                             height={height}
                             width={1200}
-                            style={{ minWidth: '1000px' }}
+                            style={{ minWidth: '1200px' }}
                         >
                             {({ index, style }) =>
                                 rowRenderer({ index, style }, invoiceFilter.length === 0 ? invoices : invoiceFilter)

@@ -48,23 +48,23 @@ const Customer = () => {
         { value: 'TL', label: 'Thái Lan' },
     ];
 
-    const fetchStaff = async () => {
-        const staffResponse = await axios.get('api/users');
+    const fetchCustomer = async () => {
+        const customerResponse = await axios.get('api/users');
 
-        const arrayStaff = staffResponse.data.map((movie) => ({
-            code: movie.code,
-            name: movie.name,
+        const arrayCustomer = customerResponse.data.map((item) => ({
+            code: item.code,
+            name: item.name,
         }));
-        return { staffs: staffResponse.data, optionStaff: arrayStaff };
+        return { customers: customerResponse.data, optionCustomer: arrayCustomer };
     };
 
     const {
-        data: { staffs = [], optionStaff = [] } = {},
+        data: { customers = [], optionCustomer = [] } = {},
         isLoading,
         isFetched,
         isError,
         // refetch,
-    } = useQuery('fetchStaff', fetchStaff, {
+    } = useQuery('fetchCustomer', fetchCustomer, {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
         // onSuccess: (data) => {
@@ -100,11 +100,11 @@ const Customer = () => {
     const handleSearch = (value) => {
         setInputSearch(value);
         if (value === '' || value === null) {
-            setStaffFilter(staffs);
+            setStaffFilter(customers);
 
             return;
         }
-        const search = staffs.filter((item) => item.name.includes(value));
+        const search = customers.filter((item) => item.name.includes(value));
 
         if (search.length === 0) {
             toast.info('Không tìm thấy hóa đơn nào nào!');
@@ -119,7 +119,7 @@ const Customer = () => {
 
         return (
             <div
-                className="border-b py-3 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-2  pr-2 min-w-[1100px] max-lg:pr-12 custom-hubmax2"
+                className="border-b py-3 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-2  min-w-[900px] "
                 key={item.code}
                 style={style}
             >
@@ -160,56 +160,55 @@ const Customer = () => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white overflow-x-auto overflow-y-hidden  xl:overflow-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Khách hàng</h1>
-                <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-16 custom-hubmax2">
-                        <AutoInputComponent
-                            options={optionStaff.map((item) => item.name)}
-                            value={inputSearch}
-                            onChange={(newValue) => handleSearch(newValue)}
-                            title="Họ và tên"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập"
-                            heightSelect={200}
-                            borderRadius="10px"
-                        />
-                        <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            title="Số điện thoại"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập ..."
-                            heightSelect={200}
-                            borderRadius="10px"
-                        />
+
+                <div className="grid grid-cols-4 3 gap-12 items-center w-full h-16 px-3 min-w-[900px] ">
+                    <AutoInputComponent
+                        options={optionCustomer.map((item) => item.name)}
+                        value={inputSearch}
+                        onChange={(newValue) => handleSearch(newValue)}
+                        title="Họ và tên"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Số điện thoại"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <SelectComponent
+                        value={selectedValue}
+                        onChange={handleChange}
+                        options={optionCV}
+                        title="Vai trò"
+                        selectStyles={{ borderRadius: '10px' }}
+                    />
+                    <div className="relative w-full ">
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
-                            options={optionCV}
-                            title="Vai trò"
+                            options={optionsSort}
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
-                        <div className="relative w-full ">
-                            <MdSwapVert className="absolute bottom-[10px] left-2" />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
-                                options={optionsSort}
-                                title="Sắp xếp"
-                                className="pl-3"
-                                selectStyles={{ borderRadius: '10px' }}
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2 min-w-[1200px] max-lg:pr-12 custom-hubmax2 xxl:pr-3 ">
+                    <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2 min-w-[1200px]">
                         <div className="grid grid-cols-3">
                             <h1 className="grid justify-center items-center">STT</h1>
                             <h1 className="grid justify-center col-span-2 items-center">Mã KH</h1>
@@ -221,7 +220,7 @@ const Customer = () => {
                         <h1 className="grid justify-center items-center">Trạng thái</h1>
                         <div className=" grid justify-center">
                             <button
-                                className="border px-4 py-1 rounded-[40px] bg-orange-400"
+                                className="border px-4 py-1 rounded-[40px] gradient-button "
                                 onClick={() => handleOpen(false, false)}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
@@ -231,14 +230,14 @@ const Customer = () => {
 
                     <div className="py-1 min-w-[1200px]">
                         <List
-                            itemCount={staffFilter.length === 0 ? staffs?.length : staffFilter.length}
+                            itemCount={staffFilter.length === 0 ? customers?.length : staffFilter.length}
                             itemSize={60}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
                         >
                             {({ index, style }) =>
-                                rowRenderer({ index, style }, staffFilter.length === 0 ? staffs : staffFilter)
+                                rowRenderer({ index, style }, staffFilter.length === 0 ? customers : staffFilter)
                             }
                         </List>
                     </div>
