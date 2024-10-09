@@ -119,7 +119,7 @@ const Staff = () => {
 
         return (
             <div
-                className="border-b py-3 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-2  pr-2 max-lg:pr-12 custom-hubmax2"
+                className="border-b py-3 text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-2 "
                 key={item.code}
                 style={style}
             >
@@ -160,56 +160,55 @@ const Staff = () => {
     };
 
     return (
-        <div className=" ">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white border overflow-x-auto overflow-y-hidden  xl:overflow-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Nhân viên</h1>
-                <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3  ">
-                        <AutoInputComponent
-                            options={optionStaff.map((item) => item.name)}
-                            value={inputSearch}
-                            onChange={(newValue) => handleSearch(newValue)}
-                            title="Tên nhân viên"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập"
-                            heightSelect={200}
-                            borderRadius="10px"
-                        />
-                        <AutoInputComponent
-                            value={selectedMovie}
-                            onChange={setSelectedMovie}
-                            title="Số điện thoại"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập ..."
-                            heightSelect={200}
-                            borderRadius="10px"
-                        />
+
+                <div className="grid grid-cols-4  max-lg:gap-3 gap-12 items-center w-full h-16 px-3  min-w-[900px]">
+                    <AutoInputComponent
+                        options={optionStaff.map((item) => item.name)}
+                        value={inputSearch}
+                        onChange={(newValue) => handleSearch(newValue)}
+                        title="Tên nhân viên"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <AutoInputComponent
+                        value={selectedMovie}
+                        onChange={setSelectedMovie}
+                        title="Số điện thoại"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập ..."
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <SelectComponent
+                        value={selectedValue}
+                        onChange={handleChange}
+                        options={optionCV}
+                        title="Vai trò"
+                        selectStyles={{ borderRadius: '10px' }}
+                    />
+                    <div className="relative w-full ">
+                        <MdSwapVert className="absolute bottom-[10px] left-2" />
                         <SelectComponent
                             value={selectedValue}
                             onChange={handleChange}
-                            options={optionCV}
-                            title="Vai trò"
+                            options={optionsSort}
+                            title="Sắp xếp"
+                            className="pl-3"
                             selectStyles={{ borderRadius: '10px' }}
                         />
-                        <div className="relative w-full ">
-                            <MdSwapVert className="absolute bottom-[10px] left-2" />
-                            <SelectComponent
-                                value={selectedValue}
-                                onChange={handleChange}
-                                options={optionsSort}
-                                title="Sắp xếp"
-                                className="pl-3"
-                                selectStyles={{ borderRadius: '10px' }}
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2  max-lg:pr-12 custom-hubmax2 xxl:pr-3 ">
+                    <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2 min-w-[1200px] ">
                         <div className="grid grid-cols-3">
                             <h1 className="grid justify-center items-center">STT</h1>
                             <h1 className="grid justify-center col-span-2 items-center">Mã NV</h1>
@@ -221,7 +220,7 @@ const Staff = () => {
                         <h1 className="grid justify-center items-center">Trạng thái</h1>
                         <div className=" grid justify-center">
                             <button
-                                className="border px-4 py-1 rounded-[40px] bg-orange-400"
+                                className="border px-4 py-1 rounded-[40px] gradient-button "
                                 onClick={() => handleOpen(false, false)}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
@@ -229,13 +228,13 @@ const Staff = () => {
                         </div>
                     </div>
 
-                    <div className="py-1 ">
+                    <div className="py-1">
                         <List
                             itemCount={staffFilter.length === 0 ? staffs?.length : staffFilter.length}
                             itemSize={60}
                             height={height}
                             width={1200}
-                            // style={{ minWidth: '1200px' }}
+                            style={{ minWidth: '1200px' }}
                         >
                             {({ index, style }) =>
                                 rowRenderer({ index, style }, staffFilter.length === 0 ? staffs : staffFilter)

@@ -232,17 +232,17 @@ const Seat = () => {
     }
     const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
 
-    const handlePrint = () => {
-        handleClose(); // Đóng modal
+    // const handlePrint = () => {
+    //     handleClose(); // Đóng modal
 
-        const printContent = printRef.current.innerHTML;
-        const originalContent = document.body.innerHTML;
+    //     const printContent = printRef.current.innerHTML;
+    //     const originalContent = document.body.innerHTML;
 
-        document.body.innerHTML = printContent; // Chỉ hiển thị phần in
-        window.print(); // Thực hiện lệnh in
-        document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
-        document.location.reload(); // Tải lại trang
-    };
+    //     document.body.innerHTML = printContent; // Chỉ hiển thị phần in
+    //     window.print(); // Thực hiện lệnh in
+    //     document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
+    //     document.location.reload(); // Tải lại trang
+    // };
 
     const {
         data: addressCinema = '',

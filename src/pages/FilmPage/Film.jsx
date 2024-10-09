@@ -61,6 +61,7 @@ const Film = React.memo(() => {
     const [movieFilter, setMovieFilter] = useState([]);
     const [inputSearch, setInputSearch] = useState('');
     const [selectedSort, setSelectedSort] = useState(null);
+    const [rangePickerValue, setRangePickerValue] = useState(['', '']);
     const height = HeightComponent();
     const { RangePicker } = DatePicker;
 
@@ -105,11 +106,10 @@ const Film = React.memo(() => {
     };
     const handleClose = () => {
         setOpen(false);
-        setSelectedImage(null);
+
         setDetailMovie(false);
         setSelectedFilm(null);
-        setEndDate('');
-        setStartDate('');
+        clearText();
     };
 
     const handleChangeDay = (value) => {
@@ -130,6 +130,7 @@ const Film = React.memo(() => {
         setMovieFilter(search);
         setSelectedSort(null);
         setSelectedStatus(optionStatus[0]);
+        setRangePickerValue(['', '']);
     };
 
     const sortMovie = (selectedGenre) => {
@@ -148,7 +149,7 @@ const Film = React.memo(() => {
 
         setSelectedSort(selectedGenre);
         setInputSearch('');
-
+        setRangePickerValue(['', '']);
         setSelectedStatus(optionStatus[0]);
     };
 
@@ -173,27 +174,24 @@ const Film = React.memo(() => {
         }
         setMovieFilter(sortedStatus);
         setInputSearch('');
-
+        setRangePickerValue(['', '']);
         setSelectedSort(null);
     };
 
-    const onChangeRanger = (dates, dateStrings) => {
+    const onChangeRanger = (dates) => {
         if (!Array.isArray(dates) || dates.length !== 2) {
             setMovieFilter(movies);
             return;
         }
-
-        const [startDate, endDate] = dates;
-        const startDateFormatted = FormatDate(startDate);
-        const endDateFormatted = FormatDate(endDate);
-        console.log(startDateFormatted, endDateFormatted);
+        setRangePickerValue(dates);
+        const startDateFormatted = FormatDate(dates[0]);
+        const endDateFormatted = FormatDate(dates[1]);
 
         const filterDate = movies.filter((item) => {
             const itemDate = FormatDate(new Date(item.startDate));
             console.log(itemDate);
             return itemDate >= startDateFormatted && itemDate <= endDateFormatted;
         });
-        console.log(filterDate);
         if (filterDate.length === 0) {
             toast.info('Không tìm thấy phim nào!');
             setMovieFilter([]);
@@ -224,6 +222,8 @@ const Film = React.memo(() => {
         setStartDate('');
         setEndDate('');
         descriptionRef.current = '';
+        setSelectedGenre(null);
+        setSelectedImage(null);
     };
 
     const optionsQG = [
@@ -351,13 +351,17 @@ const Film = React.memo(() => {
         }
     };
 
-    const handleUpdateStatusMovie = async (movieCode, currentStatus) => {
-        const newStatus = currentStatus === 0 ? 1 : 0;
+    const handleUpdateStatusMovie = async (item) => {
+        const movieCode = item.code;
+        if (item.status === 1) {
+            toast.info('Phim đã được phát hành!');
+            return;
+        }
         try {
             await axios.put(
                 `api/movies/${movieCode}`,
                 {
-                    status: newStatus,
+                    status: 1,
                 },
                 {
                     headers: {
@@ -373,6 +377,24 @@ const Film = React.memo(() => {
     };
 
     const handleUpdateMovie = async (movieCode) => {
+        const age = ageRestriction === 'C13' ? 13 : ageRestriction === 'C16' ? 16 : ageRestriction === 'C18' ? 18 : 0;
+        if (
+            !descriptionRef.current &&
+            !selectedImage &&
+            !name &&
+            !duration &&
+            !selectedGenre &&
+            !trailer &&
+            age === selectedFilm.ageRestriction &&
+            !director &&
+            !cast &&
+            country === selectedFilm.country &&
+            !startDate &&
+            !endDate
+        ) {
+            toast.error('Vui lòng nhập thông tin cần cập nhật!');
+            return;
+        }
         const formData = handleFormData();
         try {
             await axios.put(`api/movies/${movieCode}`, formData, {
@@ -385,10 +407,8 @@ const Film = React.memo(() => {
             clearText();
             handleClose();
             refetch();
-            setSelectedImage(null);
         } catch (error) {
-            // toast.error('Cập nhật phim thất bại!');
-            console.log(error.response);
+            toast.error('Cập nhật phim thất bại!');
         }
     };
 
@@ -408,11 +428,12 @@ const Film = React.memo(() => {
     };
 
     const rowRenderer = ({ index, style }, data) => {
-        const item = data[index];
+        const reversedData = [...data].reverse();
+        const item = reversedData[index];
 
         return (
             <div
-                className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 pr-2 min-w-[1100px] max-lg:pr-24 custom-hubmax2"
+                className="border-b text-[15px] font-normal py-2 text-slate-500 grid grid-cols-12 items-center gap-2 pr-6"
                 key={item.code}
                 style={style}
             >
@@ -440,23 +461,24 @@ const Film = React.memo(() => {
                             className={`border px-2  uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
                                 item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
                             }`}
-                            onClick={() => handleUpdateStatusMovie(item.code, item.status)}
+                            onClick={() => handleUpdateStatusMovie(item)}
                         >
                             {item.status === 0 ? 'Chưa phát hành' : 'Đã phát hành'}
                         </button>
                     </div>
 
-                    <div className=" col-span-2 justify-center items-center flex">
+                    <div className=" col-span-2 ml-6 justify-center items-center flex">
                         <button
-                            className="mr-[8px] py-1 max-lg:mr-1"
+                            className="mr-[8px] py-1 max-lg:mr-1 cursor-pointer"
                             onClick={() => {
                                 handleOpen(true);
                                 setSelectedFilm(item);
                                 setCountry(item.country);
                                 setAgeRestriction(getAgeRestrictionLabel(item?.ageRestriction));
                             }}
+                            disabled={item.status === 1 ? true : false}
                         >
-                            <FaRegEdit color="black" size={22} />
+                            <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={22} />
                         </button>
                         <button
                             className=" py-1"
@@ -475,63 +497,63 @@ const Film = React.memo(() => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white  overflow-x-auto  xl:overflow-hidden overflow-y-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Phim</h1>
-                <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="grid grid-cols-4 gap-6  items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-24 custom-hubmax2">
-                        <AutoInputComponent
-                            options={optionMovie.map((item) => item.name.toUpperCase())}
-                            value={inputSearch}
-                            onChange={(newValue) => handleSearch(newValue)}
-                            title="Tên phim"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập"
-                            heightSelect={200}
-                            borderRadius="10px"
-                        />
-                        <AutoInputComponent
-                            options={optionGenre?.map((option) => option.name)}
-                            value={selectedSort}
-                            onChange={(newValue) => sortMovie(newValue)}
-                            title="Thể loại"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Thể loại"
-                            heightSelect={200}
-                            borderRadius="10px"
-                            onBlur={(event) => {
-                                event.preventDefault();
-                            }}
-                        />
-                        <div className="grid col-span-2 gap-6 grid-cols-5">
-                            <div className="col-span-3">
-                                <h1 className="text-[16px] truncate mb-1">Ngày phát hành</h1>
-                                <RangePicker
-                                    onChange={onChangeRanger}
-                                    placeholder={['Từ ngày', 'Đến ngày']}
-                                    placement="bottomRight"
-                                    format={'YYYY-MM-DD'}
-                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
-                                />
-                            </div>
 
-                            <div className="col-span-2">
-                                <AutoInputComponent
-                                    value={selectedStatus.name}
-                                    onChange={(newValue) => sortedStatus(newValue)}
-                                    options={optionStatus}
-                                    title="Trạng thái"
-                                    freeSolo={true}
-                                    disableClearable={true}
-                                    heightSelect={200}
-                                    borderRadius="10px"
-                                    onBlur={(event) => {
-                                        event.preventDefault();
-                                    }}
-                                />
-                            </div>
+                <div className="grid grid-cols-4 gap-6  items-center w-full h-16 px-3 min-w-[900px]">
+                    <AutoInputComponent
+                        options={optionMovie.map((item) => item.name.toUpperCase())}
+                        value={inputSearch}
+                        onChange={(newValue) => handleSearch(newValue)}
+                        title="Tên phim"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <AutoInputComponent
+                        options={optionGenre?.map((option) => option.name)}
+                        value={selectedSort}
+                        onChange={(newValue) => sortMovie(newValue)}
+                        title="Thể loại"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Thể loại"
+                        heightSelect={200}
+                        borderRadius="10px"
+                        onBlur={(event) => {
+                            event.preventDefault();
+                        }}
+                    />
+                    <div className="grid col-span-2 gap-6 grid-cols-5">
+                        <div className="col-span-3">
+                            <h1 className="text-[16px] truncate mb-1">Ngày phát hành</h1>
+                            <RangePicker
+                                value={rangePickerValue}
+                                onChange={onChangeRanger}
+                                placeholder={['Từ ngày', 'Đến ngày']}
+                                placement="bottomRight"
+                                format={'YYYY-MM-DD'}
+                                className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
+                            />
+                        </div>
+
+                        <div className="col-span-2">
+                            <AutoInputComponent
+                                value={selectedStatus.name}
+                                onChange={(newValue) => sortedStatus(newValue)}
+                                options={optionStatus}
+                                title="Trạng thái"
+                                freeSolo={true}
+                                disableClearable={true}
+                                heightSelect={200}
+                                borderRadius="10px"
+                                onBlur={(event) => {
+                                    event.preventDefault();
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -539,7 +561,7 @@ const Film = React.memo(() => {
 
             <div className="bg-white border shadow-md rounded-[10px] box-border py-3 h-[515px] max-h-screen custom-height-sm custom-height-xs custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-12 gap-2 min-w-[1200px] max-lg:pr-24 custom-hubmax2 air-pro xxl:pr-3">
+                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-12 gap-2 min-w-[1200px] pr-6">
                         <div className="grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
                             <h1 className="grid justify-center col-span-2 items-center">STT</h1>
                             <h1 className="grid justify-center col-span-4 items-center ">Mã phim</h1>
@@ -556,7 +578,7 @@ const Film = React.memo(() => {
                             <h1 className="grid col-span-5 justify-center items-center">Trạng thái</h1>
                             <div className="col-span-2 justify-center grid">
                                 <button
-                                    className="border px-4 py-[3px]  rounded-[40px] bg-orange-400"
+                                    className="border px-4 py-[3px]  rounded-[40px] gradient-button"
                                     onClick={() => {
                                         handleOpen(false);
                                     }}

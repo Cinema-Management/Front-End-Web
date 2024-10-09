@@ -18,7 +18,6 @@ import dayjs from 'dayjs';
 import TextField from '@mui/material/TextField';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
-import { format } from 'date-fns';
 
 const fetchCinemasFullAddress = async () => {
     try {
@@ -557,7 +556,7 @@ const Schedule = () => {
     const renderRoomByCinemaCode = (room) => {
         return room.map((item, index) => (
             <div key={item.code}>
-                <div className="bg-[#E6E6E6] text-[14px] py-2 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 ">
+                <div className="bg-[#E6E6E6] text-[14px] py-2 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 min-w-[1150px]">
                     <div className="grid grid-cols-10 items-center gap-5">
                         <div
                             className="justify-center items-center col-span-3 grid"
@@ -579,7 +578,7 @@ const Schedule = () => {
                 </div>
                 {visibleRooms[item.id] && (
                     <>
-                        <div className="border-b py-[2px] text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-3 mx-2">
+                        <div className="border-b py-[2px] text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-3 mx-2 min-w-[1150px]">
                             <div className="uppercase grid col-span-3 grid-cols-10 justify-center items-center  gap-3">
                                 <h1 className="uppercase grid col-span-4 justify-center items-center ">
                                     Mã suất chiếu
@@ -597,7 +596,7 @@ const Schedule = () => {
                             <div className="grid justify-center col-span-1 ">
                                 <button
                                     className={`border px-4 py-1 rounded-[40px] ${
-                                        !isDisabledAdd ? ' bg-orange-400' : 'bg-gray-200'
+                                        !isDisabledAdd ? ' gradient-button' : 'bg-gray-200'
                                     } `}
                                     onClick={() => {
                                         if (!isDisabledAdd) {
@@ -613,11 +612,11 @@ const Schedule = () => {
                             </div>
                         </div>
                         {/* list schedules in room */}
-                        <div className="height-sm-1">
+                        <div className="height-sm-1 min-w-[1150px]">
                             {item.schedules &&
                                 item.schedules.map((item) => (
                                     <div
-                                        className="border-b py-[6px] text-base font-normal text-slate-500 grid grid-cols-12 items-center gap-3"
+                                        className="border-b py-[6px] text-[15px] font-normal text-slate-500 grid grid-cols-12 items-center gap-3"
                                         key={item.code}
                                     >
                                         <div className=" grid col-span-3 grid-cols-10  justify-center items-center ">
@@ -630,7 +629,7 @@ const Schedule = () => {
                                                 {convertToVietnamTime(item.endTime)}
                                             </h1>
                                         </div>
-                                        <div className=" grid col-span-6 grid-cols-12 items-center justify-center   gap-3">
+                                        <div className=" grid col-span-6 grid-cols-12 items-center justify-center gap-3">
                                             <h1 className=" grid col-span-9  items-center  ">{item.movieCode.name}</h1>
 
                                             <h1 className=" uppercase grid col-span-3  items-center justify-center ">
@@ -643,7 +642,7 @@ const Schedule = () => {
                                         </div>
                                         <div className="justify-center  col-span-2  items-center grid ">
                                             <button
-                                                className={`uppercase border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
+                                                className={`uppercase border px-2 text-white text-[14px] py-[1px] flex  rounded-[40px] ${
                                                     item.status === 0
                                                         ? 'bg-gray-400'
                                                         : item.status === 1 && isDisabledAdd
@@ -706,10 +705,10 @@ const Schedule = () => {
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <div className="max-h-screen">
-                <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+            <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+                <div className="bg-white border overflow-x-auto overflow-y-hidden  xl:overflow-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                     <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Suất chiếu</h1>
-                    <div className="grid grid-cols-3 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                    <div className="grid grid-cols-3 max-lg:gap-3 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                         <AutoInputComponent
                             options={optionNameCinema.map((option) => option.name)}
                             value={selectedOptionFilterCinema}
@@ -746,13 +745,13 @@ const Schedule = () => {
                         />
                     </div>
                 </div>
-                <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                    <div className="bg-[#eeaf56] text-[13px] text-white py-2 font-semibold grid grid-cols-3 items-center gap-3 ">
+                <div className="bg-white border overflow-auto  shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+                    <div className="gradient-button text-[13px] text-white py-2 font-semibold grid grid-cols-3 items-center gap-3 min-w-[1150px]">
                         <h1 className="uppercase grid justify-center items-center">Phòng</h1>
                         <h1 className="uppercase grid  justify-center items-center">Loại phòng</h1>
                         <h1 className="uppercase grid justify-center items-center">Số lượng ghế</h1>
                     </div>
-                    <div className="overflow-auto h-[92%] height-sm-1 ">
+                    <div className=" h-[92%] height-sm-1 ">
                         {Array.isArray(roomsFilter) && roomsFilter.length > 0
                             ? renderRoomByCinemaCode(roomsFilter)
                             : renderRoomByCinemaCode(room)}

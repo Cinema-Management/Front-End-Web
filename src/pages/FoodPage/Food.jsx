@@ -16,7 +16,7 @@ import axios from '~/setup/axios';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
-const { getFormattedDate, getFormatteNgay } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatSchedule } = require('~/utils/dateUtils');
 
 const Food = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -470,11 +470,12 @@ const Food = () => {
     };
 
     const rowRenderer = ({ index, style }, data) => {
-        const item = data[index];
+        const reversedData = [...data].reverse();
+        const item = reversedData[index];
 
         return (
             <div
-                className="border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 max-lg:pr-12 custom-hubmax2  "
+                className="border-b py-3 justify-center text-[15px] font-normal text-slate-500 grid grid-cols-8 items-center gap-6 "
                 key={item.code}
                 style={style}
             >
@@ -483,13 +484,13 @@ const Food = () => {
                     <h1 className="grid pl-3 col-span-2">{item.code}</h1>
                     <h1 className="grid pl-3 col-span-5">{item.name}</h1>
                 </div>
-                <div className="justify-center items-center grid ">
+                <div className="justify-center items-center grid">
                     <LazyLoadImage src={item.image} alt={item.name} width={65} />
                 </div>
 
                 <h1 className="grid">{item.description}</h1>
-                <h1 className="grid break-all ">{getFormattedDate(item.createdAt)}</h1>
-                <h1 className="grid break-all">{getFormattedDate(item.updatedAt)}</h1>
+                <h1 className="grid break-all">{FormatSchedule(item.createdAt)}</h1>
+                <h1 className="grid break-all">{FormatSchedule(item.updatedAt)}</h1>
                 <div className="grid justify-center">
                     <button
                         className={`border px-2 w-[auto] uppercase text-white text-[13px] py-1 flex rounded-[40px] ${
@@ -511,8 +512,9 @@ const Food = () => {
                                 setType(item?.type === 1 ? 'Mặc định' : 'Combo');
                                 handleComboSelect(item);
                             }}
+                            disabled={item.status === 1 ? true : false}
                         >
-                            <FaRegEdit color="black" size={20} />
+                            <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={20} />
                         </button>
                         <button onClick={handleOpenDelete}>
                             <MdOutlineDeleteOutline color="black" fontSize={20} />
@@ -524,83 +526,82 @@ const Food = () => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Đồ ăn & nước</h1>
-                <div className="overflow-x-auto  xl:overflow-hidden">
-                    <div className="grid grid-cols-4  gap-12 items-center w-full h-16 px-3 min-w-[1100px] max-lg:pr-16 custom-hubmax2">
+
+                <div className="grid grid-cols-4 gap-10 items-center w-full h-16 px-3 min-w-[900px] ">
+                    <AutoInputComponent
+                        options={optionFood.map((item) => item.name)}
+                        value={inputSearch}
+                        onChange={(newValue) => handleSearch(newValue)}
+                        title="Tên"
+                        freeSolo={true}
+                        disableClearable={false}
+                        placeholder="Nhập"
+                        heightSelect={200}
+                        borderRadius="10px"
+                    />
+                    <div className="relative w-full ">
                         <AutoInputComponent
-                            options={optionFood.map((item) => item.name)}
-                            value={inputSearch}
-                            onChange={(newValue) => handleSearch(newValue)}
-                            title="Tên"
+                            value={selectedStatus.name}
+                            onChange={(newValue) => sortedStatus(newValue)}
+                            options={optionStatus}
+                            title="Trạng thái"
                             freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập"
+                            disableClearable={true}
                             heightSelect={200}
                             borderRadius="10px"
+                            onBlur={(event) => {
+                                event.preventDefault();
+                            }}
                         />
-                        <div className="relative w-full ">
-                            <AutoInputComponent
-                                value={selectedStatus.name}
-                                onChange={(newValue) => sortedStatus(newValue)}
-                                options={optionStatus}
-                                title="Trạng thái"
-                                freeSolo={true}
-                                disableClearable={true}
-                                heightSelect={200}
-                                borderRadius="10px"
-                                onBlur={(event) => {
-                                    event.preventDefault();
-                                }}
-                            />
-                        </div>
-                        <div>
-                            <h1 className="text-[16px] truncate mb-1">Ngày tạo</h1>
-                            <DatePicker
-                                onChange={onChange1}
-                                value={selectDate ? dayjs(selectDate, 'DD/MM/YYYY') : null}
-                                placement="bottomRight"
-                                placeholder="Chọn ngày"
-                                format="DD/MM/YYYY"
-                                className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
-                            />
-                        </div>
-                        <div className="relative w-full ">
-                            <AutoInputComponent
-                                value={selectedSort.name}
-                                onChange={(newValue) => sortFood(newValue)}
-                                options={optionsSort}
-                                title="Loại sản phẩm"
-                                freeSolo={true}
-                                disableClearable={true}
-                                heightSelect={200}
-                                borderRadius="10px"
-                                onBlur={(event) => {
-                                    event.preventDefault();
-                                }}
-                            />
-                        </div>
+                    </div>
+                    <div>
+                        <h1 className="text-[16px] truncate mb-1">Ngày tạo</h1>
+                        <DatePicker
+                            onChange={onChange1}
+                            value={selectDate ? dayjs(selectDate, 'DD/MM/YYYY') : null}
+                            placement="bottomRight"
+                            placeholder="Chọn ngày"
+                            format="DD/MM/YYYY"
+                            className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
+                        />
+                    </div>
+                    <div className="relative w-full ">
+                        <AutoInputComponent
+                            value={selectedSort.name}
+                            onChange={(newValue) => sortFood(newValue)}
+                            options={optionsSort}
+                            title="Loại sản phẩm"
+                            freeSolo={true}
+                            disableClearable={true}
+                            heightSelect={200}
+                            borderRadius="10px"
+                            onBlur={(event) => {
+                                event.preventDefault();
+                            }}
+                        />
                     </div>
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] lg: max-lg:pr-[52px] custom-hubmax2 xxl:pr-3">
+                    <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold  text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] pr-4">
                         <div className="grid col-span-2 grid-cols-9 gap-2 justify-center items-center">
                             <h1 className="grid justify-center col-span-2 items-center ">STT </h1>
                             <h1 className="grid justify-center col-span-2 items-center ">Mã SP </h1>
                             <h1 className="grid justify-center items-center col-span-5">Tên </h1>
                         </div>
 
-                        <h1 className="grid  justify-center ">Hình ảnh</h1>
+                        <h1 className="grid  justify-center">Hình ảnh</h1>
                         <h1 className="grid justify-center">Mô tả</h1>
-                        <h1 className="grid  justify-center ">Ngày tạo</h1>
+                        <h1 className="grid  justify-center">Ngày tạo</h1>
                         <h1 className="grid justify-center ">Ngày sửa</h1>
                         <h1 className="grid justify-center">Trạng thái</h1>
                         <div className="flex justify-center">
                             <button
-                                className="border px-4 py-[3px] rounded-[40px] bg-orange-400"
+                                className="border px-4 py-[3px] rounded-[40px] gradient-button"
                                 onClick={() => handleOpen(false)}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
@@ -608,13 +609,12 @@ const Food = () => {
                         </div>
                     </div>
 
-                    <div className="py-1 min-w-[1100px]">
+                    <div className="py-1 ">
                         <List
                             itemCount={foodFilter.length === 0 ? product.length : foodFilter.length}
                             itemSize={120}
                             height={height}
                             width={1200}
-                            style={{ minWidth: '1200px' }}
                         >
                             {({ index, style }) =>
                                 rowRenderer({ index, style }, foodFilter.length === 0 ? product : foodFilter)
@@ -730,9 +730,9 @@ const Food = () => {
                                 <div className="col-span-4 grid justify-end ">
                                     <button
                                         onClick={addInputSet}
-                                        className="  px-3 py-[1px]  bg-[#FB5B5E] rounded-[10px]"
+                                        className="  px-3 py-[1px]  gradient-button rounded-[10px]"
                                     >
-                                        <IoIosAddCircleOutline size={20} />
+                                        <IoIosAddCircleOutline color="white" size={20} />
                                     </button>
                                 </div>
                             </div>

@@ -15,9 +15,22 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import { DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
+import { set } from 'date-fns';
 
 const { Option } = Select;
 const { getFormatteNgay } = require('~/utils/dateUtils');
+
+const fetchPrice = async () => {
+    try {
+        const response = await axios.get('api/prices');
+
+        return { prices: response.data };
+    } catch (error) {
+        console.error(error.message);
+        throw new Error('Failed to fetch data');
+    }
+};
+
 const Price = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
@@ -46,16 +59,20 @@ const Price = () => {
     const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
     const [selectedTimeSlotCode, setSelectedTimeSlotCode] = useState('');
 
+    const optionsSort = [
+        { value: 3, name: 'Tất cả' },
+        { value: 1, name: 'Ghế' },
+        { value: 2, name: 'Đồ ăn & nước uống' },
+    ];
+    const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const fetchPricesAndProducts = async () => {
         try {
-            const [pricesResponse, productsResponse, productTypeResponse, roomTypeResponse] = await Promise.all([
-                axios.get('api/prices'),
+            const [productsResponse, productTypeResponse, roomTypeResponse] = await Promise.all([
                 axios.get('api/products/getAllNotSeat'),
                 axios.get('api/product-types'),
                 axios.get('api/room-types'),
             ]);
 
-            const prices = pricesResponse.data;
             const products = productsResponse.data;
             const productTypes = productTypeResponse.data;
             const roomTypes = roomTypeResponse.data;
@@ -65,7 +82,6 @@ const Price = () => {
                 name: item.name,
             }));
 
-            // Tạo mảng cho các lựa chọn thực phẩm
             const optionFood = products.map((item) => ({
                 code: item.code,
                 name: item.name,
@@ -76,21 +92,40 @@ const Price = () => {
                 name: item.name,
             }));
 
-            return { prices, products, optionFood, productTypes, optionProductTypes, roomTypes, optionRoomTypes };
+            return { products, optionFood, productTypes, optionProductTypes, roomTypes, optionRoomTypes };
         } catch (error) {
             console.error(error.message);
             throw new Error('Failed to fetch data');
         }
     };
 
-    const { data, isLoading, error, refetch } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
+    const {
+        data,
+        isLoading,
+        isFetched,
+        error,
+        // refetch
+    } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
     });
 
-    if (isLoading) return <Loading />;
-    // if (!isFetched) return <div>Fetching...</div>;
-    if (error) return <div>Error loading data: {error.message}</div>;
+    const {
+        data: { prices = [] } = {},
+        isLoading: isLoadingPrice,
+        isFetched: isFetchedPrice,
+        isError: isErrorPrice,
+        refetch: refetchPrice,
+    } = useQuery('fetchPricePage', fetchPrice, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        // onSuccess: (data) => {
+        //     setFoodFilter(data.product);
+        // },
+    });
+    if (isLoading || isLoadingPrice) return <Loading />;
+    if (!isFetched || !isFetchedPrice) return <div>Fetching...</div>;
+    if (error || isErrorPrice) return <div>Error loading data: {error.message || isErrorPrice.message}</div>;
 
     const handleOpen = (isUpdate, type) => {
         setOpen(true);
@@ -182,6 +217,7 @@ const Price = () => {
         setSelectedProduct('');
         setDetailPrice('');
         setSelectedProductTypeCode('');
+        setDetailDescription('');
         setSelectedProductType('');
         setSelectedRoomTypeCode('');
         setSelectDetail(null);
@@ -212,7 +248,7 @@ const Price = () => {
     };
 
     const checkExitsPrice = () => {
-        const price = data.prices.find((item) => {
+        const price = prices.find((item) => {
             const dayExists = selectedDayOfWeek.some((day) => item.dayOfWeek.includes(day));
             const descriptionMatch = item.description === description;
             const timeSlotMatch = item.timeSlot === Number(selectedTimeSlotCode);
@@ -229,7 +265,7 @@ const Price = () => {
     };
 
     const checkExitsPriceFood = () => {
-        const price = data.prices.find((item) => {
+        const price = prices.find((item) => {
             const descriptionMatch = item.description === description;
 
             const inputStartDate = new Date(startDate);
@@ -283,7 +319,7 @@ const Price = () => {
             toast.success('Thêm bảng giá thành công');
             clearText();
             setOpen(false);
-            refetch();
+            refetchPrice();
         } catch (error) {
             toast.error('Thêm bảng giá thất bại');
         }
@@ -296,7 +332,7 @@ const Price = () => {
                 return;
             }
             if (!checkExitsPrice()) {
-                toast.error('Bảng giá đã tồn tại');
+                toast.error('Bảng giá đã được tạo trong khoảng thời gian này!');
                 return;
             }
             await axios.post('api/prices', {
@@ -311,53 +347,124 @@ const Price = () => {
             toast.success('Thêm bảng giá thành công!');
             clearText();
             setOpen(false);
-            refetch();
+            refetchPrice();
         } catch (error) {
             toast.error('Thêm bảng giá thất bại!');
         }
     };
 
-    const checkStatus = () => {
-        const check = selectedPrice?.status;
-        if (check === 1) {
-            return false;
-        }
-        return true;
-    };
-
     const handleUpdate = async () => {
         try {
-            if (!checkStatus()) {
-                toast.error('Bảng giá đang sử dụng chỉ được chỉnh sửa ngày kết thúc!');
+            if (!description && !startDate && !endDate && selectedDayOfWeek.length === 0 && !selectedTimeSlotCode) {
+                toast.error('Vui lòng nhập thông tin cần cập nhật');
                 return;
             }
 
-            await axios.post(`api/prices/${selectedPrice.code}`, {
-                description: description || selectedPrice.description,
-                startDate: startDate || selectedPrice.startDate,
-                endDate: endDate || selectedPrice.endDate,
-                dayOfWeek: selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek,
-                timeSlot: selectedTimeSlotCode || selectedPrice.timeSlot,
-                type: String(typePrice),
-            });
+            if (selectedPrice.type === '1') {
+                const startDateToCheck = new Date(startDate);
+                const descriptionExists = prices.some(
+                    (price) =>
+                        price.description === description &&
+                        new Date(price.startDate) <= startDateToCheck &&
+                        new Date(price.endDate) >= startDateToCheck &&
+                        price.code !== selectedPrice.code,
+                );
+
+                if (descriptionExists) {
+                    toast.error('Bảng giá đã tồn tại!');
+                    return;
+                }
+                await axios.post(`api/prices/${selectedPrice.code}`, {
+                    description: description || selectedPrice.description,
+                    startDate: startDate || selectedPrice.startDate,
+                    endDate: endDate || selectedPrice.endDate,
+                });
+            } else {
+                const currentDescription = description || selectedPrice.description;
+                const dayOfWeek = selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek;
+                const timeSlot = selectedTimeSlotCode || selectedPrice.timeSlot;
+                const startDateToCheck = new Date(startDate) || new Date(selectedPrice.startDate);
+                const isDateConflict = prices.some((price) => {
+                    return (
+                        price.description === currentDescription &&
+                        price.dayOfWeek.toString() === dayOfWeek.toString() &&
+                        price.timeSlot === timeSlot &&
+                        new Date(price.startDate) <= startDateToCheck &&
+                        new Date(price.endDate) >= startDateToCheck &&
+                        price.code !== selectedPrice.code
+                    );
+                });
+                if (isDateConflict) {
+                    toast.error('Bảng giá đã được tạo!');
+                    return;
+                }
+
+                await axios.post(`api/prices/${selectedPrice.code}`, {
+                    description: description || selectedPrice.description,
+                    startDate: startDate || selectedPrice.startDate,
+                    endDate: endDate || selectedPrice.endDate,
+                    dayOfWeek: selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek,
+                    timeSlot: selectedTimeSlotCode || selectedPrice.timeSlot,
+                });
+            }
 
             toast.success('Cập nhật bảng giá thành công');
             setOpen(false);
-            refetch();
+            refetchPrice();
         } catch (error) {
-            toast.error('Thông tin cập nhật không hợp lệ');
+            toast.error('Cập nhật bảng giá thất bại');
         }
     };
 
-    const handleUpdateStatusPrice = async (priceCode, status) => {
+    const handleUpdateStatusPrice = async (item) => {
+        const priceCode = item.code;
         try {
+            if (item.type === '1') {
+                if (item.status === 1) {
+                    toast.info('Bảng giá đã hoạt động!');
+                    return;
+                }
+
+                const startDateToCheck = item.startDate;
+                const isDateConflict = prices.some((price) => {
+                    return (
+                        price.status === 1 && price.startDate <= startDateToCheck && price.endDate >= startDateToCheck
+                    );
+                });
+                if (isDateConflict) {
+                    toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                    return;
+                }
+            } else {
+                if (item.status === 1) {
+                    toast.error('Bảng giá đang hoạt động không thể cập nhật trạng thái!');
+                    return;
+                }
+
+                const startDateToCheck = item.startDate;
+                const isDateConflict = prices.some((price) => {
+                    return (
+                        price.status === 1 &&
+                        price.description === item.description &&
+                        price.dayOfWeek.toString() === item.dayOfWeek.toString() &&
+                        price.timeSlot === item.timeSlot &&
+                        price.startDate <= startDateToCheck &&
+                        price.endDate >= startDateToCheck
+                    );
+                });
+                if (isDateConflict) {
+                    toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                    return;
+                }
+            }
+
             await axios.post(`api/prices/updateStatus/${priceCode}`, {
-                status: status === 1 ? 0 : 1,
+                status: 1,
             });
 
             toast.success('Cập nhật trạng thái thành công');
             setOpen(false);
-            refetch();
+            refetchPrice();
         } catch (error) {
             toast.error('Cập nhật trạng thái thất bại');
         }
@@ -384,7 +491,7 @@ const Price = () => {
                 setDetailPrice('');
                 setDetailDescription('');
 
-                refetch();
+                refetchPrice();
             } catch (error) {
                 toast.error('Sản phẩm đã có bảng giá!');
             }
@@ -412,9 +519,35 @@ const Price = () => {
             setSelectedPrice(null);
             setDetailPrice('');
             setDetailDescription('');
-            refetch();
+            refetchPrice();
         } catch (error) {
             toast.error('Ghế đã có bảng giá!');
+        }
+    };
+
+    const handleUpdateDetail = async () => {
+        try {
+            if (!detailDescription && !detailPrice) {
+                toast.error('Vui lòng nhập thông tin cần cập nhật');
+                return;
+            }
+            await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
+                description: detailDescription || selectDetail.description,
+                price: detailPrice || selectDetail.price,
+            });
+
+            toast.success('Cập nhật chi tiết bảng giá thành công');
+            setOpenLoaiKM(false);
+            setProductCode('');
+            setSelectedProduct('');
+            setDetailPrice('');
+            setDetailDescription('');
+            setSelectedProductType('');
+            setSelectedRoomType('');
+            setSelectDetail(null);
+            refetchPrice();
+        } catch (error) {
+            toast.error('Cập nhật chi tiết bảng giá thất bại');
         }
     };
 
@@ -429,13 +562,13 @@ const Price = () => {
     }
 
     const optionDayOfWeek = [
-        { value: 0, label: 'CN' }, // Chủ Nhật
-        { value: 1, label: '2' }, // Thứ Hai
-        { value: 2, label: '3' }, // Thứ Ba
-        { value: 3, label: '4' }, // Thứ Tư
-        { value: 4, label: '5' }, // Thứ Năm
-        { value: 5, label: '6' }, // Thứ Sáu
-        { value: 6, label: '7' }, // Thứ Bảy
+        { value: 0, label: 'CN' },
+        { value: 1, label: '2' },
+        { value: 2, label: '3' },
+        { value: 3, label: '4' },
+        { value: 4, label: '5' },
+        { value: 5, label: '6' },
+        { value: 6, label: '7' },
     ];
 
     const optionTimeSlot = [
@@ -449,47 +582,37 @@ const Price = () => {
         { value: 'HH', label: 'Hài hước' },
         { value: 'TC', label: 'Tình cảm' },
     ];
-    const optionsSort = [
-        { value: '0', label: 'Xếp theo tên' },
-        { value: 'A', label: 'A - Z' },
-        { value: 'B', label: 'Z - A' },
-    ];
 
     const getTimeSlotLabel = (timeSlot) => {
         const found = optionTimeSlot.find((item) => item.value === timeSlot);
         return found ? found.label : '';
     };
-    const nuoc = [
-        {
-            id: 1,
-            name: 'Rạp Lotte',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-            slRoom: '3',
-            status: 'Active',
-        },
-        {
-            id: 2,
-            name: 'Rạp Galaxy',
-            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            slRoom: '2',
-            status: 'InActive',
-        },
-    ];
+
+    const sortFood = (newValue) => {
+        if (newValue === null) {
+            setSelectedSort(optionsSort[0]);
+            return;
+        }
+        setSelectedSort(newValue);
+    };
+
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white overflow-x-auto overflow-y-hidden  xl:overflow-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Bảng giá</h1>
-                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                <div className="grid grid-cols-4 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                     <AutoInputComponent
-                        options={nuoc.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
+                        value={selectedSort?.name}
+                        onChange={(newValue) => sortFood(newValue)}
+                        options={optionsSort}
                         title="Loại sản phẩm"
-                        freeSolo={false}
+                        freeSolo={true}
                         disableClearable={false}
-                        placeholder="Nhập ..."
                         heightSelect={200}
                         borderRadius="10px"
+                        onBlur={(event) => {
+                            event.preventDefault();
+                        }}
                     />
                     <InputComponent className="rounded-[10px] " title="Ngày bắt đầu" type="date" />
                     <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
@@ -506,320 +629,333 @@ const Price = () => {
                     </div>
                 </div>
             </div>
-            <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border  h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+            <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div>
-                    <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
+                    {(selectedSort.value === 1 || selectedSort.value === 3) && (
+                        <div>
+                            <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
 
-                    <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 ">
-                        <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
-                        <h1 className="uppercase grid justify-center items-center">Thứ</h1>
-                        <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
-                        <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
-                        <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
-                        <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
-                        <div className="flex justify-center">
-                            <button
-                                className="border px-4 py-[3px] rounded-[40px] bg-white"
-                                onClick={() => handleOpen(false, 0)}
-                            >
-                                <IoIosAddCircleOutline color="orange" size={20} />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="h-[92%] height-sm-1">
-                        {data.prices
-                            .filter((item) => item.type === '0')
-                            .map((item) => (
-                                <div key={item.code}>
-                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
-                                        <div className="grid col-span-3 grid-cols-10 items-center gap-5">
-                                            <div
-                                                className="justify-center col-span-2 grid"
-                                                onClick={() => {
-                                                    toggleVisibility(item.code);
-                                                    toggleDropdown(item.code);
-                                                }}
-                                            >
-                                                {isDropdownOpen[item.code] ? (
-                                                    <FaChevronUp color="gray" size={20} />
-                                                ) : (
-                                                    <FaChevronDown color="gray" size={20} />
-                                                )}
-                                            </div>
-                                            <h1 className="uppercase grid col-span-8">{item.description}</h1>
-                                        </div>
-                                        <h1 className="grid justify-center items-center">
-                                            {item.dayOfWeek
-                                                .map((day) => {
-                                                    if (day === 0) {
-                                                        return 'CN'; // Thay 0 bằng 'CN' cho Chủ nhật
-                                                    } else {
-                                                        return day === 1
-                                                            ? '2'
-                                                            : day === 2
-                                                            ? '3'
-                                                            : day === 3
-                                                            ? '4'
-                                                            : day === 4
-                                                            ? '5'
-                                                            : day === 5
-                                                            ? '6'
-                                                            : day === 6
-                                                            ? '7'
-                                                            : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
-                                                    }
-                                                })
-                                                .join(', ')}
-                                        </h1>
-                                        <h1 className="grid justify-center items-center">
-                                            {item.timeSlot === 1
-                                                ? 'Cả ngày'
-                                                : item.timeSlot === 2
-                                                ? 'Trước 17h'
-                                                : 'Sau 17h'}
-                                        </h1>
-                                        <h1 className="grid justify-center items-center">
-                                            {getFormatteNgay(item.startDate)}
-                                        </h1>
-                                        <h1 className="grid justify-center items-center">
-                                            {getFormatteNgay(item.endDate)}
-                                        </h1>
-                                        <div className="justify-center items-center grid">
-                                            <button
-                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex rounded-[40px] ${
-                                                    item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
-                                                }`}
-                                                onClick={() => handleUpdateStatusPrice(item.code, item.status)}
-                                            >
-                                                {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
-                                            </button>
-                                        </div>
-                                        <div className="justify-center grid items-center ">
-                                            <button
-                                                className=""
-                                                onClick={() => {
-                                                    handleOpen(true, 0);
-                                                    setSelectedPrice(item);
-                                                }}
-                                            >
-                                                <FaRegEdit color="black" size={22} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {visibleRooms[item.code] && (
-                                        <>
-                                            <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-9 items-center gap-2">
-                                                <h1 className="grid col-span-1 justify-center items-center">
-                                                    Loại phòng chiếu
-                                                </h1>
-                                                <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
-                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
-                                                <h1 className="grid justify-center items-center">Giá</h1>
-                                                <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
-                                                <div className="grid justify-center col-span-2">
-                                                    <button
-                                                        className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
-                                                        onClick={() => {
-                                                            handleOpenLoaiKM(false, 1);
-                                                            setSelectedPrice(item);
-                                                        }}
-                                                    >
-                                                        <IoIosAddCircleOutline color="white" size={20} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="height-sm-1">
-                                                {item?.priceDetails?.map((item) => (
-                                                    <div
-                                                        className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3"
-                                                        key={item.code}
-                                                    >
-                                                        <h1 className=" grid col-span-1 justify-center items-center ">
-                                                            {item.roomTypeCode?.name}
-                                                        </h1>
-                                                        <h1 className=" grid pl-3 col-span-2 items-center">
-                                                            {item.productTypeCode?.name}
-                                                        </h1>
-                                                        <h1 className=" grid col-span-2 pl-3 items-center">
-                                                            {item?.description}
-                                                        </h1>
-                                                        <h1 className=" grid items-center justify-center">
-                                                            {formatCurrency(item?.price)}
-                                                        </h1>
-                                                        <div className="justify-center items-center grid pl-5">
-                                                            <button
-                                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                                    item.status === 'Active'
-                                                                        ? 'bg-green-500'
-                                                                        : 'bg-gray-400'
-                                                                }`}
-                                                            >
-                                                                {item?.status}
-                                                            </button>
-                                                        </div>
-                                                        <div className="justify-center space-x-5 items-center col-span-2 flex  ">
-                                                            <button
-                                                                className=""
-                                                                onClick={() => {
-                                                                    handleOpenLoaiKM(true, 1);
-                                                                    setSelectDetail(item);
-                                                                }}
-                                                            >
-                                                                <FaRegEdit color="black" size={20} />
-                                                            </button>
-                                                            <button
-                                                                className=""
-                                                                onClick={() => handleOpenDetail(item.type)}
-                                                            >
-                                                                <FaRegEye color="black" fontSize={20} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
+                            <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 min-w-[1150px]">
+                                <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                                <h1 className="uppercase grid justify-center items-center">Thứ</h1>
+                                <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
+                                <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
+                                <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
+                                <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
+                                <div className="flex justify-center">
+                                    <button
+                                        className="border px-4 py-[3px] rounded-[40px] bg-white"
+                                        onClick={() => handleOpen(false, 0)}
+                                    >
+                                        <IoIosAddCircleOutline color="orange" size={20} />
+                                    </button>
                                 </div>
-                            ))}
-                    </div>
-                </div>
-                <div className="bg-slate-200 h-8"></div>
-                <div>
-                    <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
-                    <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-7 items-center gap-3 ">
-                        <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
-                        <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
-                        <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
-                        <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
-                        <div className="flex justify-center">
-                            <button
-                                className="border px-4 py-1 rounded-[40px] bg-white"
-                                onClick={() => handleOpen(false, 1)}
-                            >
-                                <IoIosAddCircleOutline color="orange" size={20} />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="h-[70%] height-sm-1 mb-8">
-                        {data.prices
-                            .filter((item) => item.type === '1')
-                            .map((item) => (
-                                <div key={item.code}>
-                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
-                                        <div className="grid col-span-3 grid-cols-10 items-center gap-5">
-                                            <div
-                                                className="justify-center col-span-2 grid"
-                                                onClick={() => {
-                                                    toggleVisibility(item.code);
-                                                    toggleDropdown(item.code);
-                                                }}
-                                            >
-                                                {isDropdownOpen[item.code] ? (
-                                                    <FaChevronUp color="gray" size={20} />
-                                                ) : (
-                                                    <FaChevronDown color="gray" size={20} />
-                                                )}
+                            </div>
+                            <div className="h-[92%] height-sm-1 mb-4 min-w-[1150px]">
+                                {[...prices.filter((item) => item.type === '0')].reverse().map((item) => (
+                                    <div key={item.code}>
+                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
+                                            <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                                <div
+                                                    className="justify-center col-span-2 grid"
+                                                    onClick={() => {
+                                                        toggleVisibility(item.code);
+                                                        toggleDropdown(item.code);
+                                                    }}
+                                                >
+                                                    {isDropdownOpen[item.code] ? (
+                                                        <FaChevronUp color="gray" size={20} />
+                                                    ) : (
+                                                        <FaChevronDown color="gray" size={20} />
+                                                    )}
+                                                </div>
+                                                <h1 className="uppercase grid col-span-8">{item.description}</h1>
                                             </div>
-                                            <h1 className="uppercase grid col-span-8">{item.description}</h1>
+                                            <h1 className="grid justify-center items-center">
+                                                {item.dayOfWeek
+                                                    .map((day) => {
+                                                        if (day === 0) {
+                                                            return 'CN'; // Thay 0 bằng 'CN' cho Chủ nhật
+                                                        } else {
+                                                            return day === 1
+                                                                ? '2'
+                                                                : day === 2
+                                                                ? '3'
+                                                                : day === 3
+                                                                ? '4'
+                                                                : day === 4
+                                                                ? '5'
+                                                                : day === 5
+                                                                ? '6'
+                                                                : day === 6
+                                                                ? '7'
+                                                                : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
+                                                        }
+                                                    })
+                                                    .join(', ')}
+                                            </h1>
+                                            <h1 className="grid justify-center items-center">
+                                                {item.timeSlot === 1
+                                                    ? 'Cả ngày'
+                                                    : item.timeSlot === 2
+                                                    ? 'Trước 17h'
+                                                    : 'Sau 17h'}
+                                            </h1>
+                                            <h1 className="grid justify-center items-center">
+                                                {getFormatteNgay(item.startDate)}
+                                            </h1>
+                                            <h1 className="grid justify-center items-center">
+                                                {getFormatteNgay(item.endDate)}
+                                            </h1>
+                                            <div className="justify-center items-center grid">
+                                                <button
+                                                    className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
+                                                        item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                                    }`}
+                                                    onClick={() => handleUpdateStatusPrice(item)}
+                                                >
+                                                    {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+                                                </button>
+                                            </div>
+                                            <div className="justify-center grid items-center ">
+                                                <button
+                                                    className=""
+                                                    onClick={() => {
+                                                        handleOpen(true, 0);
+                                                        setSelectedPrice(item);
+                                                    }}
+                                                >
+                                                    <FaRegEdit color="black" size={22} />
+                                                </button>
+                                            </div>
                                         </div>
+                                        {visibleRooms[item.code] && (
+                                            <>
+                                                <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-9 items-center gap-2">
+                                                    <h1 className="grid col-span-1 justify-center items-center">
+                                                        Loại phòng chiếu
+                                                    </h1>
+                                                    <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
+                                                    <h1 className="grid col-span-2 justify-center items-center">
+                                                        Mô tả
+                                                    </h1>
+                                                    <h1 className="grid justify-center items-center">Giá</h1>
+                                                    <h1 className="grid justify-center items-center pl-5">
+                                                        Trạng thái
+                                                    </h1>
+                                                    <div className="grid justify-center col-span-2">
+                                                        <button
+                                                            className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
+                                                            onClick={() => {
+                                                                handleOpenLoaiKM(false, 1);
+                                                                setSelectedPrice(item);
+                                                            }}
+                                                        >
+                                                            <IoIosAddCircleOutline color="white" size={20} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="height-sm-1">
+                                                    {item?.priceDetails?.map((item) => (
+                                                        <div
+                                                            className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3"
+                                                            key={item.code}
+                                                        >
+                                                            <h1 className=" grid col-span-1 justify-center items-center ">
+                                                                {item.roomTypeCode?.name}
+                                                            </h1>
+                                                            <h1 className=" grid pl-3 col-span-2 items-center">
+                                                                {item.productTypeCode?.name}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-2 pl-3 items-center">
+                                                                {item?.description}
+                                                            </h1>
+                                                            <h1 className=" grid items-center justify-center">
+                                                                {formatCurrency(item?.price)}
+                                                            </h1>
+                                                            <div className="justify-center items-center grid pl-5">
+                                                                <button
+                                                                    className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
+                                                                        item.status === 'Active'
+                                                                            ? 'bg-green-500'
+                                                                            : 'bg-gray-400'
+                                                                    }`}
+                                                                >
+                                                                    {item?.status}
+                                                                </button>
+                                                            </div>
+                                                            <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                                                <button
+                                                                    className=""
+                                                                    onClick={() => {
+                                                                        handleOpenLoaiKM(true, 1);
+                                                                        setSelectDetail(item);
+                                                                    }}
+                                                                >
+                                                                    <FaRegEdit color="black" size={20} />
+                                                                </button>
+                                                                <button
+                                                                    className=""
+                                                                    onClick={() => handleOpenDetail(item.type)}
+                                                                >
+                                                                    <FaRegEye color="black" fontSize={20} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {(selectedSort.value === 2 || selectedSort.value === 3) && (
+                        <div className="bg-slate-200 h-8 min-w-[1150px]"></div>
+                    )}
+                    {(selectedSort.value === 2 || selectedSort.value === 3) && (
+                        <div>
+                            <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
+                            <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-7 items-center gap-3 min-w-[1150px] ">
+                                <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                                <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
+                                <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
+                                <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
+                                <div className="flex justify-center">
+                                    <button
+                                        className="border px-4 py-1 rounded-[40px] bg-white"
+                                        onClick={() => handleOpen(false, 1)}
+                                    >
+                                        <IoIosAddCircleOutline color="orange" size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="h-[70%] height-sm-1 mb-8 min-w-[1150px]">
+                                {[...prices.filter((item) => item.type === '1')].reverse().map((item) => (
+                                    <div key={item.code}>
+                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
+                                            <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                                <div
+                                                    className="justify-center col-span-2 grid"
+                                                    onClick={() => {
+                                                        toggleVisibility(item.code);
+                                                        toggleDropdown(item.code);
+                                                    }}
+                                                >
+                                                    {isDropdownOpen[item.code] ? (
+                                                        <FaChevronUp color="gray" size={20} />
+                                                    ) : (
+                                                        <FaChevronDown color="gray" size={20} />
+                                                    )}
+                                                </div>
+                                                <h1 className="uppercase grid col-span-8">{item.description}</h1>
+                                            </div>
 
-                                        <h1 className="grid justify-center items-center">
-                                            {getFormatteNgay(item.startDate)}
-                                        </h1>
-                                        <h1 className="grid justify-center items-center">
-                                            {getFormatteNgay(item.endDate)}
-                                        </h1>
-                                        <div className="justify-center items-center grid">
-                                            <button
-                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex rounded-[40px] ${
-                                                    item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
-                                                }`}
-                                            >
-                                                {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
-                                            </button>
-                                        </div>
-                                        <div className="justify-center grid items-center ">
-                                            <button
-                                                className=""
-                                                onClick={() => {
-                                                    handleOpen(true, 1);
-                                                    setSelectedPrice(item);
-                                                }}
-                                            >
-                                                <FaRegEdit color="black" size={22} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {visibleRooms[item.code] && (
-                                        <>
-                                            <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3">
-                                                <h1 className="grid col-span-2 justify-center items-center">Tên</h1>
-                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
-                                                <h1 className="grid justify-center items-center">Giá</h1>
-                                                <h1 className="grid justify-center items-center pl-5">Trạng thái</h1>
-                                                <div className="grid justify-center col-span-2">
-                                                    <button
-                                                        className="border px-4 py-1 rounded-[40px] gradient-button"
-                                                        onClick={() => {
-                                                            handleOpenLoaiKM(false, 2);
-                                                            setSelectedPrice(item);
-                                                        }}
-                                                    >
-                                                        <IoIosAddCircleOutline color="white" size={20} />
-                                                    </button>
-                                                </div>
+                                            <h1 className="grid justify-center items-center">
+                                                {getFormatteNgay(item.startDate)}
+                                            </h1>
+                                            <h1 className="grid justify-center items-center">
+                                                {getFormatteNgay(item.endDate)}
+                                            </h1>
+                                            <div className="justify-center items-center grid">
+                                                <button
+                                                    className={`border px-2 text-white text-[13px] uppercase truncate py-1 flex rounded-[40px] ${
+                                                        item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                                    }`}
+                                                    onClick={() => handleUpdateStatusPrice(item)}
+                                                >
+                                                    {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+                                                </button>
                                             </div>
-                                            <div className="height-sm-1">
-                                                {item.priceDetails.map((item) => (
-                                                    <div
-                                                        className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3"
-                                                        key={item.code}
-                                                    >
-                                                        <h1 className=" grid col-span-2 pl-3 items-center ">
-                                                            {item.productCode.name}
-                                                        </h1>
-                                                        <h1 className=" grid col-span-2  items-center">
-                                                            {item.description}
-                                                        </h1>
-                                                        <h1 className=" grid items-center justify-center">
-                                                            {formatCurrency(item.price)}
-                                                        </h1>
-                                                        <div className="justify-center items-center grid pl-5">
-                                                            <button
-                                                                className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                                    item.status === 'Active'
-                                                                        ? 'bg-green-500'
-                                                                        : 'bg-gray-400'
-                                                                }`}
-                                                            >
-                                                                {item.status}
-                                                            </button>
-                                                        </div>
-                                                        <div className="justify-center space-x-5 items-center col-span-2 flex  ">
-                                                            <button
-                                                                className=""
-                                                                onClick={() => {
-                                                                    handleOpenLoaiKM(true, 2);
-                                                                    setSelectDetail(item);
-                                                                }}
-                                                            >
-                                                                <FaRegEdit color="black" size={20} />
-                                                            </button>
-                                                            <button
-                                                                className=""
-                                                                onClick={() => handleOpenDetail(item.type)}
-                                                            >
-                                                                <FaRegEye color="black" fontSize={20} />
-                                                            </button>
-                                                        </div>
+                                            <div className="justify-center grid items-center ">
+                                                <button
+                                                    className=""
+                                                    onClick={() => {
+                                                        handleOpen(true, 1);
+                                                        setSelectedPrice(item);
+                                                    }}
+                                                >
+                                                    <FaRegEdit color="black" size={22} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {visibleRooms[item.code] && (
+                                            <>
+                                                <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3">
+                                                    <h1 className="grid col-span-2 justify-center items-center">Tên</h1>
+                                                    <h1 className="grid col-span-2 justify-center items-center">
+                                                        Mô tả
+                                                    </h1>
+                                                    <h1 className="grid justify-center items-center">Giá</h1>
+                                                    <h1 className="grid justify-center items-center pl-5">
+                                                        Trạng thái
+                                                    </h1>
+                                                    <div className="grid justify-center col-span-2">
+                                                        <button
+                                                            className="border px-4 py-1 rounded-[40px] gradient-button"
+                                                            onClick={() => {
+                                                                handleOpenLoaiKM(false, 2);
+                                                                setSelectedPrice(item);
+                                                            }}
+                                                        >
+                                                            <IoIosAddCircleOutline color="white" size={20} />
+                                                        </button>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            ))}
-                    </div>
+                                                </div>
+                                                <div className="height-sm-1">
+                                                    {item.priceDetails.map((item) => (
+                                                        <div
+                                                            className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3"
+                                                            key={item.code}
+                                                        >
+                                                            <h1 className=" grid col-span-2 pl-3 items-center ">
+                                                                {item.productCode.name}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-2  items-center">
+                                                                {item.description}
+                                                            </h1>
+                                                            <h1 className=" grid items-center justify-center">
+                                                                {formatCurrency(item.price)}
+                                                            </h1>
+                                                            <div className="justify-center items-center grid pl-5">
+                                                                <button
+                                                                    className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
+                                                                        item.status === 'Active'
+                                                                            ? 'bg-green-500'
+                                                                            : 'bg-gray-400'
+                                                                    }`}
+                                                                >
+                                                                    {item.status}
+                                                                </button>
+                                                            </div>
+                                                            <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                                                <button
+                                                                    className=""
+                                                                    onClick={() => {
+                                                                        handleOpenLoaiKM(true, 2);
+                                                                        setSelectDetail(item);
+                                                                    }}
+                                                                >
+                                                                    <FaRegEdit color="black" size={20} />
+                                                                </button>
+                                                                <button
+                                                                    className=""
+                                                                    onClick={() => handleOpenDetail(item.type)}
+                                                                >
+                                                                    <FaRegEye color="black" fontSize={20} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -852,6 +988,7 @@ const Price = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
+                            disabled={selectedPrice?.status === 1 ? true : false}
                         />
                     </div>
                     <div className="grid items-center gap-2 ">
@@ -871,6 +1008,7 @@ const Price = () => {
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     format="YYYY-MM-DD"
+                                    disabled={selectedPrice?.status === 1 ? true : false}
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                 />
                             </div>
@@ -917,6 +1055,7 @@ const Price = () => {
                                         dropdownStyle={{ maxHeight: '200px', overflow: 'auto' }}
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         maxTagCount={3}
+                                        disabled={selectedPrice?.status === 1 ? true : false}
                                     >
                                         {optionDayOfWeek.map((option) => (
                                             <Option key={option.value} value={option.value}>
@@ -935,6 +1074,7 @@ const Price = () => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     height={40}
+                                    disabled={selectedPrice?.status === 1 ? true : false}
                                 />
                             </div>
                         )}
@@ -1039,9 +1179,15 @@ const Price = () => {
                         <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseLoaiKM} />
                             <ButtonComponent
-                                text="Thêm mới"
+                                text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
                                 className=" bg-blue-500 "
-                                onClick={type === 1 ? handleAddDetailSeat : handleAddDetailProduct}
+                                onClick={
+                                    isUpdate
+                                        ? handleUpdateDetail
+                                        : type === 1
+                                        ? handleAddDetailSeat
+                                        : handleAddDetailProduct
+                                }
                             />
                         </div>
                     </div>
@@ -1084,6 +1230,7 @@ const Price = () => {
                         freeSolo={false}
                         disableClearable={true}
                         placeholder="Nhập ..."
+                        className1="p-3"
                         heightSelect={130}
                     />
                     <AutoInputComponent
