@@ -7,18 +7,13 @@ import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import axios from 'axios';
-// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-// import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-// import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs from 'dayjs';
-// import TextField from '@mui/material/TextField';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
-import { set } from 'date-fns';
 
 const sortPromotions = (promotions) => {
     // Sắp xếp danh sách khuyến mãi theo startDate tăng dần
@@ -129,12 +124,12 @@ const Promotion = () => {
     const [isUpdateKMDetail, setIsUpdateKMDetail] = useState(false);
 
     const [type, setType] = useState('');
-
+    const [selectedMovie, setSelectedMovie] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [selectedStartDateKM, setSelectedStartDateKM] = useState(null);
     const [selectedEndDateKM, setSelectedEndDateKM] = useState(null);
     const [descriptionKM, setDescriptionKM] = useState('');
-
+    const [visibleRooms, setVisibleRooms] = useState({});
     const [selectedStartDateKMLine, setSelectedStartDateKMLine] = useState(null);
     const [selectedEndDateKMLine, setSelectedEndDateKMLine] = useState(null);
     const [descriptionKMLine, setDescriptionKMLine] = useState('');
@@ -153,7 +148,6 @@ const Promotion = () => {
     const [discountPercentage, setDiscountPercentage] = useState(0);
     const [maxDiscountAmount, setMaxDiscountAmount] = useState(0);
     const [openDelete, setOpenDelete] = useState(false);
-
 
     const optionKMLines = [
         { name: 'Khuyến mãi sản phẩm', value: 0 },
@@ -196,8 +190,13 @@ const Promotion = () => {
     );
 
     // Xử lý khi đang loading hoặc có lỗi
-    (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) && <Loading />;
-    (errorProduct || PromotionError) && (toast.error(PromotionError.message) || toast.error(errorProduct.message));
+    if (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) return <Loading />;
+    if (errorProduct || PromotionError || PromotionDetailError)
+        return (
+            <div>
+                Error loading data: {PromotionError.message || errorProduct.message || PromotionDetailError.message}
+            </div>
+        );
 
     //header
 
@@ -240,7 +239,7 @@ const Promotion = () => {
         cleanTextKMDetail();
     };
 
-    //delete 
+    //delete
 
     const handleOpenDelete = (item) => {
         setSelectedKMLine(item);
@@ -270,7 +269,6 @@ const Promotion = () => {
         }
     };
 
-
     const handleDeleteKMLine = async (code) => {
         try {
             await axios.delete(`api/promotion-lines/${code}`);
@@ -281,8 +279,6 @@ const Promotion = () => {
             toast.error('Xóa thất bại!');
         }
     };
-    
-    const [visibleRooms, setVisibleRooms] = useState({});
 
     const toggleVisibility = (roomId) => {
         setVisibleRooms((prevState) => ({
@@ -385,7 +381,7 @@ const Promotion = () => {
             return false;
         }
         // type = 1
-        if (!minPurchaseAmount && (type === 1 || type == 2) && minPurchaseAmount < 1000) {
+        if (!minPurchaseAmount && (type === 1 || type === 2) && minPurchaseAmount < 1000) {
             toast.warning('Số tiền bán > 1000');
 
             return false;
@@ -752,58 +748,6 @@ const Promotion = () => {
         setSelectedEndDateKMLine(null);
     };
 
-    const data = [
-        {
-            id: 1,
-            type: 1,
-            soTienBan: 5000000,
-            soTienTang: 100000,
-            status: 'Active',
-        },
-        {
-            id: 2,
-            type: 2,
-            sanPhamBan: 'Coca',
-            soLuongBan: 5,
-            sanPhamTang: 'Coca',
-            soLuongTang: 1,
-            status: 'Active',
-        },
-        {
-            id: 3,
-            type: 3,
-            soTienBan: 5000000,
-            chietKhau: '10%',
-            soTienGioiHan: 200000,
-            status: 'Active',
-        },
-        {
-            id: 4,
-            type: 1,
-            soTienBan: 1000000,
-            soTienTang: 50000,
-            status: 'InActive',
-        },
-        {
-            id: 5,
-            type: 2,
-            sanPhamBan: 'Pespi',
-            soLuongBan: 3,
-            sanPhamTang: 'Coca',
-            soLuongTang: 1,
-            status: 'InActive',
-        },
-        {
-            id: 6,
-            type: 3,
-            soTienBan: 2000000,
-            chietKhau: '5%',
-            soTienGioiHan: 20000,
-            status: 'InActive',
-        },
-    ];
-
-    const [selectedMovie, setSelectedMovie] = useState('');
     const nuoc = [
         {
             id: 1,
@@ -930,9 +874,11 @@ const Promotion = () => {
                             {promotion.status}
                         </button>
                     </div>
-                    <div className={`justify-center grid items-center grid-cols-2 px-2   ${
-                    promotion.promotionLines.length> 0 ? 'pointer-events-none opacity-50' : '' }`}>
-                              
+                    <div
+                        className={`justify-center grid items-center grid-cols-2 px-2   ${
+                            promotion.promotionLines.length > 0 ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                    >
                         <button className=" grid " onClick={() => handleOpenKM(true)}>
                             <FaRegEdit
                                 color="black"
@@ -946,9 +892,9 @@ const Promotion = () => {
                             />
                         </button>
 
-                        <button className='grid' onClick={() => handleDeleteKM(promotion.code)}>
-                         <MdOutlineDeleteOutline color="black" fontSize={23} />
-                          </button>
+                        <button className="grid" onClick={() => handleDeleteKM(promotion.code)}>
+                            <MdOutlineDeleteOutline color="black" fontSize={23} />
+                        </button>
                     </div>
                 </div>
                 {visibleRooms[promotion.code] && (
@@ -1044,12 +990,11 @@ const Promotion = () => {
                                                         setSelectedEndDateKMLine(dayjs(item.endDate));
                                                     }}
                                                 >
-
                                                     <FaRegEdit color="black" size={20} />
                                                 </button>
-                                                <button className='grid' onClick={() => handleOpenDelete(item)}>
-                         <MdOutlineDeleteOutline color="black" fontSize={23} />
-                          </button>
+                                                <button className="grid" onClick={() => handleOpenDelete(item)}>
+                                                    <MdOutlineDeleteOutline color="black" fontSize={23} />
+                                                </button>
                                                 <button
                                                     className=""
                                                     onClick={() => {
@@ -1114,7 +1059,6 @@ const Promotion = () => {
                         >
                             <IoIosAddCircleOutline color="white" size={20} />
                         </button>
-                        
                     </div>
                 </div>
                 <div className="overflow-auto h-[92%] height-sm-1 ">{renderPromotion(promotions)}</div>
@@ -1754,7 +1698,6 @@ const Promotion = () => {
                 )}
             </ModalComponent>
 
-
             <ModalComponent
                 open={openDelete}
                 handleClose={handleCloseDelete}
@@ -1780,7 +1723,7 @@ const Promotion = () => {
                             <ButtonComponent
                                 text="Xóa"
                                 className="bg-blue-500"
-                                onClick={() => handleDeleteKMLine(selectedKMLine?.code) }
+                                onClick={() => handleDeleteKMLine(selectedKMLine?.code)}
                             />
                         </div>
                     </div>

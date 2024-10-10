@@ -2,7 +2,7 @@ import React from 'react';
 import HeaderComponent from '../HeaderComponent/HeaderComponent';
 import Avatar from '../AvatarComponent/Avatar';
 
-const DefaultComponent = React.memo(({ children }) => {
+const DefaultComponent = ({ children }) => {
     return (
         <div className="m-auto w-full min-h-screen flex overflow-x-hidden">
             <HeaderComponent className="w-1/5" />
@@ -14,6 +14,6 @@ const DefaultComponent = React.memo(({ children }) => {
             </div>
         </div>
     );
-});
+};
 
 export default DefaultComponent;

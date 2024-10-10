@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
@@ -9,8 +9,6 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
-import { getCinemaCode } from '~/redux/apiRequest';
-import { useDispatch, useSelector } from 'react-redux';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -19,82 +17,11 @@ import TextField from '@mui/material/TextField';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
 
-const fetchCinemasFullAddress = async () => {
-    try {
-        const response = await axios.get('/api/cinemas/getAllFullAddress');
-
-        const data = response.data;
-
-        // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
-        const arrayNameCinema = data.map((cinema) => ({
-            name: cinema.name, // Hiển thị tên
-            code: cinema.code, // Giá trị sẽ được gửi về
-        }));
-
-        return { optionNameCinema: arrayNameCinema };
-    } catch (error) {
-        // Handle errors based on response or other criteria
-        if (error.response) {
-            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-        } else if (error.request) {
-            throw new Error('Error: No response received from server');
-        } else {
-            throw new Error('Error: ' + error.message);
-        }
-    }
-};
-
-const fetchMoviesStatus = async () => {
-    try {
-        const response = await axios.get('api/movies');
-        const movies = response.data;
-
-        // Lọc các phim có status = 1
-        const filteredMovies = movies.filter((movie) => movie.status === 1);
-
-        // Tạo mảng chứa tên và mã phim
-        const arrayNameMovie = filteredMovies.map((movie) => ({
-            name: movie.name, // Hiển thị tên
-            code: movie.code, // Giá trị sẽ được gửi về
-        }));
-
-        // Nếu có ít nhất một phim có status = 1, thông báo tên phim đầu tiên
-
-        return arrayNameMovie;
-    } catch (error) {
-        console.error('Error fetching movies:', error);
-        return []; // Trả về mảng rỗng nếu có lỗi
-    }
-};
-
-const fetchAudio = async () => {
-    const audio = await axios.get('api/audios');
-    const data = audio.data;
-
-    const arrayAudio = data.map((audio) => ({
-        name: audio.name, // Hiển thị tên
-        code: audio.code, // Giá trị sẽ được gửi về
-    }));
-    return arrayAudio;
-};
-const fetchSubtitle = async () => {
-    const subtitle = await axios.get('api/subtitles');
-    const data = subtitle.data;
-
-    const arraySubtitle = data.map((subtitle) => ({
-        name: subtitle.name, // Hiển thị tên
-        code: subtitle.code, // Giá trị sẽ được gửi về
-    }));
-    return arraySubtitle;
-};
-
 const Schedule = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [open, setOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [roomsFilter, setRoomsFilter] = useState([]);
-
-    const [selectedDate, setSelectedDate] = useState(dayjs());
     const [selectedTime, setSelectedTime] = useState(dayjs());
     const [selectedMovieName, setSelectedMovieName] = useState();
     const [selectedFilterMovieName, setSelectedFilterMovieName] = useState('');
@@ -104,8 +31,8 @@ const Schedule = () => {
     const [optionScreeningFormat, setOptionScreeningFormat] = useState([]);
     const [selectedAudio, setSelectedAudio] = useState('');
     const [selectedSchedule, setSelectedSchedule] = useState([]);
-    const isDisabledAdd = dayjs(selectedDate).isBefore(dayjs(), 'day');
 
+    const [visibleRooms, setVisibleRooms] = useState({});
     const groupAndSortSchedules = (rooms) => {
         return rooms.map((room) => {
             // Sắp xếp các schedule chỉ theo startTime
@@ -121,10 +48,111 @@ const Schedule = () => {
         });
     };
 
-    const fetchAllScheduleInRoomByCinemaCode = async (cinemaCode, selectedDate) => {
-        if (!cinemaCode) return; // Nếu cinemaCode rỗng thì không gọi API
+    const fetchCinemasFullAddress = async () => {
+        try {
+            const response = await axios.get('/api/cinemas/getAllFullAddress');
 
-        const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
+            const data = response.data;
+
+            const arrayNameCinema = data.map((cinema) => ({
+                name: cinema.name,
+                code: cinema.code,
+            }));
+
+            return { optionNameCinema: arrayNameCinema };
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    const fetchMoviesStatus = async () => {
+        try {
+            const response = await axios.get('api/movies');
+            const movies = response.data;
+
+            const filteredMovies = movies.filter((movie) => movie.status === 1);
+            const arrayNameMovie = filteredMovies.map((movie) => ({
+                name: movie.name,
+                code: movie.code,
+            }));
+
+            return arrayNameMovie;
+        } catch (error) {
+            console.error('Error fetching movies:', error);
+            return [];
+        }
+    };
+
+    const fetchAudio = async () => {
+        const audio = await axios.get('api/audios');
+        const data = audio.data;
+
+        const arrayAudio = data.map((audio) => ({
+            name: audio.name,
+            code: audio.code,
+        }));
+        return arrayAudio;
+    };
+    const fetchSubtitle = async () => {
+        const subtitle = await axios.get('api/subtitles');
+        const data = subtitle.data;
+
+        const arraySubtitle = data.map((subtitle) => ({
+            name: subtitle.name,
+            code: subtitle.code,
+        }));
+        return arraySubtitle;
+    };
+
+    const {
+        data: { optionNameCinema = [] } = {},
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
+    const [selectedDate, setSelectedDate] = useState(dayjs());
+    const isDisabledAdd = dayjs(selectedDate).isBefore(dayjs(), 'day');
+    const {
+        data: optionMovieName = [],
+        isLoading: isLoadingOptionMovieName,
+        // isFetching: isFetchingOptionMovieName,
+        error: optionCinemaNameError,
+    } = useQuery('movie1', fetchMoviesStatus, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    const { data: optionAudio = [] } = useQuery('fetchAudio', fetchAudio, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    const { data: optionSubtitle = [] } = useQuery('fetchSubtitle', fetchSubtitle, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+
+    useEffect(() => {
+        if (optionNameCinema.length > 0) {
+            const initialValue = optionNameCinema[0].name;
+            if (!selectedOptionFilterCinema) {
+                setSelectedFilterCinema(initialValue);
+            }
+        }
+    }, [optionNameCinema, selectedOptionFilterCinema]);
+
+    const formattedDate = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate]);
+
+    const fetchAllScheduleInRoomByCinemaCode = async (selectedOptionFilterCinema) => {
+        if (!selectedOptionFilterCinema) return;
+        const cinemaCode = optionNameCinema.find((option) => option.name === selectedOptionFilterCinema)?.code;
 
         try {
             const response = await axios.get(
@@ -138,6 +166,27 @@ const Schedule = () => {
         }
     };
 
+    const {
+        data: room = [],
+        isLoading: isLoadingRoom,
+        error: errorRoom,
+        refetch: refetchRoom,
+    } = useQuery(
+        ['fetchAllScheduleInRoomByCinemaCode', selectedOptionFilterCinema, formattedDate],
+        () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema),
+        {
+            staleTime: 1000 * 60 * 3,
+            cacheTime: 1000 * 60 * 10,
+            enabled: !!selectedOptionFilterCinema && !!formattedDate && optionNameCinema.length > 0,
+            onSuccess: (data) => {
+                setRoomsFilter(data?.room);
+            },
+            onError: (error) => {
+                console.error('Error fetching data:', error);
+            },
+        },
+    );
+
     const cleanText = () => {
         setSelectedMovieName('');
         setSelectedScreeningFormat('');
@@ -145,6 +194,7 @@ const Schedule = () => {
         setSelectedSubtitle('');
         setSelectedTime();
     };
+
     // action
     const handleAddSchedule = async () => {
         if (validateSchedule() === false) return; // Kiểm tra dữ liệu nhập vào có hợp lệ không
@@ -158,7 +208,7 @@ const Schedule = () => {
         // Định dạng thời gian thành ISO string
         const startTime = combinedDateTime.toISOString(); // Định dạng giờ
 
-        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
+        const movie = optionMovieName.find((option) => option.name.toUpperCase() === selectedMovieName.toUpperCase());
         const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
 
         const audio = optionAudio.find((option) => option.name === selectedAudio);
@@ -299,63 +349,6 @@ const Schedule = () => {
 
         return `${hours}:${minutes}`; // Trả về định dạng "HH:mm"
     };
-    const dispatch = useDispatch();
-
-    const {
-        data: { optionNameCinema = [] } = {},
-        isLoading: isLoadingCinemas,
-        error: CinemaError,
-    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-
-    const {
-        data: optionMovieName = [],
-        isLoading: isLoadingOptionMovieName,
-        isFetching: isFetchingOptionMovieName,
-        error: optionCinemaNameError,
-    } = useQuery('movie1', fetchMoviesStatus, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-    const { data: optionAudio = [] } = useQuery('fetchAudio', fetchAudio, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-    const { data: optionSubtitle = [] } = useQuery('fetchSubtitle', fetchSubtitle, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-
-    const cinemaCode = useSelector((state) => state.cinema.code?.currentCode);
-
-    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
-
-    useEffect(() => {
-        if (!selectedOptionFilterCinema) {
-            const option = optionNameCinema.find((option) => option.code === cinemaCode);
-            setSelectedFilterCinema(option?.name);
-        }
-    }, [selectedOptionFilterCinema, cinemaCode, dispatch, optionNameCinema]); // Theo
-
-    const {
-        data: room = [],
-        isLoading: isLoadingRoom,
-        error: errorRoom,
-        refetch: refetchRoom,
-    } = useQuery(
-        ['fetchAllScheduleInRoomByCinemaCode', cinemaCode, selectedDate], // Thêm selectedDate vào phụ thuộc
-        () => fetchAllScheduleInRoomByCinemaCode(cinemaCode, selectedDate), // Gọi API với cinemaCode và selectedDate
-        {
-            staleTime: 1000 * 60 * 3,
-            cacheTime: 1000 * 60 * 10,
-            enabled: !!cinemaCode && !!selectedDate, // Chỉ fetch khi cinemaCode và selectedDate có giá trị
-            onSuccess: (data) => {
-                setRoomsFilter(data.room); // Cập nhật danh sách rạp khi fetch thành công
-            },
-        },
-    );
 
     const validateSchedule = () => {
         if (!selectedTime) {
@@ -385,7 +378,9 @@ const Schedule = () => {
 
     useEffect(() => {
         const fetchMovieByCode = async () => {
-            const optionFind = optionMovieName.find((map) => map.name === selectedMovieName);
+            const optionFind = optionMovieName.find(
+                (map) => map.name.toUpperCase() === selectedMovieName.toUpperCase(),
+            );
             const movie = await axios.get(`api/movies/${optionFind?.code}`);
             setMovieByCode(movie.data);
         };
@@ -393,11 +388,13 @@ const Schedule = () => {
         if (selectedMovieName) {
             fetchMovieByCode();
         }
-    }, [selectedMovieName, optionMovieName]); // Only re-run when selectedMovieName changes
+    }, [selectedMovieName, optionMovieName]);
 
-    (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName || isFetchingOptionMovieName) && <Loading />;
-    (errorRoom || CinemaError || optionCinemaNameError) &&
-        toast.error('Lỗi: ' + (errorRoom || CinemaError || optionCinemaNameError));
+    if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
+    if (errorRoom || CinemaError || optionCinemaNameError)
+        return (
+            <div>Error loading data: {errorRoom.message || CinemaError.message || optionCinemaNameError.message}</div>
+        );
 
     const checkAddAndUpdate = () => {
         let rooms = [];
@@ -471,14 +468,10 @@ const Schedule = () => {
     const handleSearch = (searchValue) => {
         if (searchValue) {
             setSelectedFilterCinema(searchValue);
-            const optionFind = optionNameCinema.find((option) => option.name === searchValue);
-
-            getCinemaCode(dispatch, optionFind?.code); // Cập nhật cinemaCode qua dispatch
         }
     };
 
     const handleSearchMovie = (searchValue) => {
-        // If there's no search value, reset to the full list of rooms
         setSelectedFilterMovieName(searchValue);
         if (!searchValue) {
             setRoomsFilter(room); // Reset to show all rooms
@@ -513,8 +506,6 @@ const Schedule = () => {
         setOpen(false);
         cleanText();
     };
-
-    const [visibleRooms, setVisibleRooms] = useState({});
 
     const toggleVisibility = (roomId) => {
         setVisibleRooms((prevState) => ({
@@ -561,11 +552,11 @@ const Schedule = () => {
                         <div
                             className="justify-center items-center col-span-3 grid"
                             onClick={() => {
-                                toggleVisibility(item.id);
-                                toggleDropdown(item.id);
+                                toggleVisibility(item.code);
+                                toggleDropdown(item.code);
                             }}
                         >
-                            {isDropdownOpen[item.id] ? (
+                            {isDropdownOpen[item.code] ? (
                                 <FaChevronUp color="gray" size={20} />
                             ) : (
                                 <FaChevronDown color="gray" size={20} />
@@ -576,7 +567,7 @@ const Schedule = () => {
                     <h1 className="grid justify-center items-center">{item.roomTypeName}</h1>
                     <h1 className="grid justify-center items-center">{item.totalSeats}</h1>
                 </div>
-                {visibleRooms[item.id] && (
+                {visibleRooms[item.code] && (
                     <>
                         <div className="border-b py-[2px] text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-3 mx-2 min-w-[1150px]">
                             <div className="uppercase grid col-span-3 grid-cols-10 justify-center items-center  gap-3">
@@ -630,7 +621,9 @@ const Schedule = () => {
                                             </h1>
                                         </div>
                                         <div className=" grid col-span-6 grid-cols-12 items-center justify-center gap-3">
-                                            <h1 className=" grid col-span-9  items-center  ">{item.movieCode.name}</h1>
+                                            <h1 className=" grid col-span-9  items-center uppercase  ">
+                                                {item.movieCode.name}
+                                            </h1>
 
                                             <h1 className=" uppercase grid col-span-3  items-center justify-center ">
                                                 {item.screeningFormatCode.name}{' '}
@@ -733,7 +726,7 @@ const Schedule = () => {
                         </div>
 
                         <AutoInputComponent
-                            options={optionMovieName.map((option) => option.name)}
+                            options={optionMovieName.map((option) => option.name.toUpperCase())}
                             value={selectedFilterMovieName}
                             onChange={(newValue) => handleSearchMovie(newValue)}
                             title="Tên phim"
@@ -775,7 +768,7 @@ const Schedule = () => {
                     heightScreen="44%"
                     title={isUpdate ? 'Chỉnh sửa suất chiếu' : 'Thêm suất chiếu'}
                     room={selectedRoom?.name}
-                    date={selectedDate.format('DD/MM/YYYY')}
+                    date={selectedDate?.format('DD/MM/YYYY')}
                 >
                     <div className="grid   ">
                         <div className="grid grid-cols-2 gap-16 p-2  ">
@@ -783,7 +776,7 @@ const Schedule = () => {
                                 label="Chọn giờ"
                                 value={selectedTime || null}
                                 onChange={handleTimeChange}
-                                minTime={selectedDate.hour(9).minute(0).second(0)}
+                                minTime={selectedDate?.hour(9).minute(0).second(0)}
                                 ampm={false} // Vô hiệu hóa AM/PM
                                 shouldDisableTime={isTimeDisabled}
                                 renderInput={(params) => (
@@ -803,7 +796,7 @@ const Schedule = () => {
                                 )}
                             />
                             <AutoInputComponent
-                                options={optionMovieName.map((option) => option.name)}
+                                options={optionMovieName.map((option) => option.name.toUpperCase())}
                                 value={selectedMovieName}
                                 onChange={handleOnChangeOptionMovie}
                                 title="Tên phim"
@@ -811,7 +804,7 @@ const Schedule = () => {
                                 disableClearable={true}
                                 placeholder="Chọn"
                                 heightSelect={200}
-                                borderRadius={'10px'}
+                                borderRadius={'5px'}
                             />
                         </div>
 
@@ -854,7 +847,7 @@ const Schedule = () => {
                                         freeSolo={false}
                                         disableClearable={true}
                                         className="grid  "
-                                        borderRadius={'10px'}
+                                        borderRadius={'5px'}
                                     />
                                     <AutoInputComponent
                                         value={selectedSubtitle}
@@ -865,7 +858,7 @@ const Schedule = () => {
                                         freeSolo={false}
                                         disableClearable={true}
                                         className="grid "
-                                        borderRadius={'10px'}
+                                        borderRadius={'5px'}
                                     />
                                 </div>
                                 <div className="justify-end flex space-x-3 border-t pt-4 pr-4">
