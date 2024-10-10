@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 
 import { LuArmchair } from 'react-icons/lu';
 import { IoIosArrowBack } from 'react-icons/io';
@@ -71,7 +71,6 @@ const Seat = () => {
     const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
     const user = useSelector((state) => state.auth.login?.currentUser);
 
-
     const handleUpdateStatusSeat = async (status) => {
         try {
             if (arraySeat.length === 0) {
@@ -99,14 +98,12 @@ const Seat = () => {
             const code = arraySeat.map((item) => item.code);
             console.log(code);
             handleUpdateStatusSeat(2);
-            toast.success('Chuyển sang chọn đồ ăn và nước');
             dispatch(increment());
             return;
         }
 
         if (value === 1) {
             dispatch(increment());
-            toast.success('Chuyển sang thanh toán');
             return;
         }
     };
@@ -177,11 +174,6 @@ const Seat = () => {
     const totalPrice = useMemo(() => calculateTotalPrice(arraySeat), [arraySeat]);
     const totalPriceMain = useMemo(() => totalPriceCombo + totalPrice, [totalPriceCombo, totalPrice]);
 
-    const [totalAmount, setTotalAmount] = useState(totalPriceMain);
-    useEffect(() => {
-        setTotalAmount(totalPriceMain);
-    }, [totalPriceMain]);
-
     const [cashGiven, setCashGiven] = useState(0);
     const [changeAmount, setChangeAmount] = useState(0);
 
@@ -198,16 +190,16 @@ const Seat = () => {
             setCashGiven(cashGiven);
 
             // Kiểm tra xem khách đưa có đủ tiền không
-            if (cashGiven < totalAmount) {
+            if (cashGiven < totalPriceMain) {
             }
 
-            const changeAmount = calculateChangeAmount(cashGiven, totalAmount);
+            const changeAmount = calculateChangeAmount(cashGiven, totalPriceMain);
             setChangeAmount(changeAmount);
         }
     };
 
     const handleSubmit = async () => {
-        if (cashGiven < totalAmount) {
+        if (cashGiven < totalPriceMain) {
             // Nếu tiền không đủ
             toast.warning('Không đủ tiền để thanh toán');
         } else {
@@ -347,6 +339,7 @@ const Seat = () => {
         quantity: combo.quantity,
         totalPrice: combo.price * combo.quantity,
     }));
+    console.log('groupedCombos', groupedCombos);
 
     return (
         <div className="max-h-screen">
@@ -591,8 +584,8 @@ const Seat = () => {
                         <input
                             className="border border-black rounded-[10px] p-1 w-full text-base px-2 bg-gray-300"
                             type="number"
-                            value={totalAmount}
-                            onChange={setTotalAmount}
+                            value={totalPriceMain}
+                            // onChange={}
                             placeholder="Nhập số"
                             disabled={true}
                         />
