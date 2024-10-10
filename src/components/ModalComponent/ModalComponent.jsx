@@ -1,6 +1,5 @@
 import React from 'react';
 import { Modal, Box } from '@mui/material';
-import zIndex from '@mui/material/styles/zIndex';
 
 const ModalComponent = ({
     open,

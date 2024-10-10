@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Checkbox } from 'antd';
+import React from 'react';
+import { Form, Input, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Logo from '~/assets/Logo.png';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ const Login = () => {
     const dispatch = useDispatch();
 
     const navigate = useNavigate();
+
     const handleNavigate = (path) => {
         navigate(path);
     };
@@ -21,7 +22,7 @@ const Login = () => {
             const newUser = {
                 phone: object.phone,
                 password: object.password,
-                type: 1, // Thêm type với giá trị là 0
+                type: 1,
             };
 
             const error = await loginUser(newUser, dispatch, navigate);
@@ -89,6 +90,7 @@ const Login = () => {
                                 onClick={() => {
                                     handleNavigate('/forgot-password');
                                 }}
+                                type="button"
                             >
                                 <h1 className="text-right text-transparent bg-clip-text bg-gradient-to-r font-medium from-[#ED999A] to-[#F1C46F]">
                                     Quên mật khẩu?

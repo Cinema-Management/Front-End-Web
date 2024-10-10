@@ -455,7 +455,7 @@ const SaleInvoice = () => {
                                     onChange={onChangeRanger}
                                     placeholder={['Từ ngày', 'Đến ngày']}
                                     placement="bottomRight"
-                                    format={'YYYY-MM-DD'}
+                                    format={'DD-MM-YYYY'}
                                     className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
                                 />
                             </div>

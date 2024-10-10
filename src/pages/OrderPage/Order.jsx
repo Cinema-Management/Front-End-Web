@@ -1,4 +1,4 @@
-import React, { lazy, useEffect, useState } from 'react';
+import React, { lazy, useEffect, useMemo, useState } from 'react';
 import { IoIosArrowBack } from 'react-icons/io';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import { Button } from '@mui/material';
@@ -6,152 +6,67 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
-import { getCinemaCode, getIsSchedule, getSchedule } from '~/redux/apiRequest';
+import { getIsSchedule, getSchedule } from '~/redux/apiRequest';
 import { useDispatch, useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
+import { set } from 'date-fns';
 
 const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
+
+const fetchCinemasFullAddress = async () => {
+    try {
+        const response = await axios.get('/api/cinemas/getAllFullAddress');
+
+        const data = response.data;
+
+        const arrayNameCinema = data.map((cinema) => ({
+            name: cinema.name,
+            code: cinema.code,
+        }));
+
+        return { optionNameCinema: arrayNameCinema };
+    } catch (error) {
+        if (error.response) {
+            throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+        } else if (error.request) {
+            throw new Error('Error: No response received from server');
+        } else {
+            throw new Error('Error: ' + error.message);
+        }
+    }
+};
+
+const fetchMoviesStatus = async () => {
+    try {
+        const response = await axios.get('api/movies');
+        const movies = response.data;
+
+        // Lọc các phim có status = 1
+        const filteredMovies = movies.filter((movie) => movie.status === 1);
+
+        // Tạo mảng chứa tên và mã phim
+        const arrayNameMovie = filteredMovies.map((movie) => ({
+            name: movie.name, // Hiển thị tên
+            code: movie.code, // Giá trị sẽ được gửi về
+        }));
+
+        // Nếu có ít nhất một phim có status = 1, thông báo tên phim đầu tiên
+
+        return arrayNameMovie;
+    } catch (error) {
+        return []; // Trả về mảng rỗng nếu có lỗi
+    }
+};
+
 const Order = () => {
     const [selectedMovie, setSelectedMovie] = useState('');
     const [selectedCinema, setSelectedCinema] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(dayjs());
-    const cinemaCode = useSelector((state) => state.cinema.code?.currentCode);
     const dispatch = useDispatch();
-    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
+    const [roomsFilter, setRoomsFilter] = useState([]);
     const [movieSelected, setMovieSelected] = useState(null);
-
-    const fetchCinemasFullAddress = async () => {
-        try {
-            const response = await axios.get('/api/cinemas/getAllFullAddress');
-
-            const data = response.data;
-
-            const arrayNameCinema = data.map((cinema) => ({
-                name: cinema.name,
-                code: cinema.code,
-            }));
-
-            return { optionNameCinema: arrayNameCinema };
-        } catch (error) {
-            if (error.response) {
-                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-            } else if (error.request) {
-                throw new Error('Error: No response received from server');
-            } else {
-                throw new Error('Error: ' + error.message);
-            }
-        }
-    };
-
-    const fetchAllScheduleInRoomByCinemaCode = async (cinemaCode, selectedDate) => {
-        if (!cinemaCode) return; // Nếu cinemaCode rỗng thì không gọi API
-
-        const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
-
-        try {
-            const response = await axios.get(
-                `api/schedules/getAllRoomsWithSchedules/${cinemaCode}?date=${formattedDate}`,
-            );
-            const room = response.data;
-
-            return groupSchedulesByMovieAndStatus(room);
-        } catch (error) {
-            toast.error('Lỗi: ' + (error.response.data.message || error.message));
-        }
-    };
-
-    const fetchMoviesStatus = async () => {
-        try {
-            const response = await axios.get('api/movies');
-            const movies = response.data;
-
-            // Lọc các phim có status = 1
-            const filteredMovies = movies.filter((movie) => movie.status === 1);
-
-            // Tạo mảng chứa tên và mã phim
-            const arrayNameMovie = filteredMovies.map((movie) => ({
-                name: movie.name, // Hiển thị tên
-                code: movie.code, // Giá trị sẽ được gửi về
-            }));
-
-            // Nếu có ít nhất một phim có status = 1, thông báo tên phim đầu tiên
-
-            return arrayNameMovie;
-        } catch (error) {
-            return []; // Trả về mảng rỗng nếu có lỗi
-        }
-    };
-
-    const {
-        data: { optionNameCinema = [] } = {},
-        isLoading: isLoadingCinemas,
-        error: CinemaError,
-    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-
-    const {
-        data: optionMovieName = [],
-        isLoading: isLoadingOptionMovieName,
-        isFetching: isFetchingOptionMovieName,
-        error: optionCinemaNameError,
-    } = useQuery('movie1', fetchMoviesStatus, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-    });
-
-    const {
-        data: room = [],
-        isLoading: isLoadingRoom,
-        error: errorRoom,
-        // refetch: refetchRoom,
-    } = useQuery(
-        ['fetchAllScheduleInRoomByCinemaCode', cinemaCode, selectedDate],
-        () => fetchAllScheduleInRoomByCinemaCode(cinemaCode, selectedDate),
-        {
-            staleTime: 1000 * 60 * 3,
-            cacheTime: 1000 * 60 * 10,
-            enabled: !!cinemaCode && !!selectedDate,
-        },
-    );
-
-    (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName || isFetchingOptionMovieName) && <Loading />;
-    (errorRoom || CinemaError || optionCinemaNameError) &&
-        toast.error('Lỗi: ' + (errorRoom || CinemaError || optionCinemaNameError));
-
-    const handleDateChange = (date) => {
-        setSelectedDate(date);
-    };
-    const handleSearch = (searchValue) => {
-        if (searchValue) {
-            setSelectedFilterCinema(searchValue);
-            const optionFind = optionNameCinema.find((option) => option.name === searchValue);
-
-            getCinemaCode(dispatch, optionFind?.code);
-        }
-    };
-
-    const handleChangDoTuoi = (age) => {
-        if (age === 13) {
-            return 'C13';
-        } else if (age === 16) {
-            return 'C16';
-        } else if (age === 18) {
-            return 'C18';
-        } else {
-            return 'P';
-        }
-    };
-
-    useEffect(() => {
-        if (!selectedOptionFilterCinema) {
-            const option = optionNameCinema.find((option) => option.code === cinemaCode);
-            setSelectedFilterCinema(option?.name);
-        }
-    }, [selectedOptionFilterCinema, cinemaCode, optionNameCinema]);
+    const selectedIsSchedule = useSelector((state) => state.schedule.isSchedule?.currentIsSchedule);
 
     const groupSchedulesByMovieAndStatus = (rooms) => {
         const groupedData = [];
@@ -160,15 +75,13 @@ const Order = () => {
             room?.schedules.forEach((schedule) => {
                 const movieName = schedule.movieCode?.name;
                 const movieCode = schedule.movieCode?.code;
-                const image = schedule.movieCode?.image || ''; // Đảm bảo có trường image
+                const image = schedule.movieCode?.image || '';
                 const status = schedule?.status;
 
-                // Tìm nhóm hiện tại cho phim và trạng thái này
                 let movieStatusGroup = groupedData.find(
                     (group) => group.movieName === movieName && group.status === status,
                 );
 
-                // Nếu chưa có nhóm này, tạo mới
                 if (!movieStatusGroup) {
                     movieStatusGroup = {
                         movieCode: movieCode,
@@ -183,7 +96,6 @@ const Order = () => {
                     groupedData.push(movieStatusGroup);
                 }
 
-                // Tìm nhóm theo subtitle, audio và screeningFormat
                 let scheduleGroup = movieStatusGroup?.schedules.find(
                     (group) =>
                         group.subtitle === schedule.subtitleCode?.name &&
@@ -235,36 +147,156 @@ const Order = () => {
         return groupedData;
     };
 
-    const rap = [
+    const {
+        data: optionMovieName = [],
+        isLoading: isLoadingOptionMovieName,
+        // isFetching: isFetchingOptionMovieName,
+        error: optionCinemaNameError,
+    } = useQuery('movie1', fetchMoviesStatus, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    const {
+        data: { optionNameCinema = [] } = {},
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+    });
+    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
+    const [selectedDate, setSelectedDate] = useState(dayjs());
+
+    useEffect(() => {
+        if (optionNameCinema.length > 0) {
+            const initialValue = optionNameCinema[0].name;
+            if (!selectedOptionFilterCinema) {
+                setSelectedFilterCinema(initialValue);
+            }
+        }
+    }, [optionNameCinema, selectedOptionFilterCinema]);
+
+    const formattedDate = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate]);
+
+    const fetchAllScheduleInRoomByCinemaCode = async (selectedOptionFilterCinema) => {
+        if (!selectedOptionFilterCinema) return;
+        const cinemaCode = optionNameCinema.find((option) => option.name === selectedOptionFilterCinema)?.code;
+        try {
+            const response = await axios.get(
+                `api/schedules/getAllRoomsWithSchedules/${cinemaCode}?date=${formattedDate}`,
+            );
+
+            const roomsData = response.data;
+
+            if (!Array.isArray(roomsData)) {
+                throw new Error('Expected response.data to be an array');
+            }
+
+            // Process the rooms data
+            return groupSchedulesByMovieAndStatus(roomsData);
+        } catch (error) {
+            console.error('Error fetching schedule:', error); // Log the error
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const {
+        data: room = [],
+        isLoading: isLoadingRoom,
+        error: errorRoom,
+        // refetch: refetchRoom,
+    } = useQuery(
+        ['fetchAllScheduleInRoomByCinemaCodeOrder', selectedOptionFilterCinema, formattedDate],
+        () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema),
         {
-            id: 1,
-            name: 'Rạp Lotte',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-            slRoom: '3',
-            status: 'Active',
+            staleTime: 1000 * 60 * 3,
+            cacheTime: 1000 * 60 * 10,
+            enabled: !!selectedOptionFilterCinema && !!formattedDate && optionNameCinema.length > 0,
+            // onSuccess: (data) => {
+            //     setRoomsFilter(data);
+            // },
+            onError: (error) => {
+                console.error('Error fetching data:', error);
+            },
         },
-        {
-            id: 2,
-            name: 'Rạp Galaxy',
-            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            slRoom: '2',
-            status: 'InActive',
-        },
-    ];
-    const selectedIsSchedule = useSelector((state) => state.schedule.isSchedule?.currentIsSchedule);
+    );
+
+    const handleDateChange = (date) => {
+        setSelectedDate(date);
+    };
+    const handleSearch = (searchValue) => {
+        if (searchValue) {
+            setSelectedFilterCinema(searchValue);
+        }
+    };
+
+    console.log('selectedOptionFilterCinema', selectedOptionFilterCinema);
+    const handleSearchMovie = (searchValue) => {
+        setSelectedMovie(searchValue);
+        if (!searchValue) {
+            setRoomsFilter(room);
+            return;
+        }
+
+        const filteredRooms = room.filter((item) => item.movieName === searchValue);
+
+        if (filteredRooms.length > 0) {
+            setRoomsFilter(filteredRooms);
+        } else {
+            setRoomsFilter([]);
+        }
+    };
+
+    const handleChangDoTuoi = (age) => {
+        if (age === 13) {
+            return 'C13';
+        } else if (age === 16) {
+            return 'C16';
+        } else if (age === 18) {
+            return 'C18';
+        } else {
+            return 'P';
+        }
+    };
 
     function getTimeFromDate(dateString) {
         const utcDate = new Date(dateString);
 
         const vnTime = new Date(utcDate.getTime());
 
-        // Lấy giờ và phút
-        const hours = vnTime.getHours().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
-        const minutes = vnTime.getMinutes().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
+        const hours = vnTime.getHours().toString().padStart(2, '0');
+        const minutes = vnTime.getMinutes().toString().padStart(2, '0');
 
-        return `${hours}:${minutes}`; // Trả về định dạng "HH:mm"
+        return `${hours}:${minutes}`;
     }
 
+    const renderRoom = (rooms, type) => {
+        return rooms
+            .filter((item) => item.status === type) // Filter items with status 1
+            .map((item) => (
+                <div
+                    key={item.movieCode}
+                    className="border text-center border-[#95989D] shadow-xl grid p-1 rounded-[10px] py-2"
+                    onClick={() => {
+                        setSelectedCinema(true);
+                        setMovieSelected(item);
+                    }}
+                >
+                    <h1 className="font-bold uppercase pl-3">{item.movieName}</h1>
+                    <div className="text-center justify-center flex mt-2">
+                        <img src={item.image} alt={item.movieName} className="w-36 h-32 object-contain" />
+                    </div>
+                </div>
+            ));
+    };
+
+    if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
+    if (errorRoom || CinemaError || optionCinemaNameError)
+        return (
+            <div>
+                Error loading data: {errorRoom?.message || CinemaError?.message || optionCinemaNameError?.message}
+            </div>
+        );
     return (
         <div className="max-h-screen">
             {!selectedIsSchedule ? (
@@ -285,12 +317,12 @@ const Order = () => {
                             />
 
                             <AutoInputComponent
-                                options={rap.map((option) => option.name)}
+                                options={optionMovieName.map((option) => option.name)}
                                 value={selectedMovie}
-                                onChange={setSelectedMovie}
+                                onChange={(newValue) => handleSearchMovie(newValue)}
                                 title="Tên phim"
-                                freeSolo={false}
-                                disableClearable={true}
+                                freeSolo={true}
+                                disableClearable={false}
                                 placeholder="Nhập ..."
                                 heightSelect={200}
                                 borderRadius="10px"
@@ -314,53 +346,17 @@ const Order = () => {
                                 <div className="grid mb-3 ">
                                     <h1 className="font-bold text-[16px] uppercase pl-3 mb-3">Đang chiếu</h1>
                                     <div className="grid grid-cols-5  text-[13px] gap-10 px-10 max-lg:grid-cols-3 ">
-                                        {room
-                                            .filter((item) => item.status === 1)
-                                            .map((item) => (
-                                                <div
-                                                    key={item.movieCode}
-                                                    className="border text-center border-[#95989D] shadow-xl grid p-1 rounded-[10px] py-2"
-                                                    onClick={() => {
-                                                        setSelectedCinema(true);
-                                                        setMovieSelected(item);
-                                                    }}
-                                                >
-                                                    <h1 className="font-bold uppercase pl-3">{item.movieName}</h1>
-                                                    <div className="text-center justify-center flex mt-2">
-                                                        <img
-                                                            src={item.image}
-                                                            alt="phim1"
-                                                            className="w-36 h-32 object-contain"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        {Array.isArray(roomsFilter) && roomsFilter.length > 0
+                                            ? renderRoom(roomsFilter, 1)
+                                            : renderRoom(room, 1)}
                                     </div>
                                 </div>
                                 <div className="grid mt-6 ">
                                     <h1 className="font-bold text-[16px] uppercase pl-3 mb-3">Suất chiếu sớm</h1>
                                     <div className="grid grid-cols-5  text-[13px] gap-10 px-10 max-lg:grid-cols-3 ">
-                                        {room
-                                            .filter((item) => item.status === 2)
-                                            .map((item) => (
-                                                <div
-                                                    key={item.movieCode}
-                                                    className="border text-center border-[#95989D] shadow-xl grid p-1 rounded-[10px] py-2"
-                                                    onClick={() => {
-                                                        setSelectedCinema(true);
-                                                        setMovieSelected(item);
-                                                    }}
-                                                >
-                                                    <h1 className="font-bold uppercase pl-3">{item.movieName}</h1>
-                                                    <div className="text-center justify-center flex mt-2">
-                                                        <img
-                                                            src={item.image}
-                                                            alt="phim1"
-                                                            className="w-36 h-32 object-contain"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        {Array.isArray(roomsFilter) && roomsFilter.length > 0
+                                            ? renderRoom(roomsFilter, 2)
+                                            : renderRoom(room, 2)}
                                     </div>
                                 </div>
                             </div>
@@ -407,22 +403,30 @@ const Order = () => {
                                                     {schedule.subtitle}
                                                 </h1>
                                                 <div className="grid grid-cols-8 max-lg:grid-cols-4 gap-3 mt-2 mb-4 pl-3 ">
-                                                    {schedule.schedules.map((item) => (
-                                                        <div
-                                                            key={item.scheduleCode}
-                                                            className="text-[#95989D] text-[13px] text-center cursor-pointer"
-                                                            onClick={() => {
-                                                                getIsSchedule(dispatch, true);
-
-                                                                getSchedule(dispatch, item);
-                                                            }}
-                                                        >
-                                                            <h1 className="bg-[#1565C0] w-full text-white py-1 rounded-md px-2">
-                                                                {getTimeFromDate(item.startTime)}
-                                                            </h1>
-                                                            {/* <h1>{time.available} trống</h1> */}
+                                                    {schedule.schedules.filter((item) =>
+                                                        dayjs(item.startTime).isAfter(dayjs()),
+                                                    ).length > 0 ? (
+                                                        schedule.schedules
+                                                            .filter((item) => dayjs(item.startTime).isAfter(dayjs()))
+                                                            .map((item) => (
+                                                                <div
+                                                                    key={item.scheduleCode}
+                                                                    className="text-[#95989D] text-[13px] text-center cursor-pointer"
+                                                                    onClick={() => {
+                                                                        getIsSchedule(dispatch, true);
+                                                                        getSchedule(dispatch, item);
+                                                                    }}
+                                                                >
+                                                                    <h1 className="bg-[#1565C0] w-full text-white py-1 rounded-md px-2">
+                                                                        {getTimeFromDate(item.startTime)}
+                                                                    </h1>
+                                                                </div>
+                                                            ))
+                                                    ) : (
+                                                        <div className="text-center text-[#95989D] text-[15px] w-[400px]">
+                                                            Đã hết suất chiếu hôm nay. Vui lòng chọn ngày khác
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

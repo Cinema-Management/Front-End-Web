@@ -7,8 +7,8 @@ import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { IoIosArrowBack } from 'react-icons/io';
-import { auth } from "~/configs/firebaseConfig";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "@firebase/auth";
+import { auth } from '~/configs/firebaseConfig';
+import { RecaptchaVerifier, signInWithPhoneNumber } from '@firebase/auth';
 import axios from 'axios';
 
 const Register = () => {
@@ -20,23 +20,19 @@ const Register = () => {
     const otpRefs = useRef([]);
     const [timer, setTimer] = useState(60);
     const [newUser, setNewUser] = useState('');
-    const [isSendOtp, setIsSendOtp] = useState(true);
-
+    // const [isSendOtp, setIsSendOtp] = useState(true);
 
     function onCaptchaVerify() {
-        if(!window.recaptchaVerifier){
-            window.recaptchaVerifier = new RecaptchaVerifier(
-              auth ,"recaptcha-container",
-              {
-              'size': "invisible",
-              'callback': (response) => {
-                onRegister();
-              },
-              "expired-callback": () => {},
-            },
-            );
-          }
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                size: 'invisible',
+                callback: (response) => {
+                    onRegister();
+                },
+                'expired-callback': () => {},
+            });
         }
+    }
 
     const normalizePhoneNumber = (phoneNumber) => {
         // Loại bỏ các ký tự không phải là số và các dấu '+' không cần thiết, nhưng giữ lại dấu '+' nếu có ở đầu
@@ -69,59 +65,53 @@ const Register = () => {
         return normalized;
     };
 
+    const onRegister = async () => {
+        try {
+            const phoneNumber = form.getFieldValue('phone'); // Lấy số điện thoại từ form
+            toast.success('Số điện thoại: ' + phoneNumber);
+            if (phoneNumber) {
+                const formatPh = normalizePhoneNumber(phoneNumber); // Gọi hàm normalizePhoneNumber để chuẩn hóa số điện thoại
+                toast.success('Số điện thoại: ' + formatPh);
 
-    const  onRegister = async ()=> {
-        try{
-        const phoneNumber = form.getFieldValue('phone'); // Lấy số điện thoại từ form
-        toast.success('Số điện thoại: ' + phoneNumber);
-        if (phoneNumber) {
-            const formatPh = normalizePhoneNumber(phoneNumber); // Gọi hàm normalizePhoneNumber để chuẩn hóa số điện thoại
-            toast.success('Số điện thoại: ' + formatPh);
+                if (formatPh) {
+                    onCaptchaVerify();
 
-            if (formatPh) {
-                onCaptchaVerify()
+                    const appVerifier = window.recaptchaVerifier;
 
-           
-                const appVerifier = window.recaptchaVerifier;
-    
-                signInWithPhoneNumber(auth,formatPh, appVerifier).then((result) => {
-                    // setConfirmationResult(result);
-                    alert("code sent")
-                    // setshow(true);
-                })
-                    .catch((err) => {
-                        alert(err);
-                        window.location.reload()
-                    });
-            
-                    
+                    signInWithPhoneNumber(auth, formatPh, appVerifier)
+                        .then((result) => {
+                            // setConfirmationResult(result);
+                            alert('code sent');
+                            // setshow(true);
+                        })
+                        .catch((err) => {
+                            alert(err);
+                            window.location.reload();
+                        });
                 } else {
-                toast.error('Số điện thoại không hợp lệ!');
+                    toast.error('Số điện thoại không hợp lệ!');
+                }
+            } else {
+                toast.error('Vui lòng nhập số điện thoại!');
             }
-
-        } else {
-            toast.error('Vui lòng nhập số điện thoại!');
+        } catch (error) {
+            toast.error('Gửi mã OTP thất bại:' + error);
         }
-    }catch(error){
-            toast.error('Gửi mã OTP thất bại:'+error);
+    };
 
-        }
-    }
-    
-
-    function onOTPVerify() {
-        if (otp != null ) {
-            window.confirmationResult
-                .confirm(otp)
-                .then(async (res) => {
-                    // Đánh dấu rằng mã OTP đã được xác minh thành công
-                    toast.success('Xác nhận OTP thành công!');
-                })
-                .catch((err) => {});
-        } else {
-            toast.error('Mã OTP không đúng!');
-        }
-    }
+    // function onOTPVerify() {
+    //     if (otp != null ) {
+    //         window.confirmationResult
+    //             .confirm(otp)
+    //             .then(async (res) => {
+    //                 // Đánh dấu rằng mã OTP đã được xác minh thành công
+    //                 toast.success('Xác nhận OTP thành công!');
+    //             })
+    //             .catch((err) => {});
+    //     } else {
+    //         toast.error('Mã OTP không đúng!');
+    //     }
+    // }
 
     const handleNavigate = (path) => {
         navigate(path);
@@ -138,7 +128,6 @@ const Register = () => {
             otpRefs.current[index - 1].focus();
         }
     };
-
 
     // Thay đổi logic để bắt đầu đếm ngược khi component mount
     useEffect(() => {
@@ -178,7 +167,7 @@ const Register = () => {
                     ...object,
                     type: 1,
                 };
-                
+
                 setNewUser(user);
                 setStep1(false);
                 setStep2(true);
@@ -235,9 +224,8 @@ const Register = () => {
             <div className="h-screen flex items-center justify-center">
                 <div className="grid login-container p-4 custom-air-mini rounded-lg max-w-[480px] w-full">
                     <img src={Logo} alt="background" className="h-[120px] object-cover mx-auto mb-8" />
-                    {isSendOtp&&<div id="recaptcha-container" className="flex justify-center mt-3"></div>}
+                    <div id="recaptcha-container" className="flex justify-center mt-3"></div>
 
-                
                     {/* <button
                                 type="submit"
                                 className="login-form-button rounded-[10px] mt-20 w-full gradient-button h-[38px] text-[18px] font-bold text-black"
