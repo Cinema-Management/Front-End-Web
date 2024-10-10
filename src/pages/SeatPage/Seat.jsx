@@ -69,6 +69,8 @@ const Seat = () => {
 
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
     const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
+    const user = useSelector((state) => state.auth.login?.currentUser);
+
 
     const handleUpdateStatusSeat = async (status) => {
         try {
@@ -260,7 +262,7 @@ const Seat = () => {
     const handleAddSalesInvoice = async () => {
         try {
             const salesInvoice = {
-                staffCode: 'NV02',
+                staffCode: user?.code,
                 scheduleCode: schedule?.scheduleCode,
                 paymentMethod: 0,
                 type: 0,

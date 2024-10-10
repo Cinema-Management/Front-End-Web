@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tooltip, Button } from 'antd';
 import { IoIosLogOut } from 'react-icons/io';
 import { MdLockReset } from 'react-icons/md';
+import { logOut } from '~/redux/apiRequest';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import {createAxios} from'~/createInstance';
+import { loginSuccess } from '~/redux/authSlice';
 const Avatar = () => {
-    const handleLogout = () => {
-        console.log('Logging out...');
-    };
+    const dispatch = useDispatch();
 
+    const navigate = useNavigate();
+    const user = useSelector((state) => state.auth.login?.currentUser);
+    let axiosJWT = createAxios(user, dispatch, loginSuccess);
+
+
+
+    useEffect(() => {
+        if (!user || !user.accessToken) 
+            navigate("/login");
+        
+    }, [user]);
+
+    const handleLogout = () => {
+      logOut(dispatch, navigate, user.accessToken, axiosJWT);
+    };
     const handleChangePassword = () => {
         console.log('Changing password...');
     };
@@ -54,7 +72,7 @@ const Avatar = () => {
                     />
                     <div>
                         <h1 className="font-bold text-sm">Admin</h1>
-                        <h1 className="font-medium text-sm">Cao Trùng Dương</h1>
+                        <h1 className="font-medium text-sm">{user?.name}</h1>
                     </div>
                 </div>
             </Tooltip>
