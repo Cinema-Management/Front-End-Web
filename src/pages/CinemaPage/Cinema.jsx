@@ -14,7 +14,7 @@ import axios from 'axios';
 import { MultiSelect } from 'react-multi-select-component';
 import { toast } from 'react-toastify';
 import { getAllSeatByRoomCode, getRoomCode } from '~/redux/apiRequest';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Cinema = () => {
@@ -39,7 +39,7 @@ const Cinema = () => {
     const [numRows, setNumRows] = useState('');
     const [numColumns, setNumColumns] = useState('');
     const [selectedRoom, setSelectedRoom] = useState([]);
-
+    const user = useSelector((state) => state.auth.login?.currentUser);
     const [optionRoomType, setOptionRoomType] = useState([]);
     const [optionRoomSize, setOptionRoomSize] = useState('');
 
@@ -174,7 +174,8 @@ const Cinema = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
         refetch,
-    } = useQuery('cinemasFullAddress', fetchCinemasFullAddress, {
+    } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
+        enabled: !!user,
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
         onSuccess: (data) => {

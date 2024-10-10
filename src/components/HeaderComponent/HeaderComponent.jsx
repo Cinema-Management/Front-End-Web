@@ -11,6 +11,7 @@ import { BsTag } from 'react-icons/bs';
 import { ImSpoonKnife } from 'react-icons/im';
 import { MdOutlineAttachMoney } from 'react-icons/md';
 import { FaMoneyBills } from 'react-icons/fa6';
+
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();

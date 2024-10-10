@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import screen from '~/assets/screen.png';
-import { FaRegEdit } from 'react-icons/fa';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
@@ -48,7 +47,6 @@ const Room = () => {
     const {
         data: seat1 = [],
         isLoading,
-        isFetching,
         error,
         // refetch,
     } = useQuery(['fetchSeatByRoomCode', roomCode], () => fetchSeatByRoomCode(roomCode), {
@@ -57,7 +55,8 @@ const Room = () => {
         enabled: !!roomCode, // Chỉ fetch khi roomCode có giá trị
     });
 
-    // Kiểm tra lỗi khi tải rạp chiếu phim
+    if (isLoading) return <Loading />;
+
     if (error) {
         return <div>Lỗi khi tải danh sách ghế: {error.message}</div>;
     }

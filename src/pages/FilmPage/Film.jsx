@@ -16,6 +16,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import dayjs from 'dayjs';
 import { FixedSizeList as List } from 'react-window';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
+import { useSelector } from 'react-redux';
 const { Option } = Select;
 
 const { getFormattedDate, getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
@@ -53,8 +54,8 @@ const Film = React.memo(() => {
     const [director, setDirector] = useState('');
     const [cast, setCast] = useState('');
     const [country, setCountry] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
     const [selectedFilm, setSelectedFilm] = useState(null);
     const [detailMovie, setDetailMovie] = useState(false);
     const maxTagCount = window.innerWidth < 1025 ? 1 : 2;
@@ -72,13 +73,15 @@ const Film = React.memo(() => {
     ];
 
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
+    const user = useSelector((state) => state.auth.login?.currentUser);
     const {
         data: { movies = [], optionMovie = [] } = {},
         error,
         isLoading,
         isFetched,
         refetch,
-    } = useQuery('movies', fetchMovies, {
+    } = useQuery(['movies', user], fetchMovies, {
+        enabled: !!user,
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
         onSuccess: (data) => {
@@ -91,7 +94,7 @@ const Film = React.memo(() => {
         errorGenre,
         isLoadingGenre,
         isFetchedGenre,
-    } = useQuery('genres', fetchGenres, {
+    } = useQuery(['genres', user], fetchGenres, {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
     });
@@ -109,6 +112,8 @@ const Film = React.memo(() => {
 
         setDetailMovie(false);
         setSelectedFilm(null);
+        setStartDate(null);
+        setEndDate(null);
         clearText();
     };
 
@@ -189,7 +194,7 @@ const Film = React.memo(() => {
 
         const filterDate = movies.filter((item) => {
             const itemDate = FormatDate(new Date(item.startDate));
-            console.log(itemDate);
+
             return itemDate >= startDateFormatted && itemDate <= endDateFormatted;
         });
         if (filterDate.length === 0) {
@@ -219,8 +224,8 @@ const Film = React.memo(() => {
         setDirector('');
         setCast('');
         setCountry('');
-        setStartDate('');
-        setEndDate('');
+        setStartDate(null);
+        setEndDate(null);
         descriptionRef.current = '';
         setSelectedGenre(null);
         setSelectedImage(null);
@@ -236,11 +241,22 @@ const Film = React.memo(() => {
         { value: 'AD', label: 'Ấn Độ' },
         { value: 'USA', label: 'Mỹ' },
     ];
-    const onChangeStart = (date, dateString) => {
+    const onChangeStart = (dateString) => {
+        if (!dateString) {
+            setStartDate(null);
+            return;
+        }
+
         setStartDate(dateString);
+        setEndDate(null);
     };
 
-    const onChangeEnd = (date, dateString) => {
+    const onChangeEnd = (dateString) => {
+        if (!dateString) {
+            setEndDate(null);
+            return;
+        }
+
         setEndDate(dateString);
     };
     const optionTuoi = [
@@ -375,7 +391,6 @@ const Film = React.memo(() => {
             toast.error('Câp nhật status phim thất bại!');
         }
     };
-
     const handleUpdateMovie = async (movieCode) => {
         const age = ageRestriction === 'C13' ? 13 : ageRestriction === 'C16' ? 16 : ageRestriction === 'C18' ? 18 : 0;
         if (
@@ -389,10 +404,14 @@ const Film = React.memo(() => {
             !director &&
             !cast &&
             country === selectedFilm.country &&
-            !startDate &&
-            !endDate
+            dayjs(selectedFilm?.startDate).isSame(startDate, 'day') &&
+            dayjs(selectedFilm?.endDate).isSame(endDate, 'day')
         ) {
             toast.error('Vui lòng nhập thông tin cần cập nhật!');
+            return;
+        }
+        if (endDate === null) {
+            toast.error('Vui lòng chọn ngày kết thúc!');
             return;
         }
         const formData = handleFormData();
@@ -428,8 +447,12 @@ const Film = React.memo(() => {
     };
 
     const rowRenderer = ({ index, style }, data) => {
-        const reversedData = [...data].reverse();
-        const item = reversedData[index];
+        const sortedData = [...data].sort((a, b) => {
+            const startEndA = new Date(a.startDate);
+            const startEndB = new Date(b.startDate);
+            return startEndB - startEndA;
+        });
+        const item = sortedData[index];
 
         return (
             <div
@@ -475,6 +498,8 @@ const Film = React.memo(() => {
                                 setSelectedFilm(item);
                                 setCountry(item.country);
                                 setAgeRestriction(getAgeRestrictionLabel(item?.ageRestriction));
+                                setStartDate(dayjs(item.startDate));
+                                setEndDate(dayjs(item.endDate));
                             }}
                             disabled={item.status === 1 ? true : false}
                         >
@@ -535,7 +560,7 @@ const Film = React.memo(() => {
                                 onChange={onChangeRanger}
                                 placeholder={['Từ ngày', 'Đến ngày']}
                                 placement="bottomRight"
-                                format={'YYYY-MM-DD'}
+                                format={'DD-MM-YYYY'}
                                 className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
                             />
                         </div>
@@ -705,18 +730,12 @@ const Film = React.memo(() => {
                                 <div className="col-span-2">
                                     <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                                     <DatePicker
-                                        value={
-                                            startDate
-                                                ? dayjs(startDate)
-                                                : isUpdate && selectedFilm?.startDate
-                                                ? dayjs(selectedFilm.startDate)
-                                                : null
-                                        }
+                                        value={startDate}
                                         minDate={dayjs()}
                                         onChange={onChangeStart}
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
-                                        format="YYYY-MM-DD"
+                                        format="DD-MM-YYYY"
                                         className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
@@ -725,18 +744,12 @@ const Film = React.memo(() => {
                                 <div className="col-span-3">
                                     <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                     <DatePicker
-                                        value={
-                                            endDate
-                                                ? dayjs(endDate)
-                                                : isUpdate && selectedFilm?.endDate
-                                                ? dayjs(selectedFilm.endDate)
-                                                : null
-                                        }
+                                        value={endDate}
                                         minDate={startDate ? dayjs(startDate) : dayjs()}
                                         onChange={onChangeEnd}
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
-                                        format="YYYY-MM-DD"
+                                        format="DD-MM-YYYY"
                                         className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
