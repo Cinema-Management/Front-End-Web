@@ -152,6 +152,8 @@ const Promotion = () => {
     const [discountAmount, setDiscountAmount] = useState(0);
     const [discountPercentage, setDiscountPercentage] = useState(0);
     const [maxDiscountAmount, setMaxDiscountAmount] = useState(0);
+    const [openDelete, setOpenDelete] = useState(false);
+
 
     const optionKMLines = [
         { name: 'Khuyến mãi sản phẩm', value: 0 },
@@ -238,6 +240,16 @@ const Promotion = () => {
         cleanTextKMDetail();
     };
 
+    //delete 
+
+    const handleOpenDelete = (item) => {
+        setSelectedKMLine(item);
+        setOpenDelete(true);
+    };
+    const handleCloseDelete = () => {
+        setOpenDelete(false);
+    };
+
     const handleDeleteKMDetail = async (code) => {
         try {
             await axios.delete(`api/promotion-details/${code}`);
@@ -248,6 +260,28 @@ const Promotion = () => {
         }
     };
 
+    const handleDeleteKM = async (code) => {
+        try {
+            await axios.delete(`api/promotions/${code}`);
+            toast.success('Xóa thành công!');
+            refetchKM();
+        } catch (error) {
+            toast.error('Xóa thất bại!');
+        }
+    };
+
+
+    const handleDeleteKMLine = async (code) => {
+        try {
+            await axios.delete(`api/promotion-lines/${code}`);
+            toast.success('Xóa thành công!');
+            refetchKM();
+            handleCloseDelete();
+        } catch (error) {
+            toast.error('Xóa thất bại!');
+        }
+    };
+    
     const [visibleRooms, setVisibleRooms] = useState({});
 
     const toggleVisibility = (roomId) => {
@@ -275,7 +309,7 @@ const Promotion = () => {
     const cleanTextKMLine = () => {
         setSelectedEndDateKMLine(null);
         setSelectedStartDateKMLine(null);
-        setDescriptionKM('');
+        setDescriptionKMLine('');
         setSelectedKMLine([]);
     };
 
@@ -896,11 +930,13 @@ const Promotion = () => {
                             {promotion.status}
                         </button>
                     </div>
-                    <div className="justify-center grid items-center ">
-                        <button className="" onClick={() => handleOpenKM(true)}>
+                    <div className={`justify-center grid items-center grid-cols-2 px-2   ${
+                    promotion.promotionLines.length> 0 ? 'pointer-events-none opacity-50' : '' }`}>
+                              
+                        <button className=" grid " onClick={() => handleOpenKM(true)}>
                             <FaRegEdit
                                 color="black"
-                                size={20}
+                                size={23}
                                 onClick={() => {
                                     setSelectedStartDateKM(dayjs(promotion.startDate));
                                     setSelectedEndDateKM(dayjs(promotion.endDate));
@@ -909,6 +945,10 @@ const Promotion = () => {
                                 }}
                             />
                         </button>
+
+                        <button className='grid' onClick={() => handleDeleteKM(promotion.code)}>
+                         <MdOutlineDeleteOutline color="black" fontSize={23} />
+                          </button>
                     </div>
                 </div>
                 {visibleRooms[promotion.code] && (
@@ -929,7 +969,7 @@ const Promotion = () => {
                             </div>
 
                             <div className="grid col-span-2 grid-cols-8  justify-center items-center ">
-                                <h1 className="grid  justify-center  items-center pl-5 col-span-5 ">Trạng thái</h1>
+                                <h1 className="grid  justify-center  items-center  col-span-5 ">Trạng thái</h1>
                                 <div className="grid justify-center col-span-3 ">
                                     <button
                                         className="border px-4 py-1 rounded-[40px] bg-orange-400  "
@@ -980,7 +1020,7 @@ const Promotion = () => {
 
                                         <div className=" grid col-span-2 grid-cols-9 justify-center items-center ">
                                             <div
-                                                className="justify-center  items-center grid col-span-5 pl-5  "
+                                                className="justify-center  items-center grid col-span-5   "
                                                 onClick={() => {
                                                     handleUpdateStatus(item.code, item.status);
                                                 }}
@@ -1004,8 +1044,12 @@ const Promotion = () => {
                                                         setSelectedEndDateKMLine(dayjs(item.endDate));
                                                     }}
                                                 >
+
                                                     <FaRegEdit color="black" size={20} />
                                                 </button>
+                                                <button className='grid' onClick={() => handleOpenDelete(item)}>
+                         <MdOutlineDeleteOutline color="black" fontSize={23} />
+                          </button>
                                                 <button
                                                     className=""
                                                     onClick={() => {
@@ -1070,6 +1114,7 @@ const Promotion = () => {
                         >
                             <IoIosAddCircleOutline color="white" size={20} />
                         </button>
+                        
                     </div>
                 </div>
                 <div className="overflow-auto h-[92%] height-sm-1 ">{renderPromotion(promotions)}</div>
@@ -1707,6 +1752,39 @@ const Promotion = () => {
                         </div>
                     </div>
                 )}
+            </ModalComponent>
+
+
+            <ModalComponent
+                open={openDelete}
+                handleClose={handleCloseDelete}
+                width="25%"
+                height="32%"
+                smallScreenWidth="40%"
+                smallScreenHeight="25%"
+                mediumScreenWidth="40%"
+                mediumScreenHeight="20%"
+                largeScreenHeight="20%"
+                largeScreenWidth="40%"
+                maxHeightScreenHeight="40%"
+                maxHeightScreenWidth="40%"
+                title="Xóa "
+            >
+                <div className="h-[80%] grid grid-rows-3 ">
+                    <h1 className="grid row-span-2 p-3">
+                        Khi xóa sẽ không thể khôi phục lại. Bạn có chắc chắn xóa chứ?{' '}
+                    </h1>
+                    <div className="grid items-center ">
+                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
+                            <ButtonComponent
+                                text="Xóa"
+                                className="bg-blue-500"
+                                onClick={() => handleDeleteKMLine(selectedKMLine?.code) }
+                            />
+                        </div>
+                    </div>
+                </div>
             </ModalComponent>
         </div>
     );
