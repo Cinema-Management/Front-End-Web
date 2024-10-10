@@ -12,7 +12,7 @@ import {
     getIsScheduleSuccess,
     getIsScheduleStart,
 } from './scheduleSlice';
-import { loginFailed, loginStart, loginSuccess, registerFailed, registerStart, registerSuccess } from './authSlice';
+import { loginFailed, loginStart, loginSuccess, logOutFailed, logOutStart, logOutSuccess, registerFailed, registerStart, registerSuccess } from './authSlice';
 //npm install axios
 
 export const getAllSeatByRoomCode = async (dispatch, roomCode) => {
@@ -86,5 +86,32 @@ export const registerUser = async (user, dispatch, navigate) => {
     } catch (err) {
         dispatch(registerFailed());
         return err;
+    }
+
+    
+};
+// export const logOut = async (dispatch, id, navigate, accessToken, axiosJWT) => {
+//     dispatch(logOutStart());
+//     try {
+//         await axiosJWT.post('api/auth/logout', id, {
+//             headers: { token: `Bearer ${accessToken}` },
+//         });
+//         dispatch(logOutSuccess());
+//         navigate(config.routes.login);
+//     } catch (err) {
+//         dispatch(logOutFailedd());
+//     }
+// };
+
+export const logOut = async (dispatch, navigate, accessToken, axiosJWT) => {
+    dispatch(logOutStart());
+    try {
+        await axiosJWT.post('api/auth/logout', {
+            headers: { token: `Bearer ${accessToken}` },
+        });
+        dispatch(logOutSuccess());
+        navigate("/login");
+    } catch (err) {
+        dispatch(logOutFailed());
     }
 };
