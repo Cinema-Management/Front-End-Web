@@ -33,19 +33,26 @@ const SeatComponent = memo(({ setSetGhe }) => {
         isLoading,
         isFetching,
         error,
-        refetch,
+        // refetch,
     } = useQuery(['fetchSeatByRoomCode', schedule.roomCode], () => fetchSeatByRoomCode(schedule.roomCode), {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
         enabled: !!schedule.roomCode,
     });
-    isLoading || (isFetching && <Loading />);
-    error && toast.error('Lỗi: ' + error);
-
     const dispatch = useDispatch();
     const selectedSeatsFromStore = useSelector((state) => state.seat.seat.selectedSeats);
     const arraySeat = selectedSeatsFromStore.map((seat) => seat.code);
     const [selectedSeat, setSelectedSeat] = useState(arraySeat || []);
+
+    useEffect(() => {
+        const savedSeats = JSON.parse(localStorage.getItem('selectedSeats'));
+        if (savedSeats) {
+            setSelectedSeat(savedSeats);
+            dispatch(toggleSeat(savedSeats)); // Khôi phục trạng thái ghế trong Redux (nếu cần)
+        }
+    }, [dispatch]);
+    if (isLoading || isFetching) return <Loading />;
+    if (error) return <h1>{error.message}</h1>;
 
     const handleSelectSeat = (seat) => {
         setSelectedSeat((prev) => {
@@ -96,17 +103,6 @@ const SeatComponent = memo(({ setSetGhe }) => {
             toast.error('Seat not found!');
         }
     };
-    useEffect(() => {
-        refetch();
-    }, []);
-
-    useEffect(() => {
-        const savedSeats = JSON.parse(localStorage.getItem('selectedSeats'));
-        if (savedSeats) {
-            setSelectedSeat(savedSeats);
-            dispatch(toggleSeat(savedSeats)); // Khôi phục trạng thái ghế trong Redux (nếu cần)
-        }
-    }, [dispatch]);
 
     // console.log('priceDetails', priceDetails);
 
