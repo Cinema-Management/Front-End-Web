@@ -15,7 +15,7 @@ import { resetSeats, resetCombo } from '~/redux/seatSlice';
 import { increment, decrement, resetValue } from '~/redux/valueSlice';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 const { FormatSchedule, getFormatteNgay } = require('~/utils/dateUtils');
 const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
 const FoodComponent = React.lazy(() => import('~/components/OrderComponent/FoodComponent'));
@@ -61,6 +61,8 @@ const Seat = () => {
         setCashGiven(0);
         setChangeAmount(0);
     };
+    const queryClient = useQueryClient();
+    const priceAfter = useSelector((state) => state.products?.calculatedPrice); // Lấy danh sách sản phẩm từ store
 
     const [openPrint, setOpenPrint] = useState(false);
 
@@ -158,6 +160,7 @@ const Seat = () => {
         }, []);
     };
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Lấy danh sách số lượng sản phẩm
+    const arrayFeeProduct = useSelector((state) => state.products?.freeProduct); // Lấy danh sách sản phẩm từ store
 
     const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
 
@@ -176,6 +179,8 @@ const Seat = () => {
 
     const [cashGiven, setCashGiven] = useState(0);
     const [changeAmount, setChangeAmount] = useState(0);
+    const products = useSelector((state) => state.products?.products); // Lấy danh sách sản phẩm từ store
+    console.log('products', products);
 
     const calculateChangeAmount = (cashGiven, totalAmount) => {
         const change = cashGiven - totalAmount;
@@ -190,16 +195,14 @@ const Seat = () => {
             setCashGiven(cashGiven);
 
             // Kiểm tra xem khách đưa có đủ tiền không
-            if (cashGiven < totalPriceMain) {
-            }
 
-            const changeAmount = calculateChangeAmount(cashGiven, totalPriceMain);
+            const changeAmount = calculateChangeAmount(cashGiven, priceAfter);
             setChangeAmount(changeAmount);
         }
     };
 
     const handleSubmit = async () => {
-        if (cashGiven < totalPriceMain) {
+        if (cashGiven < priceAfter) {
             // Nếu tiền không đủ
             toast.warning('Không đủ tiền để thanh toán');
         } else {
@@ -297,11 +300,19 @@ const Seat = () => {
                 dispatch(resetCombo());
                 dispatch(resetSeats());
                 dispatch(resetValue());
+                getIsSchedule(dispatch, false);
             }
         } catch (error) {
             toast.error(error.message);
         }
     };
+    const mutation = useMutation(handleAddSalesInvoice, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('fetchSaleInvoice');
+            queryClient.refetchQueries('fetchSeatByRoomCode');
+        },
+    });
     function getFormattedDateTime(isoString) {
         const date = new Date(isoString);
 
@@ -314,7 +325,7 @@ const Seat = () => {
         cinemaName: schedule.cinemaName,
         cinemaAddress: addressCinema,
         createdAt: FormatSchedule(new Date()),
-        staffName: 'Cao Trùng Dương',
+        staffName: user?.name,
         movieName: schedule.movieName,
         ageRestriction: handleChangDoTuoi(schedule.ageRestriction),
         date: getFormatteNgay(schedule.startTime),
@@ -330,16 +341,24 @@ const Seat = () => {
         cinemaName: schedule.cinemaName,
         cinemaAddress: addressCinema,
         createdAt: FormatSchedule(new Date()),
-        staffName: 'Cao Trùng Dương',
+        staffName: user?.name,
     };
-
+    const freeProduct = arrayFeeProduct[1];
+    const freeProductPrint = {
+        productName: freeProduct?.productName,
+        price: freeProduct?.price,
+        quantity: freeProduct?.freeQuantity,
+        totalPrice: freeProduct?.price,
+    };
+    console.log(freeProductPrint);
     const foodPrint = groupedCombos?.map((combo) => ({
         productName: combo.name,
         price: combo.price,
         quantity: combo.quantity,
         totalPrice: combo.price * combo.quantity,
     }));
-    console.log('groupedCombos', groupedCombos);
+
+    const combinedPrint = [freeProductPrint, ...foodPrint].filter((item) => item.quantity > 0);
 
     return (
         <div className="max-h-screen">
@@ -580,11 +599,11 @@ const Seat = () => {
             >
                 <div className=" h-[80%] grid grid-rows-4 gap-y-10 pb-6  mx-3 ">
                     <div className="">
-                        <p className="mb-1">Tổng tiền</p>
+                        <p className="mb-1">Tổng thanh toán</p>
                         <input
                             className="border border-black rounded-[10px] p-1 w-full text-base px-2 bg-gray-300"
                             type="number"
-                            value={totalPriceMain}
+                            value={priceAfter}
                             // onChange={}
                             placeholder="Nhập số"
                             disabled={true}
@@ -737,19 +756,22 @@ const Seat = () => {
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
                                 {/* Thông tin food detail */}
-                                {foodPrint.map((food, index) => (
+                                {combinedPrint.map((food, index) => (
                                     <div key={index} className="grid grid-cols-8 gap-4 ">
                                         <span className="col-span-3 font-normal whitespace-normal">
-                                            {food.productName}
+                                            {food.productName} {food.price === 0 ? '(Quà tặng)' : ''}
                                         </span>
-                                        <span className="col-span-2 font-normal whitespace-normal">
-                                            {food.price.toLocaleString()}
+                                        <span className="col-span-2 font-normal whitespace-normal  ">
+                                            {(food.price ?? '(Quà tặng)').toLocaleString()}
+                                            {/* Hiển thị giá, nếu undefined thì gán giá trị 0 */}
                                         </span>
                                         <span className="col-span-1 font-normal whitespace-normal">
-                                            {food.quantity}
+                                            {food.quantity ?? 0}{' '}
+                                            {/* Hiển thị số lượng, nếu undefined thì gán giá trị 0 */}
                                         </span>
                                         <span className="col-span-2 font-normal whitespace-normal text-right">
-                                            {food.totalPrice.toLocaleString()}
+                                            {(food.totalPrice ?? 0).toLocaleString()}
+                                            {/* Hiển thị tổng giá, nếu undefined thì gán giá trị 0 */}
                                         </span>
                                     </div>
                                 ))}
@@ -788,10 +810,15 @@ const Seat = () => {
                         <ButtonComponent
                             text="In Vé"
                             className="bg-blue-500 text-white"
+                            // onClick={() => {
+                            //     handleAddSalesInvoice();
+                            //     // handlePrint();
+                            // }} // Gọi hàm in
+
                             onClick={() => {
-                                handleAddSalesInvoice();
-                                // handlePrint();
-                            }} // Gọi hàm in
+                                // Thực hiện mutation
+                                mutation.mutate();
+                            }}
                         />
                     </div>
                 </div>
