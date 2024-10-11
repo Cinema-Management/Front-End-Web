@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Logo from '~/assets/Logo.png';
 import { GoHome } from 'react-icons/go';
 import { FaChevronDown, FaChevronUp, FaFilm, FaUser, FaRegUser } from 'react-icons/fa6';
@@ -31,6 +31,13 @@ const HeaderComponent = () => {
     const isParentActive = (paths) => {
         return paths.some((path) => location.pathname.startsWith(path)) ? 'bg-orange-200' : '';
     };
+
+    useEffect(() => {
+        const dropdownPaths = ['/film', '/cinema', '/schedule', '/price', '/promotion', '/food', '/staff', '/customer'];
+        if (dropdownPaths.some((path) => location.pathname.startsWith(path))) {
+            setIsDropdownOpen(true);
+        }
+    }, [location.pathname]);
     return (
         <div className="bg-white xl:w-1/5 max-xl:w-28p  min-w-[300px] custom-mini custom-air1  custom-hubmax1 custom-height-lg3 custom-height-sm21 custom-height-xxl4">
             <div className="py-2 flex flex-col justify-center items-center cursor-pointer">

@@ -9,7 +9,7 @@ import { DatePicker, Select } from 'antd';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { FaRegEye } from 'react-icons/fa6';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -64,6 +64,7 @@ const Film = React.memo(() => {
     const [selectedSort, setSelectedSort] = useState(null);
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
     const height = HeightComponent();
+    const queryClient = useQueryClient();
     const { RangePicker } = DatePicker;
 
     const optionStatus = [
@@ -98,15 +99,12 @@ const Film = React.memo(() => {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
     });
-    // Kiểm tra trạng thái tải
-    if (isLoading || isLoadingGenre) return <Loading />;
-    if (!isFetched || isFetchedGenre) return <div>Fetching...</div>;
-    if (error || errorGenre) return <div>Error loading data: {error.message}</div>;
 
     const handleOpen = (isUpdate) => {
         setOpen(true);
         setIsUpdate(isUpdate);
     };
+
     const handleClose = () => {
         setOpen(false);
 
@@ -391,6 +389,12 @@ const Film = React.memo(() => {
             toast.error('Câp nhật status phim thất bại!');
         }
     };
+    const mutation = useMutation(handleUpdateStatusMovie, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('movie1');
+        },
+    });
     const handleUpdateMovie = async (movieCode) => {
         const age = ageRestriction === 'C13' ? 13 : ageRestriction === 'C16' ? 16 : ageRestriction === 'C18' ? 18 : 0;
         if (
@@ -446,6 +450,10 @@ const Film = React.memo(() => {
         }
     };
 
+    if (isLoading || isLoadingGenre) return <Loading />;
+    if (!isFetched || isFetchedGenre) return <div>Fetching...</div>;
+    if (error || errorGenre) return <div>Error loading data: {error.message}</div>;
+
     const rowRenderer = ({ index, style }, data) => {
         const sortedData = [...data].sort((a, b) => {
             const startEndA = new Date(a.startDate);
@@ -484,7 +492,7 @@ const Film = React.memo(() => {
                             className={`border px-2  uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
                                 item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
                             }`}
-                            onClick={() => handleUpdateStatusMovie(item)}
+                            onClick={() => mutation.mutate(item)}
                         >
                             {item.status === 0 ? 'Chưa phát hành' : 'Đã phát hành'}
                         </button>

@@ -77,6 +77,7 @@ const Order = () => {
                 const movieCode = schedule.movieCode?.code;
                 const image = schedule.movieCode?.image || '';
                 const status = schedule?.status;
+                const cinemaName = room.cinemaCode?.name;
 
                 let movieStatusGroup = groupedData.find(
                     (group) => group.movieName === movieName && group.status === status,
@@ -86,6 +87,7 @@ const Order = () => {
                     movieStatusGroup = {
                         movieCode: movieCode,
                         movieName: movieName,
+                        cinemaName: cinemaName,
                         duration: schedule.movieCode?.duration,
                         movieGenreCode: schedule.movieCode?.movieGenreCode,
                         ageRestriction: schedule.movieCode?.ageRestriction,
@@ -225,25 +227,28 @@ const Order = () => {
         setSelectedDate(date);
     };
     const handleSearch = (searchValue) => {
-        if (searchValue) {
-            setSelectedFilterCinema(searchValue);
+        setSelectedFilterCinema(searchValue);
+        const filteredRooms = room.filter((item) => item.cinemaName === searchValue);
+        if (filteredRooms.length > 0) {
+            setRoomsFilter(filteredRooms);
+        } else {
+            setRoomsFilter([]);
         }
     };
 
-    console.log('selectedOptionFilterCinema', selectedOptionFilterCinema);
     const handleSearchMovie = (searchValue) => {
         setSelectedMovie(searchValue);
         if (!searchValue) {
             setRoomsFilter(room);
             return;
         }
-
         const filteredRooms = room.filter((item) => item.movieName === searchValue);
 
         if (filteredRooms.length > 0) {
             setRoomsFilter(filteredRooms);
         } else {
             setRoomsFilter([]);
+            toast.info('Không tìm thấy suất chiếu nào cho phim này!');
         }
     };
 

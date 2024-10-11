@@ -466,8 +466,13 @@ const Schedule = () => {
     };
 
     const handleSearch = (searchValue) => {
-        if (searchValue) {
-            setSelectedFilterCinema(searchValue);
+        setSelectedFilterCinema(searchValue);
+
+        const filteredRooms = room.filter((item) => item.cinemaCode.name === searchValue);
+        if (filteredRooms.length > 0) {
+            setRoomsFilter(filteredRooms);
+        } else {
+            setRoomsFilter([]);
         }
     };
 
@@ -478,13 +483,10 @@ const Schedule = () => {
             return;
         }
 
-        // Filter rooms based on the movie name in the schedules
         const filteredRooms = room
             .map((room) => {
-                // Lọc lịch chiếu trong từng phòng theo mã phim được chọn
                 const filteredSchedules = room.schedules.filter((schedule) => schedule.movieCode.name === searchValue);
 
-                // Trả về phòng với lịch chiếu đã lọc
                 return {
                     ...room,
                     schedules: filteredSchedules,
@@ -495,6 +497,9 @@ const Schedule = () => {
         // Update the filtered list of rooms
         if (filteredRooms.length > 0) {
             setRoomsFilter(filteredRooms);
+        } else {
+            setRoomsFilter([]);
+            toast.info('Không tìm thấy suất chiếu nào cho phim này!');
         }
     };
 
