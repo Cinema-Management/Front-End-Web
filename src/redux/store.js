@@ -6,6 +6,7 @@ import cinemaReducer from './cinemaSlice';
 import scheduleReducer from './scheduleSlice';
 import valueReducer from './valueSlice';
 import authReducer from './authSlice';
+import productsReducer from './productSlice';
 
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 
@@ -22,6 +23,7 @@ const rootReducers = combineReducers({
     cinema: cinemaReducer,
     schedule: scheduleReducer,
     value: valueReducer,
+    products: productsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducers);

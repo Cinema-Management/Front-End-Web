@@ -4,13 +4,14 @@ import dayjs from 'dayjs';
 import axios from 'axios';
 import Loading from '../LoadingComponent/Loading';
 import { useQuery } from 'react-query';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import ButtonComponent from '../ButtonComponent/Buttoncomponent';
 import ModalComponent from '../ModalComponent/ModalComponent';
 import vouCher from '~/assets/voucher.png';
 import { FaCheck } from 'react-icons/fa'; // Import icon dấu tích
 import { Button } from 'antd';
+import { setCalculatedPrice, setFreeProduct } from '~/redux/productSlice';
 
 const isPromotionApplicable = (promotion, groupedCombos, totalPriceBefore) => {
     if (promotion.type === 0) {
@@ -57,10 +58,12 @@ const PayComponent = () => {
     const [open, setOpen] = useState(false);
 
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Lấy danh sách số lượng sản phẩm
+    const dispatch = useDispatch();
 
     const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
 
     const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
+    const products = useSelector((state) => state.products?.products); // Lấy danh sách sản phẩm từ store
 
     const calculateTotalPrice = (seats) => {
         return seats?.reduce((total, seat) => {
@@ -135,40 +138,76 @@ const PayComponent = () => {
             </div>
         );
 
-    const calculateTotalWithPromotion = (totalPriceMain, selectedPromotion, groupedCombos) => {
+    const calculateTotalWithPromotion = (
+        totalPriceMain,
+        selectedPromotion,
+        groupedCombos,
+        promotionDetails,
+        availableProducts,
+    ) => {
         let discountAmount = 0;
+        let productsForInvoice = [...groupedCombos]; // Lưu sản phẩm để xuất hóa đơn
 
-        // Check if a promotion is selected
-        if (selectedPromotion) {
-            const promotion = promotionDetails.find((promo) => promo.code === selectedPromotion);
+        // Tìm khuyến mãi dựa trên mã đã chọn
+        const promotion = promotionDetails.find((promo) => promo.code === selectedPromotion);
 
-            if (promotion) {
-                if (promotion.type === 0) {
-                    // Type 0: Free product promotion
+        if (promotion) {
+            switch (promotion.type) {
+                case 0: // Type 0: Khuyến mãi tặng sản phẩm miễn phí
+                    // Tìm sản phẩm mà người dùng đã mua đủ số lượng
                     const applicableCombo = groupedCombos.find((combo) => promotion.salesProductCode === combo.code);
+
                     if (applicableCombo && applicableCombo.quantity >= promotion.minQuantity) {
-                        discountAmount = promotion.freeQuantity * applicableCombo.price; // Assuming unitPrice is the price of the product
+                        // Tìm sản phẩm tặng
+                        const freeProduct = availableProducts.find(
+                            (product) => product.productCode === promotion.freeProductCode,
+                        );
+
+                        if (freeProduct) {
+                            // Lưu giá gốc của sản phẩm tặng
+                            const freeProductOriginalPrice = freeProduct.price;
+
+                            // Ghi chú lại sản phẩm tặng với giá 0 đồng, và lưu giá gốc
+                            productsForInvoice.push({
+                                ...freeProduct,
+                                originalPrice: freeProductOriginalPrice, // Giá trị gốc của sản phẩm tặng
+                                freeQuantity: promotion.freeQuantity, // Số lượng sản phẩm tặng
+                                price: 0, // Gán giá trị sản phẩm tặng bằng 0
+                                isGift: true, // Đánh dấu sản phẩm là quà tặng
+                            });
+                        }
                     }
-                } else if (promotion.type === 1) {
-                    // Type 1: Fixed discount
+                    break;
+
+                case 1: // Type 1: Giảm giá cố định
                     if (totalPriceMain >= promotion.minPurchaseAmount) {
-                        discountAmount = promotion.discountAmount;
+                        discountAmount = promotion.discountAmount; // Giảm giá cố định
                     }
-                } else if (promotion.type === 2) {
-                    // Type 2: Percentage discount
+                    break;
+
+                case 2: // Type 2: Giảm giá theo phần trăm
                     if (totalPriceMain >= promotion.minPurchaseAmount) {
-                        discountAmount = (totalPriceMain * promotion.discountPercentage) / 100;
-                        discountAmount = Math.min(discountAmount, promotion.maxDiscountAmount); // Ensure discount does not exceed max discount
+                        discountAmount = (totalPriceMain * promotion.discountPercentage) / 100; // Tính giảm giá theo phần trăm
+
+                        // Đảm bảo giảm giá không vượt quá giới hạn giảm giá tối đa
+                        if (promotion.maxDiscountAmount) {
+                            discountAmount = Math.min(discountAmount, promotion.maxDiscountAmount);
+                        }
                     }
-                }
+                    break;
+
+                default:
+                    discountAmount = 0; // Không có khuyến mãi
             }
         }
 
-        // Calculate the new total price after applying the discount
-        const newTotalPrice = totalPriceMain - discountAmount;
+        // Tính tổng giá sau khi áp dụng giảm giá (không tính sản phẩm tặng)
+        const newTotalPrice = Math.max(totalPriceMain - discountAmount, 0);
 
-        return newTotalPrice < 0 ? 0 : newTotalPrice; // Ensure total price does not go below zero
+        dispatch(setCalculatedPrice(newTotalPrice));
+        return { newTotalPrice, productsForInvoice }; // Trả về tổng tiền và sản phẩm đã thêm giá trị gốc
     };
+    // const memoizedTotalPrice = useMemo(() => calculateTotalWithPromotion(totalPriceBefore, selectedPromotionDetail, groupedCombos, promotionDetails, products), [totalPriceBefore, selectedPromotionDetail, groupedCombos, promotionDetails, products]);
 
     const handleOpen = () => {
         setOpen(true);
@@ -286,13 +325,24 @@ const PayComponent = () => {
 
                     <span className=" justify-end flex">
                         {formatCurrency(
-                            calculateTotalWithPromotion(totalPriceBefore, selectedPromotionDetail, groupedCombos) -
+                            calculateTotalWithPromotion(
                                 totalPriceBefore,
+                                selectedPromotionDetail,
+                                groupedCombos,
+                                promotionDetails,
+                                products,
+                            ).newTotalPrice - totalPriceBefore,
                         )}
                     </span>
                     <span className=" justify-end flex font-semibold ">
                         {formatCurrency(
-                            calculateTotalWithPromotion(totalPriceBefore, selectedPromotionDetail, groupedCombos),
+                            calculateTotalWithPromotion(
+                                totalPriceBefore,
+                                selectedPromotionDetail,
+                                groupedCombos,
+                                promotionDetails,
+                                products,
+                            ).newTotalPrice,
                         )}
                     </span>
                 </div>
@@ -336,10 +386,10 @@ const PayComponent = () => {
                             return (
                                 <div
                                     key={promotion.code}
-                                    className={`flex items-center mb-4 border-y m-5 border-r justify-center rounded cursor-pointer ${
+                                    className={`flex items-center mb-4 border-y m-5 border-r justify-center rounded  ${
                                         selectedPromotion === promotion.code ? 'bg-white' : ''
-                                    } ${isApplicable ? '' : 'bg-gray-50 cursor-not-allowed'}`} // Bright background if applicable, gray if not
-                                    onClick={() => isApplicable && handleRadioChange(promotion.code)} // Allow selection only if applicable
+                                    } ${isApplicable ? 'cursor-pointer' : 'cursor-not-allowed  opacity-50'}`}
+                                    onClick={() => isApplicable && handleRadioChange(promotion.code)}
                                 >
                                     <div className="w-1/4 mt-[2px] mr-4">
                                         <img
@@ -364,7 +414,7 @@ const PayComponent = () => {
                                                 <div className="grid-rows-2 grid col-span-6">
                                                     <span className="grid font-semibold">
                                                         {' '}
-                                                        {promotion.nameProductSales}{' '}
+                                                        {promotion.nameProductFree}{' '}
                                                     </span>
                                                     <span className="grid"> {promotion.nameProductSales} </span>
                                                 </div>
@@ -399,13 +449,13 @@ const PayComponent = () => {
                                     </div>
 
                                     <div className="items-center m-5">
-                                        <label className="relative inline-flex items-center cursor-pointer">
+                                        <label className="relative inline-flex items-center ">
                                             <input
                                                 type="radio"
                                                 id={promotion.code}
                                                 name="promotion"
                                                 checked={selectedPromotion === promotion.code}
-                                                // onChange={() => isApplicable && handleRadioChange(promotion._id)} // Allow selection only if applicable
+                                                onChange={() => isApplicable} // Allow selection only if applicable
                                                 className={`sr-only peer ${isApplicable ? '' : 'cursor-not-allowed'}`} // Disable radio if not applicable
                                                 disabled={!isApplicable} // Disable the radio input if not applicable
                                             />
@@ -434,6 +484,7 @@ const PayComponent = () => {
                             onClick={() => {
                                 setSelectedPromotionDetail(null);
                                 handleClose();
+                                dispatch(setFreeProduct([]));
                             }}
                         />
                         <ButtonComponent
@@ -441,6 +492,17 @@ const PayComponent = () => {
                             className="bg-blue-500 ml-2"
                             onClick={() => {
                                 setSelectedPromotionDetail(selectedPromotion);
+
+                                const { productsForInvoice } = calculateTotalWithPromotion(
+                                    totalPriceBefore,
+                                    selectedPromotion, // Sử dụng giá trị mới
+                                    groupedCombos,
+                                    promotionDetails,
+                                    products,
+                                );
+
+                                // Gửi productsForInvoice đến Redux
+                                dispatch(setFreeProduct(productsForInvoice));
                                 handleClose();
                             }}
                         />

@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { IoIosAddCircleOutline, IoMdRemoveCircleOutline } from 'react-icons/io';
 import { useQuery } from 'react-query';
 import axios from 'axios';
 import { addCombo, removeCombo } from '~/redux/seatSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import Loading from '../LoadingComponent/Loading';
+import { setProducts } from '~/redux/productSlice';
 
-const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
-    const [quantities, setQuantities] = useState([]);
+const FoodComponent = () => {
     const dispatch = useDispatch();
 
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Moved this to the top
@@ -19,7 +19,6 @@ const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
                 const nameA = a.productName.toUpperCase(); // Chuyển đổi về chữ hoa để so sánh không phân biệt chữ hoa chữ thường
                 const nameB = b.productName.toUpperCase();
 
-                // Kiểm tra nếu tên sản phẩm bắt đầu bằng 'C' và 'B'
                 if (nameA.startsWith('C') && nameB.startsWith('B')) {
                     return -1; // A trước B
                 } else if (nameA.startsWith('B') && nameB.startsWith('C')) {
@@ -29,8 +28,8 @@ const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
                     return nameA.localeCompare(nameB);
                 }
             });
+            dispatch(setProducts(sortedProducts));
 
-            setQuantities(Array(sortedProducts.length).fill(0));
             return { products: sortedProducts };
         } catch (error) {
             if (error.response) {
@@ -78,43 +77,6 @@ const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
 
     const groupedCombos = groupProductsByCode(combos);
 
-    const handleIncrease = (index) => {
-        setQuantities((prevQuantities) => {
-            const newQuantities = [...prevQuantities];
-            newQuantities[index] = (newQuantities[index] || 0) + 1;
-            return newQuantities;
-        });
-    };
-
-    const handleDecrease = (index) => {
-        setQuantities((prevQuantities) => {
-            const newQuantities = [...prevQuantities];
-            if (newQuantities[index] > 0) {
-                newQuantities[index] -= 1;
-            }
-            return newQuantities;
-        });
-    };
-
-    const updateCombo = (product, quantity) => {
-        const existingComboIndex = selectedCombos.findIndex((item) => item.product.id === product.id);
-
-        if (existingComboIndex >= 0) {
-            if (quantity > 0) {
-                const updatedCombos = [...selectedCombos];
-                updatedCombos[existingComboIndex].quantity = quantity;
-                setSelectedCombos(updatedCombos);
-            } else {
-                const updatedCombos = selectedCombos.filter((item, index) => index !== existingComboIndex);
-                setSelectedCombos(updatedCombos);
-            }
-        } else {
-            if (quantity > 0) {
-                setSelectedCombos((prev) => [...prev, { product, quantity }]);
-            }
-        }
-    };
-
     function formatCurrency(amount) {
         return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
@@ -143,7 +105,6 @@ const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
                             <div className="flex w-24 pl-2 justify-between">
                                 <button
                                     onClick={() => {
-                                        handleDecrease(index);
                                         dispatch(removeCombo(product));
                                     }}
                                 >
@@ -157,7 +118,6 @@ const FoodComponent = ({ selectedCombos, setSelectedCombos }) => {
                                 />
                                 <button
                                     onClick={() => {
-                                        handleIncrease(index);
                                         dispatch(addCombo(product));
                                     }}
                                 >
