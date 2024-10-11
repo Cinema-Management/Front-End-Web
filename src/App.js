@@ -5,6 +5,7 @@ import DefaultComponent from './components/DefaultComponent/DefaultComponent';
 import Loading from './components/LoadingComponent/Loading';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ToastContainer } from 'react-toastify';
+import NotFound from './pages/NotFoundPage/NotFound';
 const queryClient = new QueryClient();
 function App() {
     return (
@@ -28,6 +29,7 @@ function App() {
                                     />
                                 );
                             })}
+                            <Route path="*" element={<NotFound />} />
                         </Routes>
                         <ToastContainer
                             position="top-right"
