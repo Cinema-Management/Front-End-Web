@@ -10,7 +10,8 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
@@ -148,6 +149,7 @@ const Promotion = () => {
     const [discountPercentage, setDiscountPercentage] = useState(0);
     const [maxDiscountAmount, setMaxDiscountAmount] = useState(0);
     const [openDelete, setOpenDelete] = useState(false);
+    const queryClient = useQueryClient();
 
     const optionKMLines = [
         { name: 'Khuyến mãi sản phẩm', value: 0 },
@@ -188,15 +190,6 @@ const Promotion = () => {
             enabled: !!selectedKMLine?.code, // Chỉ kích hoạt khi có mã KM
         },
     );
-
-    // Xử lý khi đang loading hoặc có lỗi
-    if (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) return <Loading />;
-    if (errorProduct || PromotionError || PromotionDetailError)
-        return (
-            <div>
-                Error loading data: {PromotionError.message || errorProduct.message || PromotionDetailError.message}
-            </div>
-        );
 
     //header
 
@@ -606,10 +599,10 @@ const Promotion = () => {
         }
     };
 
-    const handleUpdateStatus = async (lineCode, status) => {
-        const newStatus = status === 0 ? 1 : 0;
+    const handleUpdateStatus = async (item) => {
+        const newStatus = item.status === 0 ? 1 : 0;
         const line = {
-            code: lineCode,
+            code: item.code,
             status: newStatus,
         };
 
@@ -621,6 +614,12 @@ const Promotion = () => {
             toast.error('Cập nhật trạng thái thất bại!');
         }
     };
+    const mutation = useMutation(handleUpdateStatus, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('fetchKMDetail');
+        },
+    });
 
     const handleAddKMDetail = async () => {
         if (!validateKMDetail(selectedKMLine?.type)) return;
@@ -843,13 +842,23 @@ const Promotion = () => {
             setMaxDiscountAmount(0); // Hoặc giá trị mặc định khác nếu cần
         }
     };
+
+    // Xử lý khi đang loading hoặc có lỗi
+    if (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) return <Loading />;
+    if (errorProduct || PromotionError || PromotionDetailError)
+        return (
+            <div>
+                Error loading data: {PromotionError.message || errorProduct.message || PromotionDetailError.message}
+            </div>
+        );
+
     const renderPromotion = (promotions) => {
         return promotions.map((promotion) => (
             <div key={promotion.code}>
-                <div className="bg-[#E6E6E6] text-[14px] py-[6px]  font-normal text-slate-500 grid grid-cols-7 items-center gap-3 mb-2 ">
+                <div className="bg-[#E6E6E6] text-[14px] py-[6px]  font-normal text-slate-500 grid grid-cols-6 items-center gap-3 mb-2 ">
                     <div className="grid col-span-3 grid-cols-10 items-center gap-5">
                         <div
-                            className="justify-center col-span-2 grid"
+                            className="justify-center col-span-2 grid "
                             onClick={() => {
                                 toggleVisibility(promotion.code);
                                 toggleDropdown(promotion.code);
@@ -861,19 +870,14 @@ const Promotion = () => {
                                 <FaChevronDown color="gray" size={20} />
                             )}
                         </div>
-                        <h1 className="uppercase grid col-span-8">{promotion.description}</h1>
+                        <h1 className="grid justify-start items-center col-span-3 ">{promotion.code}</h1>
+
+                        <h1 className="uppercase grid col-span-5">{promotion.description}</h1>
                     </div>
                     <h1 className="grid justify-center items-center">{formatDate(promotion.startDate)}</h1>
+
                     <h1 className="grid justify-center items-center">{formatDate(promotion.endDate)}</h1>
-                    <div className="justify-center items-center grid">
-                        <button
-                            className={`border px-2 text-white text-base h-auto py-[1px] flex  rounded-[40px] ${
-                                promotion.status === 0 ? 'bg-gray-400' : 'bg-green-500'
-                            }`}
-                        >
-                            {promotion.status}
-                        </button>
-                    </div>
+
                     <div
                         className={`justify-center grid items-center grid-cols-2 px-2   ${
                             promotion.promotionLines.length > 0 ? 'pointer-events-none opacity-50' : ''
@@ -906,7 +910,7 @@ const Promotion = () => {
                             </div>
 
                             <div className="grid col-span-4 grid-cols-10  justify-center items-center">
-                                <h1 className="grid col-span-4 justify-center items-center ">Loại</h1>
+                                <h1 className="grid col-span-4 justify-center items-center ">Dòng</h1>
                                 <h1 className="grid col-span-6 justify-center items-center ">Mô tả</h1>
                             </div>
                             <div className="grid col-span-2 grid-cols-10  justify-center items-center ">
@@ -918,7 +922,7 @@ const Promotion = () => {
                                 <h1 className="grid  justify-center  items-center  col-span-5 ">Trạng thái</h1>
                                 <div className="grid justify-center col-span-3 ">
                                     <button
-                                        className="border px-4 py-1 rounded-[40px] bg-orange-400  "
+                                        className="border px-4 py-1 rounded-[40px] gradient-button  "
                                         onClick={() => {
                                             handleOpenKMLine(false);
                                             setSelectedKM(promotion);
@@ -967,9 +971,7 @@ const Promotion = () => {
                                         <div className=" grid col-span-2 grid-cols-9 justify-center items-center ">
                                             <div
                                                 className="justify-center  items-center grid col-span-5   "
-                                                onClick={() => {
-                                                    handleUpdateStatus(item.code, item.status);
-                                                }}
+                                                onClick={() => mutation.mutate(item)}
                                             >
                                                 <button
                                                     className={`border uppercase  px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
@@ -1047,14 +1049,18 @@ const Promotion = () => {
                 </div>
             </div>
             <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-xs custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="bg-[#eeaf56] text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-7 items-center gap-3 rounded-lg">
-                    <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                <div className="gradient-button text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-6 items-center gap-3 rounded-lg">
+                    <div className=" grid col-span-3 grid-cols-10">
+                        <div className="uppercase grid justify-center items-center col-span-2 "></div>
+                        <h1 className="uppercase grid justify-center items-center   col-span-3">Mã Khuyến mãi</h1>
+
+                        <h1 className="uppercase grid col-span-5 justify-center items-center">Mô tả</h1>
+                    </div>
                     <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
                     <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
-                    <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
                     <div className="flex justify-center">
                         <button
-                            className="border px-4 py-1 rounded-[40px] bg-orange-400"
+                            className="border px-4 py-1 rounded-[40px] gradient-button"
                             onClick={() => handleOpenKM(false)}
                         >
                             <IoIosAddCircleOutline color="white" size={20} />
@@ -1540,7 +1546,7 @@ const Promotion = () => {
                         />
 
                         <div className=" m-[11px]">
-                            <p className="mb-1">Số lượng bán</p>
+                            <p className="mb-1">Số lượng tặng</p>
                             <input
                                 className="border border-black rounded-sm p-1 w-full text-base pl-3"
                                 type="text"
