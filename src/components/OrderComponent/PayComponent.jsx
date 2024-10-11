@@ -218,7 +218,6 @@ const PayComponent = () => {
 
     const handleRadioChange = (code) => {
         setSelectedPromotion(code); // Cập nhật promotion đã chọn
-        toast.success('Chọn khuyến mãi thành công' + code);
     };
 
     return (
