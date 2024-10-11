@@ -83,8 +83,9 @@ const Film = React.memo(() => {
         refetch,
     } = useQuery(['movies', user], fetchMovies, {
         enabled: !!user,
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         onSuccess: (data) => {
             setMovieFilter(data.movies);
         },
@@ -96,8 +97,9 @@ const Film = React.memo(() => {
         isLoadingGenre,
         isFetchedGenre,
     } = useQuery(['genres', user], fetchGenres, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     const handleOpen = (isUpdate) => {

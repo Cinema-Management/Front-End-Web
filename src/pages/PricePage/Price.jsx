@@ -105,8 +105,9 @@ const Price = () => {
         error,
         // refetch
     } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     const {
@@ -116,8 +117,9 @@ const Price = () => {
         isError: isErrorPrice,
         refetch: refetchPrice,
     } = useQuery('fetchPricePage', fetchPrice, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         // onSuccess: (data) => {
         //     setFoodFilter(data.product);
         // },
@@ -635,7 +637,8 @@ const Price = () => {
                             <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
 
                             <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 min-w-[1150px]">
-                                <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                                <h1 className="uppercase grid col-span-1 justify-center items-center ">Mã bảng giá</h1>
+                                <h1 className="uppercase grid col-span-2 justify-center items-center">Mô tả</h1>
                                 <h1 className="uppercase grid justify-center items-center">Thứ</h1>
                                 <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
                                 <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
@@ -654,9 +657,9 @@ const Price = () => {
                                 {[...prices.filter((item) => item.type === '0')].reverse().map((item) => (
                                     <div key={item.code}>
                                         <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
-                                            <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                            <div className="grid col-span-1 grid-cols-4 items-center gap-2">
                                                 <div
-                                                    className="justify-center col-span-2 grid"
+                                                    className="justify-center col-span-1 pl-4 grid"
                                                     onClick={() => {
                                                         toggleVisibility(item.code);
                                                         toggleDropdown(item.code);
@@ -668,8 +671,11 @@ const Price = () => {
                                                         <FaChevronDown color="gray" size={20} />
                                                     )}
                                                 </div>
-                                                <h1 className="uppercase grid col-span-8">{item.description}</h1>
+                                                <h1 className="uppercase grid col-span-3  pl-4 items-center">
+                                                    {item.code}
+                                                </h1>
                                             </div>
+                                            <h1 className="uppercase grid col-span-2">{item.description}</h1>
                                             <h1 className="grid justify-center items-center">
                                                 {item.dayOfWeek
                                                     .map((day) => {
@@ -730,8 +736,13 @@ const Price = () => {
                                         </div>
                                         {visibleRooms[item.code] && (
                                             <>
-                                                <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-9 items-center gap-2">
+                                                <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-11 items-center gap-2">
+                                                    <h1 className="grid col-span-1 justify-center items-center">STT</h1>
                                                     <h1 className="grid col-span-1 justify-center items-center">
+                                                        Mã CTBG
+                                                    </h1>
+
+                                                    <h1 className="grid col-span-2 justify-center items-center">
                                                         Loại phòng chiếu
                                                     </h1>
                                                     <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
@@ -739,9 +750,7 @@ const Price = () => {
                                                         Mô tả
                                                     </h1>
                                                     <h1 className="grid justify-center items-center">Giá</h1>
-                                                    <h1 className="grid justify-center items-center pl-5">
-                                                        Trạng thái
-                                                    </h1>
+
                                                     <div className="grid justify-center col-span-2">
                                                         <button
                                                             className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
@@ -755,12 +764,18 @@ const Price = () => {
                                                     </div>
                                                 </div>
                                                 <div className="height-sm-1">
-                                                    {item?.priceDetails?.map((item) => (
+                                                    {item?.priceDetails?.map((item, index) => (
                                                         <div
-                                                            className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3"
+                                                            className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-11 items-center gap-3"
                                                             key={item.code}
                                                         >
                                                             <h1 className=" grid col-span-1 justify-center items-center ">
+                                                                {index + 1}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-1 justify-center items-center ">
+                                                                {item.code}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-2 justify-center items-center ">
                                                                 {item.roomTypeCode?.name}
                                                             </h1>
                                                             <h1 className=" grid pl-3 col-span-2 items-center">
@@ -772,17 +787,7 @@ const Price = () => {
                                                             <h1 className=" grid items-center justify-center">
                                                                 {formatCurrency(item?.price)}
                                                             </h1>
-                                                            <div className="justify-center items-center grid pl-5">
-                                                                <button
-                                                                    className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                                        item.status === 'Active'
-                                                                            ? 'bg-green-500'
-                                                                            : 'bg-gray-400'
-                                                                    }`}
-                                                                >
-                                                                    {item?.status}
-                                                                </button>
-                                                            </div>
+
                                                             <div className="justify-center space-x-5 items-center col-span-2 flex  ">
                                                                 <button
                                                                     className=""
@@ -816,7 +821,8 @@ const Price = () => {
                     {(selectedSort.value === 2 || selectedSort.value === 3) && (
                         <div>
                             <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
-                            <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-7 items-center gap-3 min-w-[1150px] ">
+                            <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-8 items-center gap-3 min-w-[1150px] ">
+                                <h1 className="uppercase grid col-span-1 justify-center items-center">Mã bảng giá</h1>
                                 <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
                                 <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
                                 <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
@@ -833,10 +839,10 @@ const Price = () => {
                             <div className="h-[70%] height-sm-1 mb-8 min-w-[1150px]">
                                 {[...prices.filter((item) => item.type === '1')].reverse().map((item) => (
                                     <div key={item.code}>
-                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-7 items-center gap-3 mb-1 ">
-                                            <div className="grid col-span-3 grid-cols-10 items-center gap-5">
+                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-8 items-center gap-3 mb-1 ">
+                                            <div className="grid col-span-1 grid-cols-4 items-center gap-5">
                                                 <div
-                                                    className="justify-center col-span-2 grid"
+                                                    className="justify-center col-span-1 pl-4 grid"
                                                     onClick={() => {
                                                         toggleVisibility(item.code);
                                                         toggleDropdown(item.code);
@@ -848,8 +854,11 @@ const Price = () => {
                                                         <FaChevronDown color="gray" size={20} />
                                                     )}
                                                 </div>
-                                                <h1 className="uppercase grid col-span-8">{item.description}</h1>
+                                                <h1 className="uppercase grid col-span-3 pl-2 items-center">
+                                                    {item.code}
+                                                </h1>
                                             </div>
+                                            <h1 className="uppercase grid col-span-3">{item.description}</h1>
 
                                             <h1 className="grid justify-center items-center">
                                                 {getFormatteNgay(item.startDate)}
@@ -881,15 +890,17 @@ const Price = () => {
                                         </div>
                                         {visibleRooms[item.code] && (
                                             <>
-                                                <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3">
-                                                    <h1 className="grid col-span-2 justify-center items-center">Tên</h1>
+                                                <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3">
+                                                    <h1 className="grid col-span-1 justify-center items-center">STT</h1>
+                                                    <h1 className="grid col-span-1 justify-center items-center">
+                                                        Mã CTBG
+                                                    </h1>
+                                                    <h1 className="grid col-span-3 justify-center items-center">Tên</h1>
                                                     <h1 className="grid col-span-2 justify-center items-center">
                                                         Mô tả
                                                     </h1>
                                                     <h1 className="grid justify-center items-center">Giá</h1>
-                                                    <h1 className="grid justify-center items-center pl-5">
-                                                        Trạng thái
-                                                    </h1>
+
                                                     <div className="grid justify-center col-span-2">
                                                         <button
                                                             className="border px-4 py-1 rounded-[40px] gradient-button"
@@ -903,12 +914,18 @@ const Price = () => {
                                                     </div>
                                                 </div>
                                                 <div className="height-sm-1">
-                                                    {item.priceDetails.map((item) => (
+                                                    {item.priceDetails.map((item, index) => (
                                                         <div
-                                                            className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-8 items-center gap-3"
+                                                            className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3"
                                                             key={item.code}
                                                         >
-                                                            <h1 className=" grid col-span-2 pl-3 items-center ">
+                                                            <h1 className=" grid col-span-1 justify-center items-center ">
+                                                                {index + 1}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-1 justify-center items-center ">
+                                                                {item.code}
+                                                            </h1>
+                                                            <h1 className=" grid col-span-3 pl-3 items-center ">
                                                                 {item.productCode.name}
                                                             </h1>
                                                             <h1 className=" grid col-span-2  items-center">
@@ -917,17 +934,7 @@ const Price = () => {
                                                             <h1 className=" grid items-center justify-center">
                                                                 {formatCurrency(item.price)}
                                                             </h1>
-                                                            <div className="justify-center items-center grid pl-5">
-                                                                <button
-                                                                    className={`border px-2 text-white text-[14px] truncate py-[1px] flex  rounded-[40px] ${
-                                                                        item.status === 'Active'
-                                                                            ? 'bg-green-500'
-                                                                            : 'bg-gray-400'
-                                                                    }`}
-                                                                >
-                                                                    {item.status}
-                                                                </button>
-                                                            </div>
+
                                                             <div className="justify-center space-x-5 items-center col-span-2 flex  ">
                                                                 <button
                                                                     className=""

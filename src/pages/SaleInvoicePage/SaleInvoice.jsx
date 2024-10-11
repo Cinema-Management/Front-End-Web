@@ -107,8 +107,9 @@ const SaleInvoice = () => {
         isError,
         // refetch,
     } = useQuery('fetchSaleInvoice', fetchSaleInvoice, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         // onSuccess: (data) => {
         //     setFoodFilter(data.product);
         // },
@@ -120,8 +121,9 @@ const SaleInvoice = () => {
         isLoading: isLoadingMovies,
         isFetched: isFetchedMovies,
     } = useQuery('moviesInvoice', fetchMovies, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     const {
@@ -130,8 +132,9 @@ const SaleInvoice = () => {
         isLoading: isLoadingStaff,
         isFetched: isFetchedStaff,
     } = useQuery('staffInvoice', fetchStaff, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     const {
@@ -140,8 +143,9 @@ const SaleInvoice = () => {
         error: CinemaError,
         isFetched: isFetchedCinemas,
     } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff) return <Loading />;
@@ -557,18 +561,18 @@ const SaleInvoice = () => {
                 handleClose={handleClose}
                 width="60%"
                 height="80%"
-                smallScreenWidth="65%"
-                smallScreenHeight="50%"
-                mediumScreenWidth="60%"
-                mediumScreenHeight="43%"
-                largeScreenHeight="37%"
-                largeScreenWidth="60%"
-                maxHeightScreenHeight="80%"
-                maxHeightScreenWidth="60%"
-                heightScreen="62%"
+                smallScreenWidth="80%"
+                smallScreenHeight="60%"
+                mediumScreenWidth="80%"
+                mediumScreenHeight="50%"
+                largeScreenHeight="45%"
+                largeScreenWidth="70%"
+                maxHeightScreenHeight="92%"
+                maxHeightScreenWidth="70%"
+                heightScreen="75%"
                 title="Chi tiết hóa đơn"
             >
-                <div className="h-90p grid grid-rows-12 gap-2 ">
+                <div className="h-90p grid grid-rows-11 gap-2 ">
                     <div className="grid row-span-5">
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
@@ -671,7 +675,7 @@ const SaleInvoice = () => {
                             <h1 className=" justify-center grid items-center ">Thành tiền</h1>
                         </div>
                     </div>
-                    <div className="grid row-span-5">
+                    <div className="grid row-span-4">
                         <div className="h-[100%] overflow-auto">
                             {Object.entries(groupedDetails).map(([productName, items]) => {
                                 const firstItem = items[0];

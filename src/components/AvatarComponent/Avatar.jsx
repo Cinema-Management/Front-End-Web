@@ -96,8 +96,8 @@ const Avatar = React.memo(() => {
                 placement="bottom"
                 overlayInnerStyle={{ padding: '0' }}
                 destroyTooltipOnHide={true}
-                visible={visible}
-                onVisibleChange={(visible) => setVisible(visible)}
+                open={visible}
+                onOpenChange={(open) => setVisible(open)}
             >
                 <div className="flex-row flex space-x-3 cursor-pointer">
                     <img

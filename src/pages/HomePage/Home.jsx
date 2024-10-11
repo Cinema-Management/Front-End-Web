@@ -11,7 +11,7 @@ const Home = () => {
                 <h1 className="text-[20px] font-bold">Thông tin cá nhân</h1>
                 <div className="mt-3 flex custom-ipad">
                     <div className="">
-                        <img src={user?.avatar} alt="avatar" className="object-contain w-[300px] " />
+                        <img src={user?.avatar} alt="avatar" className="object-contain w-[250px] h-[250px] " />
                     </div>
                     <div className="ml-5 w-[60%] custom-ipad1 flex flex-wrap">
                         <div className="w-1/3 p-2">

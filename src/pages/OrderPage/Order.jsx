@@ -67,7 +67,11 @@ const Order = () => {
     const [roomsFilter, setRoomsFilter] = useState([]);
     const [movieSelected, setMovieSelected] = useState(null);
     const selectedIsSchedule = useSelector((state) => state.schedule.isSchedule?.currentIsSchedule);
-
+    useEffect(() => {
+        if (selectedIsSchedule === false) {
+            setSelectedCinema(false);
+        }
+    }, [selectedIsSchedule]);
     const groupSchedulesByMovieAndStatus = (rooms) => {
         const groupedData = [];
 
@@ -155,16 +159,18 @@ const Order = () => {
         // isFetching: isFetchingOptionMovieName,
         error: optionCinemaNameError,
     } = useQuery('movie1', fetchMoviesStatus, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
     const {
         data: { optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
     } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
     const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
     const [selectedDate, setSelectedDate] = useState(dayjs());
@@ -211,8 +217,9 @@ const Order = () => {
         ['fetchAllScheduleInRoomByCinemaCodeOrder', selectedOptionFilterCinema, formattedDate],
         () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema),
         {
-            staleTime: 1000 * 60 * 3,
+            staleTime: 1000 * 60 * 7,
             cacheTime: 1000 * 60 * 10,
+            refetchInterval: 1000 * 60 * 7,
             enabled: !!selectedOptionFilterCinema && !!formattedDate && optionNameCinema.length > 0,
             // onSuccess: (data) => {
             //     setRoomsFilter(data);
