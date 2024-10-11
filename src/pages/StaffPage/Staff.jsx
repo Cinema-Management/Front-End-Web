@@ -65,8 +65,9 @@ const Staff = () => {
         isError,
         // refetch,
     } = useQuery('fetchStaff', fetchStaff, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         // onSuccess: (data) => {
         //     setFoodFilter(data.product);
         // },

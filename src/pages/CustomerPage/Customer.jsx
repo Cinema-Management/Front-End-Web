@@ -65,8 +65,9 @@ const Customer = () => {
         isError,
         // refetch,
     } = useQuery('fetchCustomer', fetchCustomer, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         // onSuccess: (data) => {
         //     setFoodFilter(data.product);
         // },
@@ -130,9 +131,7 @@ const Customer = () => {
                 <h1 className="grid items-center pl-3 ">{item.name}</h1>
                 <h1 className="grid justify-center items-center break-all ">{item.phone}</h1>
                 <h1 className="grid col-span-2 items-center ">{item.address}</h1>
-                <h1 className="grid justify-center items-center">
-                    {item.isAdmin === false ? 'Nhân viên' : item.isAdmin === true ? 'Quản lý' : 'Chưa cấp quyền'}
-                </h1>
+                <h1 className="grid justify-center items-center">Bạc</h1>
                 <div className="  justify-center items-center grid">
                     <button
                         className={`border px-2 text-white text-base py-[1px] flex  rounded-[40px] ${
@@ -216,7 +215,7 @@ const Customer = () => {
                         <h1 className="grid justify-center items-center">Họ tên</h1>
                         <h1 className="grid justify-center items-center">Số điện thoại</h1>
                         <h1 className="grid col-span-2 justify-center items-center">Địa chỉ</h1>
-                        <h1 className="grid justify-center items-center">Vai trò</h1>
+                        <h1 className="grid justify-center items-center">Loại khách hàng</h1>
                         <h1 className="grid justify-center items-center">Trạng thái</h1>
                         <div className=" grid justify-center">
                             <button

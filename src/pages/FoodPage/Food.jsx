@@ -81,8 +81,9 @@ const Food = () => {
         // isFetching,
         refetch,
     } = useQuery('productNotSeat', fetchProductNotSeat, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         onSuccess: (data) => {
             setFoodFilter(data.product);
         },
