@@ -176,8 +176,9 @@ const Cinema = () => {
         refetch,
     } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
         enabled: !!user,
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         onSuccess: (data) => {
             setCinemasFilter(data.cinemas); // Cập nhật danh sách rạp ban đầu khi fetch thành công
         },

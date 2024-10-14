@@ -1,6 +1,4 @@
-// src/slices/productSlice.js
 import { createSlice } from '@reduxjs/toolkit';
-import { set } from 'date-fns';
 
 const productSlice = createSlice({
     name: 'products',

@@ -6,7 +6,7 @@ import AutoInputComponent from '~/components/AutoInputComponent/AutoInputCompone
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import axios from 'axios';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -31,7 +31,7 @@ const Schedule = () => {
     const [optionScreeningFormat, setOptionScreeningFormat] = useState([]);
     const [selectedAudio, setSelectedAudio] = useState('');
     const [selectedSchedule, setSelectedSchedule] = useState([]);
-
+    const queryClient = useQueryClient();
     const [visibleRooms, setVisibleRooms] = useState({});
     const groupAndSortSchedules = (rooms) => {
         return rooms.map((room) => {
@@ -115,8 +115,9 @@ const Schedule = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
     } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
     const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
     const [selectedDate, setSelectedDate] = useState(dayjs());
@@ -127,16 +128,19 @@ const Schedule = () => {
         // isFetching: isFetchingOptionMovieName,
         error: optionCinemaNameError,
     } = useQuery('movie1', fetchMoviesStatus, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
     const { data: optionAudio = [] } = useQuery('fetchAudio', fetchAudio, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
     const { data: optionSubtitle = [] } = useQuery('fetchSubtitle', fetchSubtitle, {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
     });
 
     useEffect(() => {
@@ -175,8 +179,9 @@ const Schedule = () => {
         ['fetchAllScheduleInRoomByCinemaCode', selectedOptionFilterCinema, formattedDate],
         () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema),
         {
-            staleTime: 1000 * 60 * 3,
+            staleTime: 1000 * 60 * 7,
             cacheTime: 1000 * 60 * 10,
+            refetchInterval: 1000 * 60 * 7,
             enabled: !!selectedOptionFilterCinema && !!formattedDate && optionNameCinema.length > 0,
             onSuccess: (data) => {
                 setRoomsFilter(data?.room);
@@ -301,6 +306,12 @@ const Schedule = () => {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
+    const mutation = useMutation(handleUpdateStatus, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+        },
+    });
 
     const handleDateChange = (date) => {
         setSelectedDate(date);
@@ -550,7 +561,7 @@ const Schedule = () => {
     };
 
     const renderRoomByCinemaCode = (room) => {
-        return room.map((item, index) => (
+        return room.map((item) => (
             <div key={item.code}>
                 <div className="bg-[#E6E6E6] text-[14px] py-2 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 min-w-[1150px]">
                     <div className="grid grid-cols-10 items-center gap-5">
@@ -651,7 +662,7 @@ const Schedule = () => {
                                                 }`}
                                                 onClick={() => {
                                                     if (!isDisabledAdd || item.status === 0) {
-                                                        handleUpdateStatus(item.code);
+                                                        mutation.mutate(item.code);
                                                     }
                                                 }}
                                                 disabled={isDisabledAdd || item.status !== 0}

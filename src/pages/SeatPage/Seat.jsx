@@ -98,7 +98,6 @@ const Seat = () => {
         }
         if (value === 0) {
             const code = arraySeat.map((item) => item.code);
-            console.log(code);
             handleUpdateStatusSeat(2);
             dispatch(increment());
             return;
@@ -179,8 +178,6 @@ const Seat = () => {
 
     const [cashGiven, setCashGiven] = useState(0);
     const [changeAmount, setChangeAmount] = useState(0);
-    const products = useSelector((state) => state.products?.products); // Lấy danh sách sản phẩm từ store
-    console.log('products', products);
 
     const calculateChangeAmount = (cashGiven, totalAmount) => {
         const change = cashGiven - totalAmount;
@@ -248,8 +245,9 @@ const Seat = () => {
         // error,
         // refetch,
     } = useQuery(['addressCinemaByCode', schedule.cinemaCode], () => fetchAddressCinemaCode(schedule.cinemaCode), {
-        staleTime: 1000 * 60 * 3,
+        staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
         enabled: !!schedule.cinemaCode,
     });
 
@@ -275,7 +273,6 @@ const Seat = () => {
 
                     // Gửi yêu cầu POST tới API
                     await axios.post('api/sales-invoices-details', salesInvoiceDetail);
-                    console.log(`Đã gửi hóa đơn cho sản phẩm: ${seat.productCode}`);
                 }
 
                 if (groupedCombos.length > 0) {
@@ -289,7 +286,6 @@ const Seat = () => {
 
                         // Gửi yêu cầu POST tới API
                         await axios.post('api/sales-invoices-details', salesInvoiceDetail);
-                        console.log(`Đã gửi hóa đơn cho sản phẩm: ${combo.productCode}`);
                     }
                 }
                 handleUpdateStatusSeat(3);
@@ -350,7 +346,6 @@ const Seat = () => {
         quantity: freeProduct?.freeQuantity,
         totalPrice: freeProduct?.price,
     };
-    console.log(freeProductPrint);
     const foodPrint = groupedCombos?.map((combo) => ({
         productName: combo.name,
         price: combo.price,
