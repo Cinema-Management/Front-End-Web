@@ -994,7 +994,11 @@ const Promotion = () => {
                                                 >
                                                     <FaRegEdit color="black" size={20} />
                                                 </button>
-                                                <button className="grid" onClick={() => handleOpenDelete(item)}>
+                                                <button
+                                                    className="grid"
+                                                    onClick={() => handleOpenDelete(item)}
+                                                    disabled={item?.status === 1 ? true : false}
+                                                >
                                                     <MdOutlineDeleteOutline color="black" fontSize={23} />
                                                 </button>
                                                 <button
@@ -1167,6 +1171,7 @@ const Promotion = () => {
                             disableClearable={true}
                             placeholder="Nhập ..."
                             heightSelect={200}
+                            disabled={selectedKMLine?.status === 1 ? true : false}
                         />
                         <AutoInputComponent
                             value={descriptionKMLine}
@@ -1176,6 +1181,7 @@ const Promotion = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
+                            disabled={selectedKMLine?.status === 1 ? true : false}
                         />
                     </div>
 
@@ -1192,6 +1198,7 @@ const Promotion = () => {
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    disabled={selectedKMLine?.status === 1 ? true : false}
                                 />
                             </div>
 

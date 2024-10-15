@@ -158,7 +158,7 @@ const Order = () => {
         isLoading: isLoadingOptionMovieName,
         // isFetching: isFetchingOptionMovieName,
         error: optionCinemaNameError,
-    } = useQuery('movie1', fetchMoviesStatus, {
+    } = useQuery('moviesOrder', fetchMoviesStatus, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -249,7 +249,7 @@ const Order = () => {
             setRoomsFilter(room);
             return;
         }
-        const filteredRooms = room.filter((item) => item.movieName === searchValue);
+        const filteredRooms = room.filter((item) => item.movieName.toLowerCase() === searchValue.toLowerCase());
 
         if (filteredRooms.length > 0) {
             setRoomsFilter(filteredRooms);
@@ -329,7 +329,7 @@ const Order = () => {
                             />
 
                             <AutoInputComponent
-                                options={optionMovieName.map((option) => option.name)}
+                                options={optionMovieName.map((option) => option.name.toUpperCase())}
                                 value={selectedMovie}
                                 onChange={(newValue) => handleSearchMovie(newValue)}
                                 title="Tên phim"
