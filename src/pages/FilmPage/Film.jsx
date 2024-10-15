@@ -63,14 +63,17 @@ const Film = React.memo(() => {
     const [inputSearch, setInputSearch] = useState('');
     const [selectedSort, setSelectedSort] = useState(null);
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
+    const [statusFilm, setStatusFilm] = useState('');
+    const [statusFilmCode, setStatusFilmCode] = useState('');
     const height = HeightComponent();
     const queryClient = useQueryClient();
     const { RangePicker } = DatePicker;
 
     const optionStatus = [
         { value: 3, name: 'Tất cả' },
+        { value: 0, name: 'Chưa phát hành' },
         { value: 1, name: 'Đã phát hành' },
-        { value: 2, name: 'Chưa phát hành' },
+        { value: 2, name: 'Ngừng phát hành' },
     ];
 
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
@@ -165,11 +168,14 @@ const Film = React.memo(() => {
         }
         setSelectedStatus(option);
         let sortedStatus = [];
-        if (option.value === 1) {
+        if (option.value === 0) {
+            sortedStatus = movies.filter((item) => item.status === 0);
+            setMovieFilter(sortedStatus);
+        } else if (option.value === 1) {
             sortedStatus = movies.filter((item) => item.status === 1);
             setMovieFilter(sortedStatus);
         } else if (option.value === 2) {
-            sortedStatus = movies.filter((item) => item.status === 0);
+            sortedStatus = movies.filter((item) => item.status === 2);
             setMovieFilter(sortedStatus);
         } else if (option.value === 3) {
             sortedStatus = movies;
@@ -228,6 +234,8 @@ const Film = React.memo(() => {
         setEndDate(null);
         descriptionRef.current = '';
         setSelectedGenre(null);
+        setStatusFilm('');
+        setStatusFilmCode('');
         setSelectedImage(null);
     };
 
@@ -259,6 +267,7 @@ const Film = React.memo(() => {
 
         setEndDate(dateString);
     };
+
     const optionTuoi = [
         { value: '1', label: 'Chọn' },
         { value: '13', label: 'C13' },
@@ -267,6 +276,30 @@ const Film = React.memo(() => {
         { value: '0', label: 'Không giới hạn' },
     ];
 
+    const optionsStatus = [
+        { value: 0, name: 'Chưa phát hành' },
+        { value: 1, name: 'Đã phát hành' },
+        { value: 2, name: 'Ngừng phát hành' },
+    ];
+    const changStatus = (value) => {
+        if (value === 2) {
+            return 'Ngừng phát hành';
+        } else if (value === 1) {
+            return 'Đã phát hành';
+        } else {
+            return 'Chưa phát hành';
+        }
+    };
+    const handleStatusChang = (value) => {
+        const selectedItem = optionsStatus.find((item) => item.name === value);
+        if (selectedItem) {
+            setStatusFilm(value);
+            setStatusFilmCode(selectedItem.value);
+        } else {
+            setStatusFilm('');
+            setStatusFilmCode('');
+        }
+    };
     const handleFormData = () => {
         let check = validate();
         if (!check) return;
@@ -288,6 +321,7 @@ const Film = React.memo(() => {
         if (selectedImage) {
             formData.append('image', selectedImage);
         }
+        formData.append('status', statusFilmCode);
 
         return formData;
     };
@@ -367,36 +401,6 @@ const Film = React.memo(() => {
         }
     };
 
-    const handleUpdateStatusMovie = async (item) => {
-        const movieCode = item.code;
-        if (item.status === 1) {
-            toast.info('Phim đã được phát hành!');
-            return;
-        }
-        try {
-            await axios.put(
-                `api/movies/${movieCode}`,
-                {
-                    status: 1,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                },
-            );
-            toast.success('Cập nhật status phim thành công!');
-            refetch();
-        } catch (error) {
-            toast.error('Câp nhật status phim thất bại!');
-        }
-    };
-    const mutation = useMutation(handleUpdateStatusMovie, {
-        onSuccess: () => {
-            // Refetch dữ liệu cần thiết
-            queryClient.refetchQueries('movie1');
-        },
-    });
     const handleUpdateMovie = async (movieCode) => {
         const age = ageRestriction === 'C13' ? 13 : ageRestriction === 'C16' ? 16 : ageRestriction === 'C18' ? 18 : 0;
         if (
@@ -410,6 +414,7 @@ const Film = React.memo(() => {
             !director &&
             !cast &&
             country === selectedFilm.country &&
+            !statusFilm &&
             dayjs(selectedFilm?.startDate).isSame(startDate, 'day') &&
             dayjs(selectedFilm?.endDate).isSame(endDate, 'day')
         ) {
@@ -436,6 +441,13 @@ const Film = React.memo(() => {
             toast.error('Cập nhật phim thất bại!');
         }
     };
+
+    const mutation = useMutation(handleUpdateMovie, {
+        onSuccess: () => {
+            queryClient.refetchQueries('movies');
+            queryClient.refetchQueries('moviesOrder');
+        },
+    });
 
     const getAgeRestrictionLabel = (ageRestriction) => {
         switch (ageRestriction) {
@@ -492,11 +504,14 @@ const Film = React.memo(() => {
                     <div className="grid col-span-5  justify-center items-center">
                         <button
                             className={`border px-2  uppercase text-white text-[13px] py-[2px] flex rounded-[40px] ${
-                                item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                                item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                             }`}
-                            onClick={() => mutation.mutate(item)}
                         >
-                            {item.status === 0 ? 'Chưa phát hành' : 'Đã phát hành'}
+                            {item.status === 0
+                                ? 'Chưa phát hành'
+                                : item.status === 1
+                                ? 'Đã phát hành'
+                                : 'Ngừng phát hành'}
                         </button>
                     </div>
 
@@ -511,7 +526,7 @@ const Film = React.memo(() => {
                                 setStartDate(dayjs(item.startDate));
                                 setEndDate(dayjs(item.endDate));
                             }}
-                            disabled={item.status === 1 ? true : false}
+                            disabled={item.status === 0 ? false : true}
                         >
                             <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={22} />
                         </button>
@@ -777,16 +792,35 @@ const Film = React.memo(() => {
                             </div>
                         </div>
 
-                        <div className="w-full p-2">
-                            <AutoInputComponent
-                                value={isUpdate ? selectedFilm?.cast : cast}
-                                onChange={setCast}
-                                title="Diễn viên"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Nhập ..."
-                                heightSelect={200}
-                            />
+                        <div className="p-2">
+                            <div className="grid grid-cols-4 space-x-5 ">
+                                <AutoInputComponent
+                                    value={isUpdate ? selectedFilm?.cast : cast}
+                                    onChange={setCast}
+                                    title="Diễn viên"
+                                    freeSolo={true}
+                                    disableClearable={false}
+                                    placeholder="Nhập ..."
+                                    heightSelect={200}
+                                    className1="col-span-3"
+                                />
+
+                                <AutoInputComponent
+                                    value={isUpdate ? changStatus(selectedFilm?.status) : changStatus(statusFilm)}
+                                    onChange={handleStatusChang}
+                                    options={
+                                        selectedFilm?.status === 0
+                                            ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
+                                            : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
+                                    }
+                                    freeSolo={false}
+                                    disableClearable={true}
+                                    title="Trạng thái"
+                                    placeholder="Chưa phát hành"
+                                    heightSelect={150}
+                                    disabled={!isUpdate || selectedFilm?.status === 1 ? true : false}
+                                />
+                            </div>
                         </div>
 
                         <div className="p-2">
@@ -872,7 +906,7 @@ const Film = React.memo(() => {
                                             text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
                                             className="bg-blue-500"
                                             onClick={
-                                                isUpdate ? () => handleUpdateMovie(selectedFilm?.code) : handleAddMovie
+                                                isUpdate ? () => mutation.mutate(selectedFilm?.code) : handleAddMovie
                                             }
                                         />
                                     </>

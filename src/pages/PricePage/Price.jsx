@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdSwapVert } from 'react-icons/md';
+import { MdOutlineDeleteOutline, MdSwapVert } from 'react-icons/md';
 import { useQuery } from 'react-query';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
@@ -15,6 +15,7 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import { DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
+import { set } from 'lodash';
 
 const { Option } = Select;
 const { getFormatteNgay } = require('~/utils/dateUtils');
@@ -24,6 +25,22 @@ const fetchPrice = async () => {
         const response = await axios.get('api/prices');
 
         return { prices: response.data };
+    } catch (error) {
+        console.error(error.message);
+        throw new Error('Failed to fetch data');
+    }
+};
+
+const fetchProducts = async () => {
+    try {
+        const response = await axios.get('api/products/getAllNotSeat');
+        const optionFood = response.data
+            .filter((item) => item.status === 1)
+            .map((item) => ({
+                code: item.code,
+                name: item.name,
+            }));
+        return { products: response.data, optionFood: optionFood };
     } catch (error) {
         console.error(error.message);
         throw new Error('Failed to fetch data');
@@ -57,31 +74,32 @@ const Price = () => {
     const [selectedDayOfWeek, setSelectedDayOfWeek] = useState([]);
     const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
     const [selectedTimeSlotCode, setSelectedTimeSlotCode] = useState('');
-
+    const [openDelete, setOpenDelete] = useState(false);
+    const [deleteType, setDeleteType] = useState('');
+    const [statusPrice, setStatusPrice] = useState('');
+    const [statusPriceCode, setStatusPriceCode] = useState('');
     const optionsSort = [
         { value: 3, name: 'Tất cả' },
         { value: 1, name: 'Ghế' },
         { value: 2, name: 'Đồ ăn & nước uống' },
     ];
+    const optionsStatus = [
+        { value: 0, name: 'Mới tạo' },
+        { value: 1, name: 'Hoạt động' },
+        { value: 2, name: 'Ngừng hoạt động' },
+    ];
     const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const fetchPricesAndProducts = async () => {
         try {
-            const [productsResponse, productTypeResponse, roomTypeResponse] = await Promise.all([
-                axios.get('api/products/getAllNotSeat'),
+            const [productTypeResponse, roomTypeResponse] = await Promise.all([
                 axios.get('api/product-types'),
                 axios.get('api/room-types'),
             ]);
 
-            const products = productsResponse.data;
             const productTypes = productTypeResponse.data;
             const roomTypes = roomTypeResponse.data;
 
             const optionRoomTypes = roomTypes.map((item) => ({
-                code: item.code,
-                name: item.name,
-            }));
-
-            const optionFood = products.map((item) => ({
                 code: item.code,
                 name: item.name,
             }));
@@ -91,20 +109,14 @@ const Price = () => {
                 name: item.name,
             }));
 
-            return { products, optionFood, productTypes, optionProductTypes, roomTypes, optionRoomTypes };
+            return { productTypes, optionProductTypes, roomTypes, optionRoomTypes };
         } catch (error) {
             console.error(error.message);
             throw new Error('Failed to fetch data');
         }
     };
 
-    const {
-        data,
-        isLoading,
-        isFetched,
-        error,
-        // refetch
-    } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
+    const { data, isLoading, isFetched, error } = useQuery('pricesAndProducts', fetchPricesAndProducts, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -124,9 +136,19 @@ const Price = () => {
         //     setFoodFilter(data.product);
         // },
     });
-    if (isLoading || isLoadingPrice) return <Loading />;
-    if (!isFetched || !isFetchedPrice) return <div>Fetching...</div>;
-    if (error || isErrorPrice) return <div>Error loading data: {error.message || isErrorPrice.message}</div>;
+    const {
+        data: { products = [], optionFood = [] } = {},
+        isLoading: isLoadingProduct,
+        isFetched: isFetchedProduct,
+        isError: isErrorProduct,
+    } = useQuery('fetchProducts', fetchProducts, {
+        staleTime: 1000 * 60 * 7,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
+        // onSuccess: (data) => {
+        //     setFoodFilter(data.product);
+        // },
+    });
 
     const handleOpen = (isUpdate, type) => {
         setOpen(true);
@@ -143,12 +165,15 @@ const Price = () => {
         setSelectedDayOfWeek([]);
         setSelectedTimeSlot('');
         setSelectedTimeSlotCode('');
+        setStatusPrice('');
+        setStatusPriceCode('');
     };
 
     const handleOpenLoaiKM = (isUpdate, type) => {
         setOpenLoaiKM(true);
         setIsUpdate(isUpdate);
         setType(type);
+        setSelectedPrice(null);
     };
 
     const handleCloseDetail = () => {
@@ -163,12 +188,25 @@ const Price = () => {
         setType(type);
     };
 
+    const handleOpenDelete = (item, type) => {
+        setSelectedPrice(item);
+        setOpenDelete(true);
+        setDeleteType(type);
+        setSelectDetail(item);
+    };
+    const handleCloseDelete = () => {
+        setOpenDelete(false);
+        setSelectedPrice(null);
+        setSelectDetail(null);
+        setDeleteType('');
+    };
+
     const handleChangeDay = (value) => {
         setSelectedDayOfWeek(value);
     };
 
     const handleTimeSlotChang = (value) => {
-        const selectedItem = optionTimeSlot.find((item) => item.label === value);
+        const selectedItem = optionTimeSlot?.find((item) => item.label === value);
         if (selectedItem) {
             setSelectedTimeSlot(value);
             setSelectedTimeSlotCode(selectedItem.value);
@@ -179,7 +217,7 @@ const Price = () => {
     };
 
     const handleProductChang = (value) => {
-        const selectedItem = data.optionFood.find((item) => item.name === value);
+        const selectedItem = optionFood.find((item) => item.name === value);
         if (selectedItem) {
             setSelectedProduct(value);
             setProductCode(selectedItem.code);
@@ -197,6 +235,17 @@ const Price = () => {
         } else {
             setSelectedProductType('');
             setSelectedProductTypeCode('');
+        }
+    };
+
+    const handleStatusChang = (value) => {
+        const selectedItem = optionsStatus.find((item) => item.name === value);
+        if (selectedItem) {
+            setStatusPrice(value);
+            setStatusPriceCode(selectedItem.value);
+        } else {
+            setStatusPrice('');
+            setStatusPriceCode('');
         }
     };
 
@@ -246,6 +295,19 @@ const Price = () => {
         setDescription('');
         setSelectedDayOfWeek([]);
         setSelectedTimeSlot('');
+        setStatusPrice('');
+        setStatusPriceCode('');
+        setSelectedTimeSlotCode('');
+    };
+
+    const changStatus = (value) => {
+        if (value === 2) {
+            return 'Ngừng hoạt động';
+        } else if (value === 1) {
+            return 'Hoạt động';
+        } else {
+            return 'Mới tạo';
+        }
     };
 
     const checkExitsPrice = () => {
@@ -279,6 +341,11 @@ const Price = () => {
 
         return !price;
     };
+
+    if (isLoading || isLoadingPrice || isLoadingProduct) return <Loading />;
+    if (!isFetched || !isFetchedPrice || !isFetchedProduct) return <div>Fetching...</div>;
+    if (error || isErrorPrice || isErrorProduct)
+        return <div>Error loading data: {error.message || isErrorPrice.message || isErrorProduct}</div>;
 
     const checkPriceFoodNull = () => {
         if (description !== '' && startDate !== '' && endDate !== '') {
@@ -356,16 +423,50 @@ const Price = () => {
 
     const handleUpdate = async () => {
         try {
-            if (!description && !startDate && !endDate && selectedDayOfWeek.length === 0 && !selectedTimeSlotCode) {
+            if (
+                !description &&
+                !startDate &&
+                !endDate &&
+                selectedDayOfWeek.length === 0 &&
+                !selectedTimeSlotCode &&
+                !statusPrice
+            ) {
                 toast.error('Vui lòng nhập thông tin cần cập nhật');
                 return;
             }
 
+            if (!checkExitsPrice()) {
+                toast.error('Bảng giá đã được tạo trong khoảng thời gian này!');
+                return;
+            }
+
             if (selectedPrice.type === '1') {
-                const startDateToCheck = new Date(startDate);
+                if (statusPriceCode) {
+                    if (selectedPrice.status === 1) {
+                        toast.info('Bảng giá đã hoạt động!');
+                        return;
+                    }
+                    const startDateToCheck = selectedPrice.startDate;
+                    const isDateConflict = prices.some((price) => {
+                        return (
+                            price.type === '1' &&
+                            price.status === 1 &&
+                            price.startDate <= startDateToCheck &&
+                            price.endDate >= startDateToCheck
+                        );
+                    });
+
+                    if (isDateConflict) {
+                        toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                        return;
+                    }
+                }
+
+                const startDateToCheck = startDate ? new Date(startDate) : new Date(selectedPrice.startDate);
+                const currentDescription = description || selectedPrice.description;
                 const descriptionExists = prices.some(
                     (price) =>
-                        price.description === description &&
+                        price.description === currentDescription &&
                         new Date(price.startDate) <= startDateToCheck &&
                         new Date(price.endDate) >= startDateToCheck &&
                         price.code !== selectedPrice.code,
@@ -379,12 +480,39 @@ const Price = () => {
                     description: description || selectedPrice.description,
                     startDate: startDate || selectedPrice.startDate,
                     endDate: endDate || selectedPrice.endDate,
+                    status: statusPriceCode || selectedPrice.status,
                 });
             } else {
+                if (statusPriceCode) {
+                    if (selectedPrice.status === 1) {
+                        toast.error('Bảng giá đang hoạt động không thể cập nhật trạng thái!');
+                        return;
+                    }
+
+                    const startDateToCheck = selectedPrice.startDate;
+                    const isDateConflict = prices.some((price) => {
+                        return (
+                            price.type === '0' &&
+                            price.status === 1 &&
+                            price.description === selectedPrice.description &&
+                            price.dayOfWeek.toString() === selectedPrice.dayOfWeek.toString() &&
+                            price.timeSlot === selectedPrice.timeSlot &&
+                            price.startDate <= startDateToCheck &&
+                            price.endDate >= startDateToCheck
+                        );
+                    });
+
+                    if (isDateConflict) {
+                        toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                        return;
+                    }
+                }
                 const currentDescription = description || selectedPrice.description;
+
                 const dayOfWeek = selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek;
                 const timeSlot = selectedTimeSlotCode || selectedPrice.timeSlot;
-                const startDateToCheck = new Date(startDate) || new Date(selectedPrice.startDate);
+                const startDateToCheck = startDate ? new Date(startDate) : new Date(selectedPrice.startDate);
+
                 const isDateConflict = prices.some((price) => {
                     return (
                         price.description === currentDescription &&
@@ -395,79 +523,50 @@ const Price = () => {
                         price.code !== selectedPrice.code
                     );
                 });
+
                 if (isDateConflict) {
                     toast.error('Bảng giá đã được tạo!');
                     return;
                 }
 
                 await axios.post(`api/prices/${selectedPrice.code}`, {
-                    description: description || selectedPrice.description,
-                    startDate: startDate || selectedPrice.startDate,
-                    endDate: endDate || selectedPrice.endDate,
+                    description: description,
+                    startDate: startDate,
+                    endDate: endDate,
                     dayOfWeek: selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek,
                     timeSlot: selectedTimeSlotCode || selectedPrice.timeSlot,
+                    status: statusPriceCode,
                 });
             }
 
             toast.success('Cập nhật bảng giá thành công');
             setOpen(false);
+            clearText();
             refetchPrice();
         } catch (error) {
             toast.error('Cập nhật bảng giá thất bại');
         }
     };
 
-    const handleUpdateStatusPrice = async (item) => {
-        const priceCode = item.code;
+    const handleDeletePrice = async () => {
         try {
-            if (item.type === '1') {
-                if (item.status === 1) {
-                    toast.info('Bảng giá đã hoạt động!');
-                    return;
-                }
-
-                const startDateToCheck = item.startDate;
-                const isDateConflict = prices.some((price) => {
-                    return (
-                        price.status === 1 && price.startDate <= startDateToCheck && price.endDate >= startDateToCheck
-                    );
-                });
-                if (isDateConflict) {
-                    toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
-                    return;
-                }
-            } else {
-                if (item.status === 1) {
-                    toast.error('Bảng giá đang hoạt động không thể cập nhật trạng thái!');
-                    return;
-                }
-
-                const startDateToCheck = item.startDate;
-                const isDateConflict = prices.some((price) => {
-                    return (
-                        price.status === 1 &&
-                        price.description === item.description &&
-                        price.dayOfWeek.toString() === item.dayOfWeek.toString() &&
-                        price.timeSlot === item.timeSlot &&
-                        price.startDate <= startDateToCheck &&
-                        price.endDate >= startDateToCheck
-                    );
-                });
-                if (isDateConflict) {
-                    toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
-                    return;
-                }
-            }
-
-            await axios.post(`api/prices/updateStatus/${priceCode}`, {
-                status: 1,
-            });
-
-            toast.success('Cập nhật trạng thái thành công');
-            setOpen(false);
+            await axios.delete(`api/prices/deletePrice/${selectedPrice.code}`);
+            toast.success('Xóa bảng giá thành công');
+            setOpenDelete(false);
             refetchPrice();
         } catch (error) {
-            toast.error('Cập nhật trạng thái thất bại');
+            toast.error('Xóa bảng giá thất bại');
+        }
+    };
+
+    const handleDeletePriceDetail = async () => {
+        try {
+            await axios.delete(`api/prices/deletePriceDetail/${selectDetail.code}`);
+            toast.success('Xóa chi tiết bảng giá thành công');
+            setOpenDelete(false);
+            refetchPrice();
+        } catch (error) {
+            toast.error('Xóa chi tiết bảng giá thất bại');
         }
     };
 
@@ -499,10 +598,6 @@ const Price = () => {
         }
     };
     const handleAddDetailSeat = async () => {
-        // if (selectedProduct === '' || detailDescription === '' || detailPrice === '') {
-        //     toast.warn('Vui lòng nhập đầy đủ thông tin');
-        //     return;
-        // } else {
         try {
             await axios.post('api/prices/addPriceDetailSeat', {
                 productTypeCode: selectedProductTypeCode,
@@ -712,26 +807,53 @@ const Price = () => {
                                             <h1 className="grid justify-center items-center">
                                                 {getFormatteNgay(item.endDate)}
                                             </h1>
-                                            <div className="justify-center items-center grid">
-                                                <button
-                                                    className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
-                                                        item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
-                                                    }`}
-                                                    onClick={() => handleUpdateStatusPrice(item)}
-                                                >
-                                                    {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
-                                                </button>
-                                            </div>
-                                            <div className="justify-center grid items-center ">
-                                                <button
-                                                    className=""
-                                                    onClick={() => {
-                                                        handleOpen(true, 0);
-                                                        setSelectedPrice(item);
-                                                    }}
-                                                >
-                                                    <FaRegEdit color="black" size={22} />
-                                                </button>
+                                            <div className="justify-center col-span-2  grid-cols-5 items-center grid">
+                                                <div className="grid col-span-3 justify-center">
+                                                    <button
+                                                        className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
+                                                            item.status === 0
+                                                                ? 'bg-gray-400'
+                                                                : item.status === 1
+                                                                ? 'bg-green-500'
+                                                                : 'bg-gray-400'
+                                                        }`}
+                                                    >
+                                                        {item.status === 0
+                                                            ? 'Mới tạo'
+                                                            : item.status === 1
+                                                            ? 'Hoạt động'
+                                                            : 'Ngừng hoạt động'}
+                                                    </button>
+                                                </div>
+
+                                                <div className="justify-center grid col-span-2 grid-cols-2 items-center ">
+                                                    <button
+                                                        className="grid justify-center"
+                                                        onClick={() => {
+                                                            handleOpen(true, 0);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                        disabled={item.status === 2 ? true : false}
+                                                    >
+                                                        <FaRegEdit
+                                                            color={`${item.status === 2 ? 'gray' : 'black'}`}
+                                                            size={22}
+                                                        />
+                                                    </button>
+                                                    <button
+                                                        className=" grid justify-center items-center"
+                                                        onClick={() => {
+                                                            handleOpenDelete(item, 1);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                        disabled={item.status === 1 || item.status === 2}
+                                                    >
+                                                        <MdOutlineDeleteOutline
+                                                            color={`${item.status === 0 ? 'black' : 'gray'}`}
+                                                            fontSize={23}
+                                                        />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         {visibleRooms[item.code] && (
@@ -794,15 +916,46 @@ const Price = () => {
                                                                     onClick={() => {
                                                                         handleOpenLoaiKM(true, 1);
                                                                         setSelectDetail(item);
+                                                                        setSelectedPrice(
+                                                                            prices.find(
+                                                                                (price) =>
+                                                                                    price.code === item.priceCode,
+                                                                            ),
+                                                                        );
                                                                     }}
+                                                                    disabled={item?.priceCode?.status === 1}
                                                                 >
-                                                                    <FaRegEdit color="black" size={20} />
+                                                                    <FaRegEdit
+                                                                        color={`${
+                                                                            item?.priceCode?.status === 1
+                                                                                ? 'gray'
+                                                                                : 'black'
+                                                                        }`}
+                                                                        size={20}
+                                                                    />
                                                                 </button>
                                                                 <button
                                                                     className=""
                                                                     onClick={() => handleOpenDetail(item.type)}
                                                                 >
                                                                     <FaRegEye color="black" fontSize={20} />
+                                                                </button>
+
+                                                                <button
+                                                                    className=" grid justify-center items-center"
+                                                                    onClick={() => {
+                                                                        handleOpenDelete(item, 2);
+                                                                    }}
+                                                                    disabled={item?.priceCode?.status === 1}
+                                                                >
+                                                                    <MdOutlineDeleteOutline
+                                                                        color={`${
+                                                                            item?.priceCode?.status === 1
+                                                                                ? 'gray'
+                                                                                : 'black'
+                                                                        }`}
+                                                                        fontSize={22}
+                                                                    />
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -868,23 +1021,44 @@ const Price = () => {
                                             </h1>
                                             <div className="justify-center items-center grid">
                                                 <button
-                                                    className={`border px-2 text-white text-[13px] uppercase truncate py-1 flex rounded-[40px] ${
-                                                        item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                                    className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
+                                                        item.status === 0
+                                                            ? 'bg-gray-400'
+                                                            : item.status === 1
+                                                            ? 'bg-green-500'
+                                                            : 'bg-gray-400'
                                                     }`}
-                                                    onClick={() => handleUpdateStatusPrice(item)}
                                                 >
-                                                    {item.status === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+                                                    {item.status === 0
+                                                        ? 'Mới tạo'
+                                                        : item.status === 1
+                                                        ? 'Hoạt động'
+                                                        : 'Ngừng hoạt động'}
                                                 </button>
                                             </div>
-                                            <div className="justify-center grid items-center ">
+                                            <div className="justify-center grid grid-cols-2 items-center ">
                                                 <button
-                                                    className=""
+                                                    className=" grid justify-center"
                                                     onClick={() => {
                                                         handleOpen(true, 1);
                                                         setSelectedPrice(item);
                                                     }}
                                                 >
                                                     <FaRegEdit color="black" size={22} />
+                                                </button>
+
+                                                <button
+                                                    className=" grid justify-center items-center"
+                                                    onClick={() => {
+                                                        handleOpenDelete(item, 1);
+                                                        setSelectedPrice(item);
+                                                    }}
+                                                    disabled={item.status === 1}
+                                                >
+                                                    <MdOutlineDeleteOutline
+                                                        color={`${item.status === 1 ? 'gray' : 'black'}`}
+                                                        fontSize={23}
+                                                    />
                                                 </button>
                                             </div>
                                         </div>
@@ -941,15 +1115,45 @@ const Price = () => {
                                                                     onClick={() => {
                                                                         handleOpenLoaiKM(true, 2);
                                                                         setSelectDetail(item);
+                                                                        setSelectedPrice(
+                                                                            prices.find(
+                                                                                (price) =>
+                                                                                    price.code === item.priceCode,
+                                                                            ),
+                                                                        );
                                                                     }}
+                                                                    disabled={item?.priceCode?.status === 1}
                                                                 >
-                                                                    <FaRegEdit color="black" size={20} />
+                                                                    <FaRegEdit
+                                                                        color={`${
+                                                                            item?.priceCode?.status === 1
+                                                                                ? 'gray'
+                                                                                : 'black'
+                                                                        }`}
+                                                                        size={20}
+                                                                    />
                                                                 </button>
                                                                 <button
                                                                     className=""
                                                                     onClick={() => handleOpenDetail(item.type)}
                                                                 >
                                                                     <FaRegEye color="black" fontSize={20} />
+                                                                </button>
+                                                                <button
+                                                                    className=" grid justify-center items-center"
+                                                                    onClick={() => {
+                                                                        handleOpenDelete(item, 2);
+                                                                    }}
+                                                                    disabled={item?.priceCode?.status === 1}
+                                                                >
+                                                                    <MdOutlineDeleteOutline
+                                                                        color={`${
+                                                                            item?.priceCode?.status === 1
+                                                                                ? 'gray'
+                                                                                : 'black'
+                                                                        }`}
+                                                                        fontSize={22}
+                                                                    />
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -968,7 +1172,7 @@ const Price = () => {
             <ModalComponent
                 open={open}
                 handleClose={handleClose}
-                width="35%"
+                width="40%"
                 height={typePrice === 0 ? '49%' : '36%'}
                 top="30%"
                 left="55%"
@@ -985,17 +1189,44 @@ const Price = () => {
                 title={isUpdate ? 'Chỉnh sửa bảng giá' : 'Thêm bảng giá'}
             >
                 <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-3`}>
-                    <div className="grid p-3 ">
-                        <AutoInputComponent
-                            value={isUpdate ? selectedPrice?.description : description}
-                            onChange={setDescription}
-                            title="Mô tả"
-                            freeSolo={true}
-                            disableClearable={false}
+                    <div className="grid">
+                        <div className="grid grid-cols-2 gap-8 p-3 ">
+                            <AutoInputComponent
+                                value={isUpdate ? selectedPrice?.description : description}
+                                onChange={setDescription}
+                                title="Mô tả"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
+                                disabled={selectedPrice?.status === 1 ? true : false}
+                            />
+                            {/* value={isUpdate ? selectDetail?.roomTypeCode?.name : selectedRoomType}
+                            onChange={handleRoomTypeChang}
+                            options={data.optionRoomTypes.map((item) => item.name)}
+                            title="Loại phòng chiếu"
+                            freeSolo={false}
+                            disableClearable={true}
                             placeholder="Nhập ..."
-                            heightSelect={200}
-                            disabled={selectedPrice?.status === 1 ? true : false}
-                        />
+                            heightSelect={130}
+                            className1="p-3"
+                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false} */}
+                            <AutoInputComponent
+                                value={isUpdate ? changStatus(selectedPrice?.status) : changStatus(statusPrice)}
+                                onChange={handleStatusChang}
+                                options={
+                                    selectedPrice?.status === 0
+                                        ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
+                                        : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
+                                }
+                                freeSolo={false}
+                                disableClearable={true}
+                                title="Trạng thái"
+                                placeholder="Mới tạo"
+                                heightSelect={150}
+                                disabled={!isUpdate || selectedPrice?.status === 1 ? true : false}
+                            />
+                        </div>
                     </div>
                     <div className="grid items-center gap-2 ">
                         <div className="grid grid-cols-2 gap-8 p-3 ">
@@ -1126,7 +1357,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
-                            disabled={isUpdate}
+                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                         />
                     )}
 
@@ -1134,14 +1365,14 @@ const Price = () => {
                         <AutoInputComponent
                             value={isUpdate ? selectDetail?.productCode?.name : selectedProduct}
                             onChange={handleProductChang}
-                            options={data.optionFood.map((item) => item.name)}
+                            options={optionFood.map((item) => item.name)}
                             title="Tên"
                             freeSolo={false}
                             disableClearable={true}
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
-                            disabled={isUpdate}
+                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                         />
                     )}
 
@@ -1156,7 +1387,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={130}
                             className1="p-3"
-                            disabled={isUpdate}
+                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                         />
                     )}
                     <AutoInputComponent
@@ -1168,6 +1399,7 @@ const Price = () => {
                         placeholder="Nhập ..."
                         heightSelect={200}
                         className1="p-3"
+                        disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                     />
 
                     <div className="grid items-center row-span-2  gap-2 ">
@@ -1180,6 +1412,7 @@ const Price = () => {
                             placeholder="Nhập ..."
                             heightSelect={200}
                             className1="p-3"
+                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                         />
 
                         <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
@@ -1231,7 +1464,7 @@ const Price = () => {
                     <AutoInputComponent
                         value={selectedProduct} // Hiển thị tên
                         onChange={(newValue) => setSelectedProduct(newValue)}
-                        options={data.products.map((item) => item.name)}
+                        options={products.map((item) => item.name)}
                         title="Tên"
                         freeSolo={false}
                         disableClearable={true}
@@ -1279,6 +1512,43 @@ const Price = () => {
                         <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseLoaiKM} />
                             <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
+                        </div>
+                    </div>
+                </div>
+            </ModalComponent>
+
+            <ModalComponent
+                open={openDelete}
+                handleClose={handleCloseDelete}
+                width="25%"
+                height="32%"
+                smallScreenWidth="40%"
+                smallScreenHeight="25%"
+                mediumScreenWidth="40%"
+                mediumScreenHeight="20%"
+                largeScreenHeight="20%"
+                largeScreenWidth="40%"
+                maxHeightScreenHeight="40%"
+                maxHeightScreenWidth="40%"
+                title={deleteType === 1 ? 'Xóa bảng giá' : 'Xóa chi tiết bảng giá'}
+            >
+                <div className="h-[80%] grid grid-rows-3 ">
+                    <h1 className="grid row-span-2 p-3">
+                        Bạn đang thực hiện xóa {deleteType === 1 ? 'bảng giá' : 'chi tiết bảng giá'} này. Bạn có chắc
+                        chắn xóa không?
+                    </h1>
+                    <div className="grid items-center ">
+                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
+                            <ButtonComponent
+                                text="Xác nhận"
+                                className="bg-blue-500"
+                                onClick={() => {
+                                    deleteType === 1
+                                        ? handleDeletePrice(selectedPrice?.code)
+                                        : handleDeletePriceDetail(selectDetail.code);
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
