@@ -6,13 +6,13 @@ import { logOut } from '~/redux/apiRequest';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createAxios } from '~/createInstance';
-import { loginSuccess } from '~/redux/authSlice';
+import { logOutSuccess } from '~/redux/authSlice';
 
 const Avatar = React.memo(() => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const user = useSelector((state) => state.auth.login?.currentUser);
-    let axiosJWT = createAxios(user, dispatch, loginSuccess);
+    let axiosJWT = createAxios(user, dispatch, logOutSuccess);
     const [visible, setVisible] = useState(false);
     const handleNavigate = (path) => {
         navigate(path);
@@ -22,7 +22,7 @@ const Avatar = React.memo(() => {
     }, [user, navigate]);
 
     const handleLogout = () => {
-        logOut(dispatch, navigate, user?.accessToken, axiosJWT);
+        logOut(dispatch, user?.code, navigate, user?.accessToken, axiosJWT);
     };
 
     const handleChangePassword = () => {

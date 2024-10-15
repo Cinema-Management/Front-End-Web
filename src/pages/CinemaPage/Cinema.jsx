@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdSwapVert } from 'react-icons/md';
+import { MdOutlineDeleteOutline, MdSwapVert } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
@@ -13,7 +13,7 @@ import Loading from '~/components/LoadingComponent/Loading';
 import axios from 'axios';
 import { MultiSelect } from 'react-multi-select-component';
 import { toast } from 'react-toastify';
-import { getAllSeatByRoomCode, getRoomCode } from '~/redux/apiRequest';
+import { getRoom } from '~/redux/apiRequest';
 import { useDispatch, useSelector } from 'react-redux';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -34,24 +34,29 @@ const Cinema = () => {
     const [selectedCinema, setSelectedCinema] = useState([]);
     const [rooms, setRooms] = useState([]);
     const [selectedOptionRoomType, setSelectedOptionRoomType] = useState([]);
-    const [selectedOptionRoomSize, setSelectedOptionRoomSize] = useState([]);
+    const [selectedOptionRoomSize, setSelectedOptionRoomSize] = useState('');
     const [nameRoom, setNameRoom] = useState('');
-    const [numRows, setNumRows] = useState('');
-    const [numColumns, setNumColumns] = useState('');
     const [selectedRoom, setSelectedRoom] = useState([]);
     const user = useSelector((state) => state.auth.login?.currentUser);
-    const [optionRoomType, setOptionRoomType] = useState([]);
-    const [optionRoomSize, setOptionRoomSize] = useState('');
 
     const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
     const [selectedOptionFilterStatus, setSelectedOptionFilterStatus] = useState('');
     const [inputValue, setInputValue] = useState('');
-
     const [cinemasFilter, setCinemasFilter] = useState([]);
     const [selectedSort, setSelectedSort] = useState('');
+    const [selectedStatusCinema, setSelectedStatusCinema] = useState('');
+    const [selectedStatusRoom, setSelectedStatusRoom] = useState('');
+
     const optionStatusCinema = [
-        { value: 0, name: 'Không hoạt động' },
+        { value: 0, name: 'Mới tạo' },
         { value: 1, name: 'Hoạt động' },
+        { value: 2, name: 'Ngừng hoạt động' },
+    ];
+
+    const optionStatusRoom = [
+        { value: 0, name: 'Mới tạo' },
+        { value: 1, name: 'Hoạt động' },
+        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const optionsSort = [
@@ -169,6 +174,54 @@ const Cinema = () => {
         }
     };
 
+    const fetchRoomTypes = async () => {
+        try {
+            const response = await axios.get('api/room-types');
+            const data = response.data;
+
+            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+            const optionRomTypes = data.map((roomType) => ({
+                label: roomType.name, // Hiển thị tên
+                value: roomType.code, // Giá trị sẽ được gửi về
+            }));
+
+            return optionRomTypes; // Cập nhật state với options
+        } catch (error) {
+            // Handle errors based on response or other criteria
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    const fetchRoomSizes = async () => {
+        try {
+            const response = await axios.get('api/room-sizes');
+            const data = response.data;
+
+            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
+            const optionRomSize = data.map((roomSize) => ({
+                name: roomSize.name, // Hiển thị tên
+                value: roomSize.code, // Giá trị sẽ được gửi về
+            }));
+
+            return optionRomSize;
+        } catch (error) {
+            // Handle errors based on response or other criteria
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
     const {
         data: { cinemas = [], optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
@@ -176,12 +229,32 @@ const Cinema = () => {
         refetch,
     } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
         enabled: !!user,
-        staleTime: 1000 * 60 * 7,
+        staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 7,
+        refetchInterval: 1000 * 60 * 3,
         onSuccess: (data) => {
-            setCinemasFilter(data.cinemas); // Cập nhật danh sách rạp ban đầu khi fetch thành công
+            setCinemasFilter(data.cinemas);
         },
+    });
+
+    const {
+        data: optionRoomTypes = [],
+        isLoading: isLoadingRoomType,
+        error: errorRoomType,
+    } = useQuery('fetchRoomTypes', fetchRoomTypes, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 3,
+    });
+
+    const {
+        data: optionRoomSizes = [],
+        isLoading: isLoadingRoomSize,
+        error: errorRoomSize,
+    } = useQuery('fetchRoomSizes', fetchRoomSizes, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 3,
     });
 
     const {
@@ -195,12 +268,13 @@ const Cinema = () => {
             return response.json();
         },
         {
-            staleTime: 1000 * 60 * 5, // Dữ liệu còn mới trong 3 phút
-            cacheTime: 1000 * 60 * 10, // Giữ trong cache 10 phút
+            staleTime: 1000 * 60 * 3,
+            cacheTime: 1000 * 60 * 10,
+            refetchInterval: 1000 * 60 * 3,
         },
     );
 
-    if (isLoadingCinemas || isLoadingProvinces) {
+    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType) {
         return <Loading />;
     }
 
@@ -213,40 +287,12 @@ const Cinema = () => {
     if (provincesError) {
         return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
     }
-
-    const fetchRoomTypes = async () => {
-        try {
-            const response = await axios.get('api/room-types');
-            const data = response.data;
-
-            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
-            const roomTypeOptions = data.map((roomType) => ({
-                label: roomType.name, // Hiển thị tên
-                value: roomType.code, // Giá trị sẽ được gửi về
-            }));
-
-            setOptionRoomType(roomTypeOptions); // Cập nhật state với options
-        } catch (error) {
-            console.error('Error fetching room types:', error);
-        }
-    };
-
-    const fetchRoomSizes = async () => {
-        try {
-            const response = await axios.get('api/room-sizes');
-            const data = response.data;
-
-            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
-            const roomSizeOptions = data.map((roomSize) => ({
-                name: roomSize.name, // Hiển thị tên
-                value: roomSize.code, // Giá trị sẽ được gửi về
-            }));
-
-            setOptionRoomSize(roomSizeOptions); // Cập nhật state với options
-        } catch (error) {
-            console.error('Error fetching room types:', error);
-        }
-    };
+    if (errorRoomType) {
+        return <div>Lỗi khi tải loại phòng: {errorRoomType.message}</div>;
+    }
+    if (errorRoomSize) {
+        return <div>Lỗi khi tải kích cỡ phòng: {errorRoomSize.message}</div>;
+    }
 
     const clearTextModalCinema = () => {
         setNameCinema('');
@@ -254,14 +300,14 @@ const Cinema = () => {
         setSelectedDistrict('');
         setSelectedWard('');
         setAddressDetail('');
+        setSelectedStatusCinema('');
     };
 
     const clearTextModalRoom = () => {
         setNameRoom('');
         setSelectedOptionRoomType([]);
-        setSelectedOptionRoomSize([]);
-        setNumRows('');
-        setNumColumns('');
+        setSelectedOptionRoomSize('');
+        setSelectedStatusRoom('');
     };
 
     // action
@@ -271,14 +317,14 @@ const Cinema = () => {
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
 
-            const selectedOption = optionRoomSize.find((option) => option.name === selectedOptionRoomSize);
+            const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
 
             // Dữ liệu gửi đi
             const roomData = {
                 name: nameRoom,
                 cinemaCode: selectedCinema?.code,
                 roomTypeCode: arrayValueRoomType,
-                roomSizeCode: selectedOption?.value,
+                roomSizeCode: roomSizeCode,
             };
 
             // Gửi request POST tới server
@@ -286,9 +332,9 @@ const Cinema = () => {
 
             const seatData = {
                 roomCode: responseRoom.data?.code,
-                roomSizeCode: selectedOption?.value,
+                roomSizeCode: roomSizeCode,
             };
-            loadingToastId = toast.loading('Vui lòng chờ, đang thêm phòng!');
+            loadingToastId = toast.loading('Đang tạo phòng!');
 
             const responseSeat = await axios.post('api/products/generateSeat', seatData);
 
@@ -305,29 +351,43 @@ const Cinema = () => {
         }
     };
 
-    const handleUpdateRoom = async (roomCode) => {
-        if (!roomCode) return;
-        try {
-            const option = optionRoomSize.find((option) => option.name === selectedRoom?.roomSizeName);
+    const handleUpdateRoom = async () => {
+        let loadingToastId;
 
-            setSelectedOptionRoomSize(option);
+        try {
+            const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
+            const status = optionStatusRoom.find((option) => option.name === selectedStatusRoom).value;
+
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
             // Dữ liệu gửi đi
             const roomData = {
-                code: roomCode,
+                code: selectedRoom?.code,
                 name: nameRoom,
                 cinemaCode: selectedCinema?.code,
                 roomTypeCode: arrayValueRoomType,
-                numRows: numRows,
-                numColumns: numColumns,
+                roomSizeCode: roomSizeCode,
+                status: status,
             };
 
             // Gửi request POST tới server
             const response = await axios.put('api/rooms', roomData);
 
             if (response.data) {
+                if (response.data.roomSizeCode !== selectedRoom?.roomSizeCode.code) {
+                    await axios.delete(`api/products/deleteSeatByRoomCode/${selectedRoom?.code}`);
+
+                    const seatData = {
+                        roomCode: selectedRoom?.code,
+                        roomSizeCode: roomSizeCode,
+                    };
+                    loadingToastId = toast.loading('Đang cập nhật!');
+
+                    await axios.post('api/products/generateSeat', seatData);
+                }
+
                 clearTextModalRoom();
+                toast.dismiss(loadingToastId);
                 toast.success('Cập nhật phòng thành công!');
                 handleCloseRoom();
                 getRoomByCinemaCode(selectedCinema?.code);
@@ -338,7 +398,7 @@ const Cinema = () => {
     };
 
     const validateCinema = () => {
-        if (nameCinema === '') {
+        if (!nameCinema) {
             toast.warning('Vui lòng nhập tên rạp!');
             return false;
         } else if (selectedProvince === '') {
@@ -353,17 +413,18 @@ const Cinema = () => {
         } else if (addressDetail === '') {
             toast.warning('Vui lòng nhập địa chỉ chi tiết!');
             return false;
-        } else return true;
+        }
+        return true;
     };
 
     const validateRoom = () => {
-        if (nameRoom === '') {
+        if (!nameRoom) {
             toast.warning('Vui lòng nhập tên phòng!');
             return false;
         } else if (selectedOptionRoomType.length === 0) {
             toast.warning('Vui lòng chọn loại phòng!');
             return false;
-        } else if (selectedOptionRoomSize.length === 0) {
+        } else if (!selectedOptionRoomSize) {
             toast.warning('Vui lòng chọn kích cỡ!');
             return false;
         } else return true;
@@ -417,7 +478,7 @@ const Cinema = () => {
 
     const handleUpdateCinema = async (cinemaCode) => {
         try {
-            setNameCinema(selectedCinema?.name);
+            const status = optionStatusCinema.find((option) => option.name === selectedStatusCinema).value;
 
             if (!validateCinema()) return;
             const hierarchyValues = [
@@ -450,6 +511,7 @@ const Cinema = () => {
                 code: cinemaCode,
                 name: nameCinema,
                 hierarchyValueCode: parentCode,
+                status: status,
             };
 
             const result = await axios.put('api/cinemas', cinema);
@@ -465,34 +527,24 @@ const Cinema = () => {
         }
     };
 
-    const handleUpdateStatusCinema = async (cinemaCode, currentStatus) => {
-        const newStatus = currentStatus === 0 ? 1 : 0;
-        const cinema = {
-            code: cinemaCode,
-            status: newStatus,
-        };
+    const handleDeleteCinema = async (code) => {
         try {
-            await axios.put(`api/cinemas`, cinema);
-            toast.success('Cập nhật trạng thái rạp thành công!');
+            await axios.delete(`api/cinemas/${code}`);
+            toast.success('Xóa thành công!');
             refetch();
         } catch (error) {
-            toast.error('Lỗi: ' + (error.response.data.message || error.message));
+            toast.error('Xóa thất bại!');
         }
     };
 
-    const handleUpdateStatusRoom = async (roomcode, currentStatus) => {
-        if (!roomcode) return;
-        const newStatus = currentStatus === 0 ? 1 : 0;
-        const room = {
-            code: roomcode,
-            status: newStatus,
-        };
+    const handleDeleteRoom = async (code) => {
         try {
-            await axios.put(`api/rooms`, room);
-            toast.success('Cập nhật trạng thái phòng thành công!');
+            await axios.delete(`api/rooms/${code}`);
+            await axios.delete(`api/products/deleteSeatByRoomCode/${code}`);
+            toast.success('Xóa thành công!');
             getRoomByCinemaCode(selectedCinema?.code);
         } catch (error) {
-            toast.error('Lỗi: ' + (error.response.data.message || error.message));
+            toast.error('Xóa thất bại!');
         }
     };
 
@@ -587,18 +639,15 @@ const Cinema = () => {
         setSelectedWard(value);
     };
 
-    const handleNavigate = (path) => {
-        navigate(path);
-    };
     const handleOpenRoom = (isUpdateRoom) => {
-        fetchRoomTypes();
-        fetchRoomSizes();
         setOpenRoom(true);
         setIsUpdateRoom(isUpdateRoom);
         setOpenDetail(false);
     };
     const handleCloseRoom = () => {
         setOpenRoom(false);
+        clearTextModalRoom();
+
         setOpenDetail(true);
     };
 
@@ -606,7 +655,10 @@ const Cinema = () => {
         setOpen(true);
         setIsUpdate(isUpdate);
     };
-    const handleCloseCinema = () => setOpen(false);
+    const handleCloseCinema = () => {
+        clearTextModalCinema();
+        setOpen(false);
+    };
 
     const handOpenDetail = () => setOpenDetail(true);
     const handleCloseDetail = () => {
@@ -645,24 +697,34 @@ const Cinema = () => {
                 <div className=" grid justify-center grid-cols-10 col-span-3 gap-2 items-center">
                     <div className="   grid justify-center col-span-7 items-center ">
                         <button
-                            className={`uppercase border px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
-                                item.status === 0 ? 'bg-gray-400' : 'bg-green-500'
+                            className={`uppercase border px-2 text-white text-[13px] py-[1px] flex cursor-default  rounded-[40px] ${
+                                item.status === 0 ? 'bg-gray-400' : item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                             }`}
-                            onClick={() => handleUpdateStatusCinema(item.code, item.status)}
                         >
-                            {item.status === 0 ? 'Ngừng hoạt động' : 'Hoạt động'}
+                            {item.status === 0 ? 'Mới tạo' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
                         </button>
                     </div>
-                    <div className="  grid justify-center col-span-3 items-center ">
+                    <div className={` grid justify-center col-span-3 grid-cols-2 items-center `}>
                         <button
-                            className=" px-4 py-1"
+                            className=" grid "
                             onClick={() => {
                                 handleOpenCinema(true);
                                 setSelectedCinema(item);
                                 getAddress(item.code);
+                                setNameCinema(item.name);
+                                setSelectedStatusCinema(
+                                    item.status === 1 ? 'Hoạt động' : item.status === 2 ? 'Ngừng hoạt động' : 'Mới tạo',
+                                );
                             }}
                         >
                             <FaRegEdit color="black" size={20} />
+                        </button>
+
+                        <button
+                            className={`grid  ${item.status !== 0 ? 'pointer-events-none opacity-50' : ''}`}
+                            onClick={() => handleDeleteCinema(item.code)}
+                        >
+                            <MdOutlineDeleteOutline color="black" fontSize={20} />
                         </button>
                     </div>
                 </div>
@@ -740,7 +802,7 @@ const Cinema = () => {
                     <div className="border-b text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1200px] ">
                         <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
                             <h1 className=" grid justify-center col-span-3 items-center">Stt</h1>
-                            <h1 className="grid justify-center col-span-7 items-center  ">Mã phim</h1>
+                            <h1 className="grid justify-center col-span-7 items-center  ">Mã Rạp</h1>
                         </div>
 
                         <div className="uppercase grid justify-center grid-cols-10 col-span-7 gap-4 items-center">
@@ -755,7 +817,7 @@ const Cinema = () => {
                                 className="flex justify-center col-span-3   "
                                 onClick={() => {
                                     handleOpenCinema(false);
-                                    clearTextModalCinema();
+                                    setSelectedStatusCinema('Mới tạo');
                                 }}
                             >
                                 <button className="border px-4 py-1 rounded-[40px] gradient-button">
@@ -779,22 +841,22 @@ const Cinema = () => {
                 open={open}
                 handleClose={handleCloseCinema}
                 width="30%"
-                height="70%"
+                height="75%"
                 smallScreenWidth="50%"
-                smallScreenHeight="52%"
+                smallScreenHeight="57%"
                 mediumScreenWidth="50%"
-                mediumScreenHeight="45%"
-                largeScreenHeight="38%"
+                mediumScreenHeight="50%"
+                largeScreenHeight="45%"
                 largeScreenWidth="40%"
-                maxHeightScreenHeight="87%"
+                maxHeightScreenHeight="92%"
                 maxHeightScreenWidth="45%"
-                heightScreen="65%"
+                heightScreen="70%"
                 title={isUpdate ? 'Chỉnh sửa rạp' : 'Thêm rạp'}
             >
-                <div className=" h-90p grid grid-rows-6 gap-16">
-                    <div className="grid p-3 ">
+                <div className=" grid grid-rows-8 gap-3 mx-3 ">
+                    <div className="grid ">
                         <AutoInputComponent
-                            value={isUpdate ? selectedCinema?.name : nameCinema}
+                            value={nameCinema}
                             onChange={setNameCinema}
                             title="Tên rạp"
                             freeSolo={true}
@@ -804,7 +866,7 @@ const Cinema = () => {
                         />
                     </div>
 
-                    <div className="grid p-3">
+                    <div className="grid ">
                         <AutoInputComponent
                             options={provinces.map((province) => province.name)} // Lấy danh sách tỉnh
                             value={selectedProvince}
@@ -816,7 +878,8 @@ const Cinema = () => {
                             heightSelect={150}
                         />
                     </div>
-                    <div className="grid p-3">
+
+                    <div className="grid ">
                         <AutoInputComponent
                             options={districts.map((district) => district.name)} // Lấy danh sách quận
                             value={selectedDistrict}
@@ -829,7 +892,7 @@ const Cinema = () => {
                             heightSelect={150}
                         />
                     </div>
-                    <div className="grid p-3">
+                    <div className="grid ">
                         <AutoInputComponent
                             options={wards.map((ward) => ward.name)} // Lấy danh sách phường
                             value={selectedWard}
@@ -842,7 +905,8 @@ const Cinema = () => {
                             heightSelect={150}
                         />
                     </div>
-                    <div className="w-full grid row-span-3 ">
+
+                    <div className="grid  ">
                         <AutoInputComponent
                             value={addressDetail}
                             onChange={setAddressDetail}
@@ -851,16 +915,34 @@ const Cinema = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={150}
-                            className1="p-3"
                         />
-                        <div className="justify-end flex space-x-3 pt-4 border-t pr-4">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseCinema} />
-                            <ButtonComponent
-                                text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
-                                className=" bg-blue-500"
-                                onClick={isUpdate ? () => handleUpdateCinema(selectedCinema?.code) : handleAddCinema}
-                            />
-                        </div>
+                    </div>
+
+                    <div className="grid  ">
+                        <AutoInputComponent
+                            value={selectedStatusCinema}
+                            onChange={setSelectedStatusCinema}
+                            options={
+                                selectedCinema?.status === 0
+                                    ? optionStatusCinema.filter((item) => item.value !== 2).map((item) => item.name)
+                                    : optionStatusCinema.filter((item) => item.value !== 0).map((item) => item.name)
+                            }
+                            freeSolo={false}
+                            disableClearable={true}
+                            title="Trạng thái"
+                            placeholder="Chọn"
+                            heightSelect={150}
+                            disabled={!isUpdate}
+                        />
+                    </div>
+
+                    <div className="flex justify-end  space-x-2 border-t pt-2">
+                        <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseCinema} />
+                        <ButtonComponent
+                            text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
+                            className=" bg-blue-500"
+                            onClick={isUpdate ? () => handleUpdateCinema(selectedCinema?.code) : handleAddCinema}
+                        />
                     </div>
                 </div>
             </ModalComponent>
@@ -868,7 +950,7 @@ const Cinema = () => {
             <ModalComponent
                 open={openDetail}
                 handleClose={handleCloseDetail}
-                width="60%"
+                width="65%"
                 height="70%"
                 smallScreenWidth="70%"
                 smallScreenHeight="52%"
@@ -902,6 +984,7 @@ const Cinema = () => {
                                     onClick={() => {
                                         clearTextModalRoom();
                                         handleOpenRoom(false);
+                                        setSelectedStatusRoom('Mới tạo');
                                     }}
                                 >
                                     <IoIosAddCircleOutline color="white" size={20} />
@@ -931,10 +1014,12 @@ const Cinema = () => {
                                     <div
                                         className="flex justify-center items-center col-span-2 cursor-pointer"
                                         onClick={() => {
-                                            getAllSeatByRoomCode(dispatch, item.code);
+                                            const newItem = {
+                                                ...item,
+                                                nameCinema: selectedCinema?.name,
+                                            };
 
-                                            getRoomCode(dispatch, item.code);
-                                            handleNavigate('/room');
+                                            getRoom(dispatch, navigate, newItem);
                                         }}
                                     >
                                         <h1 className="">{item.totalSeats}</h1>
@@ -947,21 +1032,35 @@ const Cinema = () => {
                                 <div className="uppercase grid justify-center items-center grid-cols-10  col-span-2 gap-2">
                                     <div className="  justify-center items-center grid  col-span-7 ">
                                         <button
-                                            className={` uppercase  border px-2 text-white text-xs py-[1px] flex  rounded-[40px] ${
+                                            className={` uppercase  border px-2 text-white text-xs py-[1px] flex cursor-default  rounded-[40px] ${
                                                 item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                                             }`}
-                                            onClick={() => handleUpdateStatusRoom(item.code, item.status)}
                                         >
-                                            {item.status === 0 ? 'Ngừng hoạt động' : 'Hoạt động'}
+                                            {item.status === 0
+                                                ? 'Mới tạo'
+                                                : item.status === 1
+                                                ? 'Hoạt động'
+                                                : 'Ngừng hoạt động'}
                                         </button>
                                     </div>
 
-                                    <div className="justify-center items-center grid  col-span-3">
+                                    <div className="grid justify-around items-center   col-span-3 grid-cols-2 ">
                                         <button
-                                            className=" px-4 py-1"
+                                            className="grid "
                                             onClick={() => {
                                                 handleOpenRoom(true);
                                                 setSelectedRoom(item);
+                                                setNameRoom(item.name);
+                                                setSelectedOptionRoomSize(item.roomSizeCode.name);
+
+                                                setSelectedStatusRoom(
+                                                    item?.status === 0
+                                                        ? 'Mới tạo'
+                                                        : item?.status === 1
+                                                        ? 'Hoạt động'
+                                                        : 'Ngừng hoạt động',
+                                                );
+
                                                 setSelectedOptionRoomType(
                                                     item.roomTypeCode.map((roomType) => ({
                                                         label: roomType.name,
@@ -970,7 +1069,16 @@ const Cinema = () => {
                                                 );
                                             }}
                                         >
-                                            <FaRegEdit color="black" size={25} />
+                                            <FaRegEdit color="black" size={20} />
+                                        </button>
+
+                                        <button
+                                            className={`grid  ${
+                                                item.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                            }`}
+                                            onClick={() => handleDeleteRoom(item.code)}
+                                        >
+                                            <MdOutlineDeleteOutline color="black" fontSize={20} />
                                         </button>
                                     </div>
                                 </div>
@@ -1004,9 +1112,9 @@ const Cinema = () => {
                 title={isUpdateRoom ? 'Chỉnh sửa phòng' : 'Thêm phòng'}
             >
                 <div className="grid grid-rows-1 gap-2">
-                    <div className="grid grid-cols-3 gap-4 p-3">
+                    <div className="grid grid-cols-4 gap-4 p-3">
                         <AutoInputComponent
-                            value={isUpdateRoom ? selectedRoom?.name : nameRoom}
+                            value={nameRoom}
                             onChange={setNameRoom}
                             title="Tên phòng"
                             freeSolo={true}
@@ -1019,7 +1127,7 @@ const Cinema = () => {
                             <h1>Loại phòng</h1>
                             <MultiSelect
                                 className="border border-black rounded-md grid "
-                                options={optionRoomType}
+                                options={optionRoomTypes}
                                 value={selectedOptionRoomType}
                                 onChange={setSelectedOptionRoomType}
                                 labelledBy="Select"
@@ -1040,19 +1148,31 @@ const Cinema = () => {
                             />
                         </div>
                         <AutoInputComponent
-                            options={optionRoomSize}
-                            value={
-                                isUpdateRoom && Array.isArray(optionRoomSize) // Kiểm tra xem optionRoomSize có phải là mảng không
-                                    ? optionRoomSize.find((option) => option.name === selectedRoom?.roomSizeName) // Tìm option tương ứng
-                                    : selectedOptionRoomSize
-                            }
+                            options={optionRoomSizes.map((option) => option.name)}
+                            value={selectedOptionRoomSize}
                             onChange={setSelectedOptionRoomSize}
                             title="Kích cỡ"
                             freeSolo={false}
                             disableClearable={true}
                             placeholder="Chọn ..."
                             heightSelect={200}
-                            disabled={isUpdateRoom}
+                            disabled={isUpdateRoom && selectedRoom?.status !== 0}
+                        />
+
+                        <AutoInputComponent
+                            value={selectedStatusRoom}
+                            onChange={setSelectedStatusRoom}
+                            options={
+                                selectedRoom?.status === 0
+                                    ? optionStatusRoom.filter((item) => item.value !== 2).map((item) => item.name)
+                                    : optionStatusRoom.filter((item) => item.value !== 0).map((item) => item.name)
+                            }
+                            freeSolo={false}
+                            disableClearable={true}
+                            title="Trạng thái"
+                            placeholder="Chọn"
+                            heightSelect={150}
+                            disabled={!isUpdateRoom}
                         />
                     </div>
 
@@ -1062,7 +1182,7 @@ const Cinema = () => {
                             <ButtonComponent
                                 text={isUpdateRoom ? 'Cập nhật' : 'Thêm mới'}
                                 className=" bg-blue-500 "
-                                onClick={isUpdateRoom ? () => handleUpdateRoom(selectedRoom?.code) : handleAddRoom}
+                                onClick={isUpdateRoom ? () => handleUpdateRoom() : handleAddRoom}
                             />
                         </div>
                     </div>
