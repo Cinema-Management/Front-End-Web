@@ -74,12 +74,17 @@ const SeatComponent = memo(({ setSetGhe }) => {
         if (selectedSeat && selectedSeat.includes(seat.code)) {
             return 'bg-[#3ad3f6]'; // Màu khi ghế được chọn
         }
+
         switch (seat.status) {
             case 2:
                 return 'bg-[#3c3cf4]'; // Ghế đã giữ
             case 3:
                 return 'bg-[#ec3a3a]'; // Ghế đã đặt
             default:
+                // Kiểm tra thêm cho seat.statusSeat
+                if (seat.statusSeat === 0) {
+                    return 'bg-[#fcc02b]'; // Ghế bảo trì
+                }
                 return 'bg-transparent'; // Trạng thái mặc định
         }
     };
@@ -154,11 +159,11 @@ const SeatComponent = memo(({ setSetGhe }) => {
                             <h1 className="ml-3">Ghế đang giữ</h1>
                         </div>
                         <div className="flex">
-                            <div className="bg-[#fe888a] px-6"></div>
+                            <div className="bg-[#f9c4c4] px-6"></div>
                             <h1 className="ml-3">Ghế đã đặt</h1>
                         </div>
                         <div className="flex">
-                            <div className="bg-[#fcdc8b] px-6"></div>
+                            <div className="bg-[#fcebc2] px-6"></div>
                             <h1 className="ml-3">Ghế bảo trì</h1>
                         </div>
                     </div>
@@ -216,12 +221,16 @@ const SeatComponent = memo(({ setSetGhe }) => {
                                         ${seat.name === 'Ghế thường' ? 'h-[25px]' : 'h-[38px]'} 
                                         ${seat.name === 'Ghế thường' ? 'custom-height-md3' : 'custom-height-md4'} 
                                         ${seat.name === 'Ghế thường' ? 'custom-height-sm18' : 'custom-height-sm19'} 
-                                        w-full ${seat.status === 1 ? 'cursor-pointer' : 'cursor-default'}`}
+                                        w-full ${
+                                            seat.status === 1 && seat.statusSeat !== 0
+                                                ? 'cursor-pointer'
+                                                : 'cursor-default'
+                                        }`}
                                     style={{
                                         gridColumn: seat.name === 'Ghế đôi' ? 'span 2' : 'span 1',
                                     }}
                                     onClick={() => {
-                                        if (seat.status === 1) {
+                                        if (seat.status === 1 && seat.statusSeat !== 0) {
                                             handleSeatClick(seat);
                                             handleSelectSeat(seat);
                                         }
