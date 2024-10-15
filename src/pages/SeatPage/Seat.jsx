@@ -16,6 +16,8 @@ import { increment, decrement, resetValue } from '~/redux/valueSlice';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
+import Barcode from 'react-barcode';
+
 const { FormatSchedule, getFormatteNgay } = require('~/utils/dateUtils');
 const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
 const FoodComponent = React.lazy(() => import('~/components/OrderComponent/FoodComponent'));
@@ -51,13 +53,13 @@ const fetchAddressCinemaCode = async (code) => {
 
 const Seat = () => {
     const value = useSelector((state) => state.value.value);
-    const [open, setOpen] = useState(false);
+    const [openPay, setOpenPay] = useState(false);
 
     const [selectedCombos, setSelectedCombos] = useState([]);
     const dispatch = useDispatch();
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => {
-        setOpen(false);
+    const handleOpenPay = () => setOpenPay(true);
+    const handleClosePay = () => {
+        setOpenPay(false);
         setCashGiven(0);
         setChangeAmount(0);
     };
@@ -66,8 +68,16 @@ const Seat = () => {
 
     const [openPrint, setOpenPrint] = useState(false);
 
-    const handleOpenPrint = () => setOpenPrint(true);
-    const handleClosePrint = () => setOpenPrint(false);
+    const handleOpenPrint = () => {
+        setOpenPrint(true);
+    };
+    const handleClosePrint = () => {
+        setOpenPrint(false);
+        dispatch(resetCombo());
+        dispatch(resetSeats());
+        dispatch(resetValue());
+        getIsSchedule(dispatch, false);
+    };
 
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
     const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
@@ -98,6 +108,7 @@ const Seat = () => {
         }
         if (value === 0) {
             const code = arraySeat.map((item) => item.code);
+            console.log(code);
             handleUpdateStatusSeat(2);
             dispatch(increment());
             return;
@@ -113,7 +124,6 @@ const Seat = () => {
         if (value === 2) {
             dispatch(decrement());
             dispatch(resetCombo());
-            toast.success('Chuyển sang chọn đồ ăn và nước');
             return;
         }
         if (value === 1) {
@@ -122,7 +132,6 @@ const Seat = () => {
             dispatch(resetSeats());
             dispatch(resetCombo());
 
-            toast.success('Chuyển sang chọn ghế');
             return;
         }
     };
@@ -178,6 +187,7 @@ const Seat = () => {
 
     const [cashGiven, setCashGiven] = useState(0);
     const [changeAmount, setChangeAmount] = useState(0);
+    const [salesInvoiceCode, setSalesInvoiceCode] = useState('');
 
     const calculateChangeAmount = (cashGiven, totalAmount) => {
         const change = cashGiven - totalAmount;
@@ -198,45 +208,25 @@ const Seat = () => {
         }
     };
 
-    const handleSubmit = async () => {
-        if (cashGiven < priceAfter) {
-            // Nếu tiền không đủ
-            toast.warning('Không đủ tiền để thanh toán');
-        } else {
-            const arrayCode = arraySeat.map((item) => item.code);
-            const seatCheck = {
-                scheduleCode: schedule.scheduleCode,
-                arrayCode: arrayCode,
-            };
-
-            const response = await axios.post('api/seat-status-in-schedules/checkSelectedSeatsStatus', seatCheck);
-
-            if (response.data.available === true) {
-                toast.warning('Ghế đã được đặt, vui lòng chọn ghế khác!');
-
-                return;
-            }
-            // // Nếu đủ tiền thì hiển thị modal xác nhận
-            handleOpenPrint();
-        }
-    };
-
     function formatCurrency(amount) {
         return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
     const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
 
-    // const handlePrint = () => {
-    //     handleClose(); // Đóng modal
+    const handlePrint = () => {
+        const printContent = printRef.current.innerHTML;
+        const originalContent = document.body.innerHTML;
 
-    //     const printContent = printRef.current.innerHTML;
-    //     const originalContent = document.body.innerHTML;
-
-    //     document.body.innerHTML = printContent; // Chỉ hiển thị phần in
-    //     window.print(); // Thực hiện lệnh in
-    //     document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
-    //     document.location.reload(); // Tải lại trang
-    // };
+        document.body.innerHTML = printContent; // Chỉ hiển thị phần in
+        window.print(); // Thực hiện lệnh in
+        document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
+        setOpenPrint(false);
+        dispatch(resetCombo());
+        dispatch(resetSeats());
+        dispatch(resetValue());
+        getIsSchedule(dispatch, false);
+        document.location.reload(); // Tải lại trang
+    };
 
     const {
         data: addressCinema = '',
@@ -245,64 +235,90 @@ const Seat = () => {
         // error,
         // refetch,
     } = useQuery(['addressCinemaByCode', schedule.cinemaCode], () => fetchAddressCinemaCode(schedule.cinemaCode), {
-        staleTime: 1000 * 60 * 7,
+        staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 7,
         enabled: !!schedule.cinemaCode,
     });
 
     /// action
     const handleAddSalesInvoice = async () => {
         try {
-            const salesInvoice = {
-                staffCode: user?.code,
-                scheduleCode: schedule?.scheduleCode,
-                paymentMethod: 0,
-                type: 0,
-            };
-            const response = await axios.post('api/sales-invoices', salesInvoice);
-            const salesInvoices = response.data;
-            if (salesInvoices) {
-                for (const seat of arraySeat) {
-                    const salesInvoiceDetail = {
-                        salesInvoiceCode: salesInvoices.code,
-                        productCode: seat.code,
-                        priceDetailCode: seat.priceDetailCode,
-                        quantity: 1,
-                    };
+            if (cashGiven < priceAfter) {
+                // Nếu tiền không đủ
+                toast.warning('Không đủ tiền để thanh toán');
+                return;
+            } else {
+                const arrayCode = arraySeat.map((item) => item.code);
+                const seatCheck = {
+                    scheduleCode: schedule.scheduleCode,
+                    arrayCode: arrayCode,
+                };
 
-                    // Gửi yêu cầu POST tới API
-                    await axios.post('api/sales-invoices-details', salesInvoiceDetail);
+                const responseCheck = await axios.post(
+                    'api/seat-status-in-schedules/checkSelectedSeatsStatus',
+                    seatCheck,
+                );
+
+                if (responseCheck.data.available === true) {
+                    toast.warning('Ghế đã được đặt, vui lòng chọn ghế khác!');
+
+                    return;
                 }
+                let loadingToastId;
+                loadingToastId = toast.loading('Đang thanh toán!');
 
-                if (groupedCombos.length > 0) {
-                    for (const combo of groupedCombos) {
+                const salesInvoice = {
+                    staffCode: user?.code,
+                    scheduleCode: schedule?.scheduleCode,
+                    paymentMethod: 0,
+                    type: 0,
+                };
+                const response = await axios.post('api/sales-invoices', salesInvoice);
+
+                const salesInvoices = response.data;
+                if (salesInvoices) {
+                    setSalesInvoiceCode(salesInvoices.code);
+                    for (const seat of arraySeat) {
                         const salesInvoiceDetail = {
                             salesInvoiceCode: salesInvoices.code,
-                            productCode: combo.code,
-                            priceDetailCode: combo.priceDetailCode,
-                            quantity: combo.quantity,
+                            productCode: seat.code,
+                            priceDetailCode: seat.priceDetailCode,
+                            quantity: 1,
                         };
 
                         // Gửi yêu cầu POST tới API
                         await axios.post('api/sales-invoices-details', salesInvoiceDetail);
+                        console.log(`Đã gửi hóa đơn cho sản phẩm: ${seat.productCode}`);
                     }
-                }
-                handleUpdateStatusSeat(3);
-                toast.success('Thanh toán thành công');
 
-                handleClose();
-                handleClosePrint();
-                dispatch(resetCombo());
-                dispatch(resetSeats());
-                dispatch(resetValue());
-                getIsSchedule(dispatch, false);
+                    if (groupedCombos.length > 0) {
+                        for (const combo of groupedCombos) {
+                            const salesInvoiceDetail = {
+                                salesInvoiceCode: salesInvoices.code,
+                                productCode: combo.code,
+                                priceDetailCode: combo.priceDetailCode,
+                                quantity: combo.quantity,
+                            };
+
+                            // Gửi yêu cầu POST tới API
+                            await axios.post('api/sales-invoices-details', salesInvoiceDetail);
+                            console.log(`Đã gửi hóa đơn cho sản phẩm: ${combo.productCode}`);
+                        }
+                    }
+                    handleUpdateStatusSeat(3);
+                    toast.dismiss(loadingToastId);
+
+                    toast.success('Thanh toán thành công');
+
+                    handleClosePay();
+                    handleOpenPrint();
+                }
             }
         } catch (error) {
             toast.error(error.message);
         }
     };
-    const mutation = useMutation(handleAddSalesInvoice, {
+    const mutationPay = useMutation(handleAddSalesInvoice, {
         onSuccess: () => {
             // Refetch dữ liệu cần thiết
             queryClient.refetchQueries('fetchSaleInvoice');
@@ -346,6 +362,7 @@ const Seat = () => {
         quantity: freeProduct?.freeQuantity,
         totalPrice: freeProduct?.price,
     };
+    console.log(freeProductPrint);
     const foodPrint = groupedCombos?.map((combo) => ({
         productName: combo.name,
         price: combo.price,
@@ -361,7 +378,12 @@ const Seat = () => {
                 <div className="flex mb-1">
                     <Button
                         variant="contained"
-                        sx={{ textTransform: 'none', padding: '2px 8px 2px 4px' }}
+                        sx={{
+                            textTransform: 'none',
+                            padding: '2px 8px 2px 4px',
+                            backgroundColor: 'transparent',
+                            color: 'black',
+                        }}
                         onClick={() => {
                             getIsSchedule(dispatch, false);
                             dispatch(resetSeats());
@@ -371,7 +393,7 @@ const Seat = () => {
                         }}
                     >
                         <IoIosArrowBack size={20} />
-                        Quay lại
+                        Bán vé
                     </Button>
                 </div>
                 <div
@@ -552,7 +574,7 @@ const Seat = () => {
                                             textTransform: 'none',
                                             padding: '2px 4px 2px 8px',
                                         }}
-                                        onClick={handleOpen}
+                                        onClick={handleOpenPay}
                                     >
                                         Thanh toán
                                         <GrFormNext size={22} />
@@ -577,8 +599,8 @@ const Seat = () => {
                 </div>
             </div>
             <ModalComponent
-                open={open}
-                handleClose={handleClose}
+                open={openPay}
+                handleClose={handleClosePay}
                 width="30%"
                 height="45%"
                 smallScreenWidth="45%"
@@ -606,7 +628,7 @@ const Seat = () => {
                     </div>
 
                     <div className="">
-                        <p className="mb-1">Tiền đưa</p>
+                        <p className="mb-1">Tiền khách đưa</p>
                         <input
                             className="border border-black rounded-[10px] p-1 w-full text-base"
                             type="text"
@@ -619,7 +641,7 @@ const Seat = () => {
                         />
                     </div>
                     <div className="">
-                        <p className="mb-1">Tiền trả</p>
+                        <p className="mb-1">Tiền thừa</p>
                         <input
                             className="border border-black rounded-[10px] p-1 w-full text-base bg-gray-300"
                             type="number"
@@ -630,8 +652,14 @@ const Seat = () => {
                     </div>
 
                     <div className="justify-end flex space-x-3 border-t py-4 px-4 mt-4 ">
-                        <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                        <ButtonComponent text="Xác nhận" className=" bg-blue-500 " onClick={handleSubmit} />
+                        <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClosePay} />
+                        <ButtonComponent
+                            text="Xác nhận"
+                            className=" bg-blue-500 "
+                            onClick={() => {
+                                mutationPay.mutate();
+                            }}
+                        />
                     </div>
                 </div>
             </ModalComponent>
@@ -657,7 +685,7 @@ const Seat = () => {
                         {salesInvoiceTicketPrint?.map((ticket, index) => (
                             <div
                                 key={index}
-                                className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 "
+                                className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2  pb-5"
                             >
                                 {/* Tiêu đề vé */}
                                 <p className="text-center font-bold text-2xl pb-5">Vé Xem Phim</p>
@@ -711,25 +739,32 @@ const Seat = () => {
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
-                                <div className="flex  my-2 ">
-                                    <div className="w-full border-t-2 border-black border-dashed"></div>
+                                <div className="flex justify-center">
+                                    <Barcode
+                                        value={salesInvoiceCode}
+                                        width={1.5}
+                                        height={50}
+                                        format="CODE128"
+                                        displayValue={true}
+                                        textAlign="center"
+                                        textPosition="top"
+                                        textMargin={10}
+                                        fontSize={16}
+                                        background="transparent "
+                                    />
                                 </div>
-                                <p className="text-center">{ticket.barcode}</p>
                             </div>
                         ))}
                         {/* Danh sách bắp nước */}
                         {groupedCombos?.length > 0 && (
-                            <div className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 ">
+                            <div className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 pb-5 ">
                                 {/* Tiêu đề vé */}
                                 <p className="text-center font-bold text-2xl pb-5">Bắp Nước</p>
-
                                 {/* Thông tin rạp */}
-
                                 <p className="text-left font-semibold">{salesInvoiceFoodPrint.cinemaName}</p>
                                 <p className="text-left font-normal ">{salesInvoiceFoodPrint.cinemaAddress}</p>
                                 <p className="text-left font-normal">{salesInvoiceFoodPrint.date}</p>
                                 <p className="text-left font-normal">Staff: {salesInvoiceFoodPrint.staffName}</p>
-
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
@@ -737,7 +772,6 @@ const Seat = () => {
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
                                 {/* Thông tin food header */}
-
                                 <div className="grid grid-cols-8 gap-4  ">
                                     <span className="col-span-3 font-semibold whitespace-normal">Tên</span>
                                     <span className="col-span-2 font-semibold whitespace-normal">Giá</span>
@@ -746,7 +780,6 @@ const Seat = () => {
                                         Thành tiền
                                     </span>
                                 </div>
-
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
@@ -770,14 +803,12 @@ const Seat = () => {
                                         </span>
                                     </div>
                                 ))}
-
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
-
                                 {/* Thông tin ghế và giá */}
                                 <div className="flex justify-between items-center font-semibold">
                                     <span>Tổng tiền</span>
@@ -785,16 +816,24 @@ const Seat = () => {
                                     <span>{totalPriceCombo.toLocaleString()} </span>
                                 </div>
                                 <p className="text-right">(bao gồm 10% VAT)</p>
-
                                 {/* Mã vạch */}
-
                                 <div className="flex  my-2 ">
                                     <div className="w-full border-t-2 border-black border-dashed"></div>
                                 </div>
-                                <div className="flex  my-2 ">
-                                    <div className="w-full border-t-2 border-black border-dashed"></div>
+                                <div className="flex justify-center ">
+                                    <Barcode
+                                        value={salesInvoiceCode}
+                                        width={1.5}
+                                        height={50}
+                                        format="CODE128"
+                                        displayValue={true}
+                                        textAlign="center"
+                                        textPosition="top"
+                                        textMargin={10}
+                                        fontSize={16}
+                                        background="transparent "
+                                    />
                                 </div>
-                                {/* <p className="text-center">{ticket.barcode}</p> */}
                             </div>
                         )}
                     </div>
@@ -802,19 +841,7 @@ const Seat = () => {
                     {/* Nút hành động */}
                     <div className="flex justify-end space-x-3 border-t  mx-2  p-3">
                         <ButtonComponent text="Hủy" className="bg-gray-400" onClick={handleClosePrint} />
-                        <ButtonComponent
-                            text="In Vé"
-                            className="bg-blue-500 text-white"
-                            // onClick={() => {
-                            //     handleAddSalesInvoice();
-                            //     // handlePrint();
-                            // }} // Gọi hàm in
-
-                            onClick={() => {
-                                // Thực hiện mutation
-                                mutation.mutate();
-                            }}
-                        />
+                        <ButtonComponent text="In Vé" className="bg-blue-500 text-white" onClick={handlePrint} />
                     </div>
                 </div>
 
@@ -823,7 +850,7 @@ const Seat = () => {
                     {salesInvoiceTicketPrint?.map((ticket, index) => (
                         <div
                             key={index}
-                            className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 "
+                            className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 pb-5"
                         >
                             {/* Tiêu đề vé */}
                             <p className="text-center font-bold text-2xl pb-5">Vé Xem Phim</p>
@@ -877,10 +904,20 @@ const Seat = () => {
                             <div className="flex  my-2 ">
                                 <div className="w-full border-t-2 border-black border-dashed"></div>
                             </div>
-                            <div className="flex  my-2 ">
-                                <div className="w-full border-t-2 border-black border-dashed"></div>
+                            <div className="flex justify-center ">
+                                <Barcode
+                                    value={salesInvoiceCode}
+                                    width={1.5}
+                                    height={50}
+                                    format="CODE128"
+                                    displayValue={true}
+                                    textAlign="center"
+                                    textPosition="top"
+                                    textMargin={10}
+                                    fontSize={16}
+                                    background="transparent "
+                                />
                             </div>
-                            <p className="text-center">{ticket.barcode}</p>
                         </div>
                     ))}
                     {/* Danh sách bắp nước */}
@@ -941,10 +978,20 @@ const Seat = () => {
                             <div className="flex  my-2 ">
                                 <div className="w-full border-t-2 border-black border-dashed"></div>
                             </div>
-                            <div className="flex  my-2 ">
-                                <div className="w-full border-t-2 border-black border-dashed"></div>
+                            <div className="flex justify-center ">
+                                <Barcode
+                                    value={salesInvoiceCode}
+                                    width={1.5}
+                                    height={50}
+                                    format="CODE128"
+                                    displayValue={true}
+                                    textAlign="center"
+                                    textPosition="top"
+                                    textMargin={10}
+                                    fontSize={16}
+                                    background="transparent "
+                                />
                             </div>
-                            {/* <p className="text-center">{ticket.barcode}</p> */}
                         </div>
                     )}
                 </div>

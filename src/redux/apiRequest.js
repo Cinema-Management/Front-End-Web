@@ -2,7 +2,7 @@ import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { getSeatStart, getSeatSuccess, getSeatFailed } from './seatSlice';
-import { getRoomByCodeStart, getRoomByCodeSuccess, getRoomByCodeFailed } from './roomSlice';
+import { getRoomStart, getRoomSuccess, getRoomFailed } from './roomSlice';
 import { getCinemaCodeStart, getCinemaCodeSuccess, getCinemaCodeFailed } from './cinemaSlice';
 import {
     getScheduleStart,
@@ -12,7 +12,17 @@ import {
     getIsScheduleSuccess,
     getIsScheduleStart,
 } from './scheduleSlice';
-import { loginFailed, loginStart, loginSuccess, logOutFailed, logOutStart, logOutSuccess, registerFailed, registerStart, registerSuccess } from './authSlice';
+import {
+    loginFailed,
+    loginStart,
+    loginSuccess,
+    logOutFailed,
+    logOutStart,
+    logOutSuccess,
+    registerFailed,
+    registerStart,
+    registerSuccess,
+} from './authSlice';
 //npm install axios
 
 export const getAllSeatByRoomCode = async (dispatch, roomCode) => {
@@ -25,13 +35,13 @@ export const getAllSeatByRoomCode = async (dispatch, roomCode) => {
     }
 };
 
-export const getRoomCode = async (dispatch, roomCode) => {
-    dispatch(getRoomByCodeStart());
+export const getRoom = async (dispatch, navigate, room) => {
+    dispatch(getRoomStart());
     try {
-        // const res = await axios.get(`api/rooms/getAll/${roomCode}`);
-        dispatch(getRoomByCodeSuccess(roomCode));
+        dispatch(getRoomSuccess(room));
+        navigate('/room');
     } catch (err) {
-        dispatch(getRoomByCodeFailed());
+        dispatch(getRoomFailed());
     }
 };
 
@@ -87,8 +97,6 @@ export const registerUser = async (user, dispatch, navigate) => {
         dispatch(registerFailed());
         return err;
     }
-
-    
 };
 // export const logOut = async (dispatch, id, navigate, accessToken, axiosJWT) => {
 //     dispatch(logOutStart());
@@ -103,14 +111,14 @@ export const registerUser = async (user, dispatch, navigate) => {
 //     }
 // };
 
-export const logOut = async (dispatch, navigate, accessToken, axiosJWT) => {
+export const logOut = async (dispatch, id, navigate, accessToken, axiosJWT) => {
     dispatch(logOutStart());
     try {
-        await axiosJWT.post('api/auth/logout', {
+        await axiosJWT.post('api/auth/logout', id, {
             headers: { token: `Bearer ${accessToken}` },
         });
         dispatch(logOutSuccess());
-        navigate("/login");
+        navigate('/login');
     } catch (err) {
         dispatch(logOutFailed());
     }

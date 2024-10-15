@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AutoInputComponent from '../AutoInputComponent/AutoInputComponent';
 import dayjs from 'dayjs';
 import axios from 'axios';
@@ -52,91 +52,38 @@ const groupProductsByCode = (products) => {
     }, []);
 };
 
+const calculateDiscount = (promotion, totalPriceMain) => {
+    let discountAmount = 0;
+
+    switch (promotion.type) {
+        case 1: // Type 1: Giảm giá cố định
+            if (totalPriceMain >= promotion.minPurchaseAmount) {
+                discountAmount = promotion.discountAmount;
+            }
+            break;
+
+        case 2: // Type 2: Giảm giá phần trăm
+            if (totalPriceMain >= promotion.minPurchaseAmount) {
+                discountAmount = (totalPriceMain * promotion.discountPercentage) / 100;
+                if (promotion.maxDiscountAmount) {
+                    discountAmount = Math.min(discountAmount, promotion.maxDiscountAmount);
+                }
+            }
+            break;
+
+        default:
+            discountAmount = 0;
+    }
+
+    return discountAmount;
+};
+
 const PayComponent = () => {
-    const [selectedButton, setSelectedButton] = useState(null);
     const [selectedMovie, setSelectedMovie] = useState('');
     const [open, setOpen] = useState(false);
 
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Lấy danh sách số lượng sản phẩm
     const dispatch = useDispatch();
-
-    const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
-
-    const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
-    const products = useSelector((state) => state.products?.products); // Lấy danh sách sản phẩm từ store
-
-    const calculateTotalPrice = (seats) => {
-        return seats?.reduce((total, seat) => {
-            return total + (seat.price || 0); // Thêm giá của ghế vào tổng, nếu không có giá thì cộng 0
-        }, 0);
-    };
-
-    const totalPrice = useMemo(() => calculateTotalPrice(arraySeat), [arraySeat]);
-
-    const calculateTotalPriceForCombos = (groupedCombos) => {
-        return groupedCombos?.reduce((total, combo) => total + combo.totalPrice, 0);
-    };
-
-    const totalPriceCombo = useMemo(() => calculateTotalPriceForCombos(groupedCombos), [groupedCombos]);
-
-    const totalPriceBefore = useMemo(() => totalPriceCombo + totalPrice, [totalPriceCombo, totalPrice]);
-
-    const handleButtonClick = (button) => {
-        setSelectedButton(button);
-        // handleOpen();
-    };
-    function formatCurrency(amount) {
-        return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-    }
-    const [selectedPromotion, setSelectedPromotion] = useState(null); // State để quản lý promotion đã chọn
-    const [selectedPromotionDetail, setSelectedPromotionDetail] = useState(null); // State để quản lý promotion đã chọn
-
-    const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
-
-    const fetchKMDetail = async (date) => {
-        try {
-            const formattedDate = dayjs(date).format('YYYY-MM-DD');
-            const response = await axios.get(
-                `api/promotion-details/getPromotionDetailsByDateAndStatus?date=${formattedDate}`,
-            );
-            return response.data || [];
-        } catch (error) {
-            if (error.response) {
-                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-            } else if (error.request) {
-                throw new Error('Error: No response received from server');
-            } else {
-                throw new Error('Error: ' + error.message);
-            }
-        }
-    };
-
-    const {
-        data: promotionDetails = [],
-        isLoading: isLoadingPromotionDetail,
-        error: errorPromotionDetail,
-    } = useQuery(
-        ['fetchKMDetail', schedule?.date], // Query key phụ thuộc vào 'date'
-        () => fetchKMDetail(schedule?.date),
-        {
-            staleTime: 1000 * 60 * 3, // Cache dữ liệu trong 3 phút
-            cacheTime: 1000 * 60 * 10, // Cache dữ liệu trong 10 phút
-            enabled: !!schedule?.date, // Chỉ fetch khi 'date' không phải null hoặc undefined
-        },
-    );
-    if (isLoadingPromotionDetail)
-        return (
-            <div>
-                <Loading />
-            </div>
-        );
-
-    if (errorPromotionDetail)
-        return (
-            <div>
-                <p>{errorPromotionDetail.message}</p>
-            </div>
-        );
 
     const calculateTotalWithPromotion = (
         totalPriceMain,
@@ -147,6 +94,7 @@ const PayComponent = () => {
     ) => {
         let discountAmount = 0;
         let productsForInvoice = [...groupedCombos]; // Lưu sản phẩm để xuất hóa đơn
+        let freeProductTitle = '';
 
         // Tìm khuyến mãi dựa trên mã đã chọn
         const promotion = promotionDetails.find((promo) => promo.code === selectedPromotion);
@@ -162,6 +110,7 @@ const PayComponent = () => {
                         const freeProduct = availableProducts.find(
                             (product) => product.productCode === promotion.freeProductCode,
                         );
+                        freeProductTitle = 'Tặng ' + promotion.freeQuantity + ' ' + freeProduct.productName;
 
                         if (freeProduct) {
                             // Lưu giá gốc của sản phẩm tặng
@@ -205,9 +154,120 @@ const PayComponent = () => {
         const newTotalPrice = Math.max(totalPriceMain - discountAmount, 0);
 
         dispatch(setCalculatedPrice(newTotalPrice));
-        return { newTotalPrice, productsForInvoice }; // Trả về tổng tiền và sản phẩm đã thêm giá trị gốc
+
+        return { newTotalPrice, productsForInvoice, freeProductTitle }; // Trả về tổng tiền và sản phẩm đã thêm giá trị gốc
     };
-    // const memoizedTotalPrice = useMemo(() => calculateTotalWithPromotion(totalPriceBefore, selectedPromotionDetail, groupedCombos, promotionDetails, products), [totalPriceBefore, selectedPromotionDetail, groupedCombos, promotionDetails, products]);
+
+    const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
+
+    const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
+    const products = useSelector((state) => state.products?.products); // Lấy danh sách sản phẩm từ store
+
+    const calculateTotalPrice = (seats) => {
+        return seats?.reduce((total, seat) => {
+            return total + (seat.price || 0); // Thêm giá của ghế vào tổng, nếu không có giá thì cộng 0
+        }, 0);
+    };
+
+    const totalPrice = useMemo(() => calculateTotalPrice(arraySeat), [arraySeat]);
+
+    const calculateTotalPriceForCombos = (groupedCombos) => {
+        return groupedCombos?.reduce((total, combo) => total + combo.totalPrice, 0);
+    };
+
+    const totalPriceCombo = useMemo(() => calculateTotalPriceForCombos(groupedCombos), [groupedCombos]);
+
+    const totalPriceBefore = useMemo(() => totalPriceCombo + totalPrice, [totalPriceCombo, totalPrice]);
+
+    function formatCurrency(amount) {
+        return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+    }
+    const [selectedPromotion, setSelectedPromotion] = useState(null); // State để quản lý promotion đã chọn
+    const [selectedPromotionDetail, setSelectedPromotionDetail] = useState(null); // State để quản lý promotion đã chọn
+
+    const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
+
+    const fetchKMDetail = async (date) => {
+        try {
+            const formattedDate = dayjs(date).format('YYYY-MM-DD');
+            const response = await axios.get(
+                `api/promotion-details/getPromotionDetailsByDateAndStatus?date=${formattedDate}`,
+            );
+            const data = response.data || [];
+
+            // Sắp xếp dữ liệu theo type tăng dần
+            data.sort((a, b) => a.type - b.type);
+
+            return data;
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    const {
+        data: promotionDetails = [],
+        isLoading: isLoadingPromotionDetail,
+        error: errorPromotionDetail,
+    } = useQuery(
+        ['fetchKMDetail', schedule?.date], // Query key phụ thuộc vào 'date'
+        () => fetchKMDetail(schedule?.date),
+        {
+            staleTime: 1000 * 60 * 3, // Cache dữ liệu trong 3 phút
+            cacheTime: 1000 * 60 * 10, // Cache dữ liệu trong 10 phút
+            enabled: !!schedule?.date, // Chỉ fetch khi 'date' không phải null hoặc undefined
+        },
+    );
+
+    useEffect(() => {
+        if (promotionDetails && promotionDetails.length > 0) {
+            // Tìm khuyến mãi type = 0 (tặng sản phẩm miễn phí)
+            const freeProductPromotion = promotionDetails.find(
+                (promotion) =>
+                    promotion.type === 0 && isPromotionApplicable(promotion, groupedCombos, totalPriceBefore),
+            );
+
+            if (freeProductPromotion) {
+                // Nếu có khuyến mãi tặng sản phẩm, chọn nó trước
+                setSelectedPromotion(freeProductPromotion.code);
+                setSelectedPromotionDetail(freeProductPromotion.code);
+            } else {
+                // Nếu không có khuyến mãi tặng sản phẩm, tìm khuyến mãi type = 1 hoặc type = 2 có mức giảm nhiều nhất
+                const bestDiscountPromotion = promotionDetails
+                    .filter((promotion) => promotion.type === 1 || promotion.type === 2)
+                    .reduce((best, current) => {
+                        const currentDiscount = calculateDiscount(current, totalPriceBefore);
+                        const bestDiscount = best ? calculateDiscount(best, totalPriceBefore) : 0;
+                        return currentDiscount > bestDiscount ? current : best;
+                    }, null);
+
+                if (bestDiscountPromotion) {
+                    setSelectedPromotion(bestDiscountPromotion.code);
+                    setSelectedPromotionDetail(bestDiscountPromotion.code);
+                }
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    if (isLoadingPromotionDetail)
+        return (
+            <div>
+                <Loading />
+            </div>
+        );
+
+    if (errorPromotionDetail)
+        return (
+            <div>
+                <p>{errorPromotionDetail.message}</p>
+            </div>
+        );
 
     const handleOpen = () => {
         setOpen(true);
@@ -271,7 +331,7 @@ const PayComponent = () => {
                     className="bg-gray-200 rounded-[10px]"
                 />
             </div>
-            <div className="bg-[#95989D] mt-6  mini">
+            {/* <div className="bg-[#95989D] mt-6  mini ">
                 <div className=" p-3 gap-3 flex-col text-white font-black flex items-center text-[16px] ">
                     <button
                         className={`border border-black rounded-[10px] p-2 w-[60%] text-center ${
@@ -281,7 +341,7 @@ const PayComponent = () => {
                     >
                         Thanh toán bằng tiền mặt
                     </button>
-                    {/* <button
+                    <button
                         className={`border border-black rounded-[10px] p-2 w-[60%] text-center ${
                             selectedButton === 'momo' ? 'border-[#EB0E0E]' : ''
                         }`}
@@ -299,7 +359,7 @@ const PayComponent = () => {
                         Thanh toán qua <span className="text-[#EB0E0E]">VN</span>
                         <span className="text-[#007AFF]">Pay</span>
                         <sup className="text-[#EB0E0E]">QR</sup>
-                    </button> */}
+                    </button>
                     <button
                         className={`border border-black   rounded-[10px] p-2 w-[60%] text-center ${
                             selectedButton === 'zalopay' ? 'border-[#EB0E0E]' : ''
@@ -311,7 +371,48 @@ const PayComponent = () => {
                         <sup className="text-[#007AFF]">QR</sup>
                     </button>
                 </div>
+            </div> */}
+
+            <div className=" flex  justify-between items-center py-3">
+                <Button
+                    // variant="contained"
+                    sx={{
+                        textTransform: 'none',
+                        padding: '2px 8px 2px 4px',
+                    }}
+                    className="gradient-button text-white"
+                    onClick={promotionDetails.length > 0 ? handleOpen : () => toast.warning('Không có khuyến mãi')}
+                >
+                    Khuyến mãi
+                </Button>
+
+                <span className="text-gray-500 flex">
+                    {calculateTotalWithPromotion(
+                        totalPriceBefore,
+                        selectedPromotionDetail,
+                        groupedCombos,
+                        promotionDetails,
+                        products,
+                    ).newTotalPrice === totalPriceBefore
+                        ? calculateTotalWithPromotion(
+                              totalPriceBefore,
+                              selectedPromotionDetail,
+                              groupedCombos,
+                              promotionDetails,
+                              products,
+                          ).freeProductTitle
+                        : formatCurrency(
+                              calculateTotalWithPromotion(
+                                  totalPriceBefore,
+                                  selectedPromotionDetail,
+                                  groupedCombos,
+                                  promotionDetails,
+                                  products,
+                              ).newTotalPrice - totalPriceBefore,
+                          )}
+                </span>
             </div>
+
             <div className="  text-[gray] grid  grid-cols-2 mt-5">
                 <div className="grid font-medium text-lg  ">
                     <span>Tổng tiền:</span>
@@ -345,20 +446,6 @@ const PayComponent = () => {
                         )}
                     </span>
                 </div>
-            </div>
-
-            <div className="">
-                <Button
-                    // variant="contained"
-                    sx={{
-                        textTransform: 'none',
-                        padding: '2px 8px 2px 4px',
-                    }}
-                    className="gradient-button text-black text-[16px] mt-5"
-                    onClick={promotionDetails.length > 0 ? handleOpen : () => toast.warning('Không có khuyến mãi')}
-                >
-                    Chương trình khuyến mãi
-                </Button>
             </div>
 
             <ModalComponent
