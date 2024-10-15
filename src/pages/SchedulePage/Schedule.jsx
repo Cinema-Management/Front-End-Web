@@ -127,7 +127,7 @@ const Schedule = () => {
         isLoading: isLoadingOptionMovieName,
         // isFetching: isFetchingOptionMovieName,
         error: optionCinemaNameError,
-    } = useQuery('movie1', fetchMoviesStatus, {
+    } = useQuery('movies', fetchMoviesStatus, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,

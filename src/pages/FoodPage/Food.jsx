@@ -9,7 +9,7 @@ import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { FixedSizeList as List } from 'react-window';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from '~/setup/axios';
@@ -30,6 +30,9 @@ const Food = () => {
     const [foodFilter, setFoodFilter] = useState([]);
     const [inputSearch, setInputSearch] = useState('');
     const [selectDate, setSelectDate] = useState('');
+    const [statusFood, setStatusFood] = useState('');
+    const [statusFoodCode, setStatusFoodCode] = useState('');
+    const queryClient = useQueryClient();
     const [inputSets, setInputSets] = useState([
         { code: '', name: '', quantity: 0 },
         { code: '', name: '', quantity: 0 },
@@ -41,6 +44,7 @@ const Food = () => {
     ];
     const optionStatus = [
         { value: 3, name: 'Tất cả' },
+        { value: 0, name: 'Chưa bán' },
         { value: 1, name: 'Đang bán' },
         { value: 2, name: 'Ngừng bán' },
     ];
@@ -49,6 +53,31 @@ const Food = () => {
         { value: '1', label: 'Mặc định' },
         { value: '2', label: 'Combo' },
     ];
+
+    const optionsStatus = [
+        { value: 0, name: 'Chưa bán' },
+        { value: 1, name: 'Đang bán' },
+        { value: 2, name: 'Ngừng bán' },
+    ];
+    const changStatus = (value) => {
+        if (value === 2) {
+            return 'Ngừng bán';
+        } else if (value === 1) {
+            return 'Đang bán';
+        } else {
+            return 'Chưa bán';
+        }
+    };
+    const handleStatusChang = (value) => {
+        const selectedItem = optionsStatus.find((item) => item.name === value);
+        if (selectedItem) {
+            setStatusFood(value);
+            setStatusFoodCode(selectedItem.value);
+        } else {
+            setStatusFood('');
+            setStatusFoodCode('');
+        }
+    };
 
     const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
@@ -89,10 +118,6 @@ const Food = () => {
         },
     });
 
-    if (isLoading) return <Loading />;
-    if (!isFetched) return <div>Fetching...</div>;
-    if (error) return <div>Error loading data: {error.message}</div>;
-
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setImage(file);
@@ -108,6 +133,8 @@ const Food = () => {
         setSelectedFood(null);
         setName('');
         setDescription('');
+        setStatusFood('');
+        setStatusFoodCode('');
         setType('Mặc định');
         setInputSets([
             { code: '', name: '', quantity: 0 },
@@ -177,11 +204,14 @@ const Food = () => {
         }
         setSelectedStatus(option);
         let sortedStatus = [];
-        if (option.value === 1) {
+        if (option.value === 0) {
+            sortedStatus = product.filter((item) => item.status === 0);
+            setFoodFilter(sortedStatus);
+        } else if (option.value === 1) {
             sortedStatus = product.filter((item) => item.status === 1);
             setFoodFilter(sortedStatus);
         } else if (option.value === 2) {
-            sortedStatus = product.filter((item) => item.status === 0);
+            sortedStatus = product.filter((item) => item.status === 2);
             setFoodFilter(sortedStatus);
         } else if (option.value === 3) {
             sortedStatus = product;
@@ -259,6 +289,7 @@ const Food = () => {
         form.append('description', description);
         form.append('type', type === 'Mặc định' ? 1 : 2);
         form.append('image', image);
+        form.append('status', statusFoodCode);
         return form;
     };
 
@@ -285,7 +316,7 @@ const Food = () => {
 
     const handleUpdateFood = async () => {
         const typeSelected = selectedFood?.type === 1 ? 'Mặc định' : 'Combo';
-        if (name !== '' || description !== '' || image !== null || type !== typeSelected) {
+        if (name !== '' || description !== '' || image !== null || type !== typeSelected || statusFoodCode !== '') {
             const form = formDataFood();
             try {
                 await axios.post(`api/products/${selectedFood?.code}`, form, {
@@ -298,6 +329,8 @@ const Food = () => {
                 refetch();
                 setName('');
                 setDescription('');
+                setStatusFood('');
+                setStatusFoodCode('');
                 handleClose();
             } catch (error) {
                 toast.error(error.response.data.message);
@@ -307,6 +340,13 @@ const Food = () => {
             return;
         }
     };
+
+    const mutation = useMutation(handleUpdateFood, {
+        onSuccess: () => {
+            queryClient.refetchQueries('productNotSeat1');
+            queryClient.refetchQueries('fetchProducts');
+        },
+    });
 
     const handleUpdateCombo = async () => {
         const isQuantityMismatch = inputSets.some((inputItem, index) => {
@@ -348,7 +388,8 @@ const Food = () => {
             type !== typeSelected ||
             isQuantityMismatch ||
             isNameMismatch ||
-            inputSets.length !== selectedFood?.comboItems.length
+            inputSets.length !== selectedFood?.comboItems.length ||
+            statusFoodCode !== ''
         ) {
             const comBo = inputSets.map(({ code, quantity }) => ({
                 code,
@@ -366,6 +407,7 @@ const Food = () => {
             form.append('type', 2);
             form.append('image', image);
             form.append('comboItems', JSON.stringify(comBo));
+            form.append('status', statusFoodCode);
             try {
                 await axios.post(`api/products/updateCombo/${selectedFood?.code}`, form, {
                     headers: {
@@ -387,6 +429,12 @@ const Food = () => {
         }
     };
 
+    const mutation1 = useMutation(handleUpdateCombo, {
+        onSuccess: () => {
+            queryClient.refetchQueries('productNotSeat1');
+            queryClient.refetchQueries('fetchProducts');
+        },
+    });
     const handleAddCombo = async () => {
         if (name && description && image && type === 'Combo') {
             const comBo = inputSets.map(({ code, quantity }) => ({
@@ -436,30 +484,6 @@ const Food = () => {
         }
     };
 
-    const handleUpdateStatus = async (productId, status) => {
-        const newStatus = status === 0 ? 1 : 0;
-        try {
-            await axios.post(
-                `api/products/updateStatus/${productId}`,
-                {
-                    status: newStatus,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                },
-            );
-            toast.success('Cập nhật trạng thái thành công!');
-            setSelectedSort(optionsSort[0]);
-            setSelectedStatus(optionStatus[0]);
-            setFoodFilter([]);
-            refetch();
-        } catch (error) {
-            toast.error('Cập nhật trạng thái thất bại!');
-        }
-    };
-
     const handleDeleteProduct = async (productId) => {
         try {
             await axios.delete(`api/products/${productId}`);
@@ -469,6 +493,10 @@ const Food = () => {
             toast.error('Xóa thất bại!');
         }
     };
+
+    if (isLoading) return <Loading />;
+    if (!isFetched) return <div>Fetching...</div>;
+    if (error) return <div>Error loading data: {error.message}</div>;
 
     const rowRenderer = ({ index, style }, data) => {
         const reversedData = [...data].reverse();
@@ -497,9 +525,8 @@ const Food = () => {
                         className={`border px-2 w-[auto] uppercase text-white text-[13px] py-1 flex rounded-[40px] ${
                             item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
-                        onClick={() => handleUpdateStatus(item.code, item.status)}
                     >
-                        {item.status === 1 ? 'Đang bán' : 'Ngừng bán'}
+                        {item.status === 1 ? 'Đang bán' : item.status === 2 ? 'Ngừng bán' : 'Chưa bán'}
                     </button>
                 </div>
                 <div className="justify-center col-span-1 items-center grid">
@@ -508,17 +535,16 @@ const Food = () => {
                             className="col-span-2"
                             onClick={() => {
                                 handleOpen(true, false);
-
                                 setSelectedFood(item);
                                 setType(item?.type === 1 ? 'Mặc định' : 'Combo');
                                 handleComboSelect(item);
                             }}
-                            disabled={item.status === 1 ? true : false}
+                            disabled={item.status === 0 ? false : true}
                         >
                             <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={20} />
                         </button>
-                        <button onClick={handleOpenDelete}>
-                            <MdOutlineDeleteOutline color="black" fontSize={20} />
+                        <button onClick={handleOpenDelete} disabled={item.status === 0 ? false : true}>
+                            <MdOutlineDeleteOutline color={`${item.status === 0 ? 'black' : 'gray'}`} fontSize={20} />
                         </button>
                     </div>
                 </div>
@@ -613,7 +639,7 @@ const Food = () => {
                     <div className="py-1 ">
                         <List
                             itemCount={foodFilter.length === 0 ? product.length : foodFilter.length}
-                            itemSize={120}
+                            itemSize={130}
                             height={height}
                             width={1200}
                         >
@@ -681,7 +707,7 @@ const Food = () => {
                         />
                     </div>
 
-                    <div className="grid gap-x-6 px-3 py-1">
+                    <div className="grid gap-x-6 grid-cols-3 px-3 py-1">
                         <AutoInputComponent
                             value={isUpdate ? selectedFood?.description : description}
                             onChange={setDescription}
@@ -691,6 +717,21 @@ const Food = () => {
                             placeholder="Nhập ..."
                             heightSelect={200}
                             className1="col-span-2"
+                        />
+                        <AutoInputComponent
+                            value={isUpdate ? changStatus(selectedFood?.status) : changStatus(statusFood)}
+                            onChange={handleStatusChang}
+                            options={
+                                selectedFood?.status === 0
+                                    ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
+                                    : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
+                            }
+                            freeSolo={false}
+                            disableClearable={true}
+                            title="Trạng thái"
+                            placeholder="Chưa bán"
+                            heightSelect={150}
+                            disabled={!isUpdate || selectedFood?.status === 1 ? true : false}
                         />
                     </div>
                     <div className="grid items-center justify-center grid-cols-7 px-3 gap-3 py-1 row-span-2">
@@ -787,11 +828,11 @@ const Food = () => {
                                 className="bg-blue-500"
                                 onClick={
                                     isUpdate && selectedFood?.type === 1
-                                        ? handleUpdateFood
+                                        ? mutation.mutate
                                         : !isUpdate && type === 'Mặc định'
                                         ? handleAddFood
                                         : isUpdate && selectedFood?.type === 2
-                                        ? handleUpdateCombo
+                                        ? mutation1.mutate
                                         : handleAddCombo
                                 }
                             />
@@ -817,7 +858,7 @@ const Food = () => {
             >
                 <div className="h-[80%] grid grid-rows-3 ">
                     <h1 className="grid row-span-2 p-3">
-                        Khi xóa sẽ không thể khôi phục lại. Bạn có chắc chắn xóa chứ?{' '}
+                        Bạn đang thực hiện xóa đồ ăn này. Bạn có chắc chắn xóa không?
                     </h1>
                     <div className="grid items-center ">
                         <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
