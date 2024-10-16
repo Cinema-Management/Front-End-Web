@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
-import { set } from 'date-fns';
 
 const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 
@@ -68,9 +67,10 @@ const Order = () => {
     const [movieSelected, setMovieSelected] = useState(null);
     const selectedIsSchedule = useSelector((state) => state.schedule.isSchedule?.currentIsSchedule);
     useEffect(() => {
-        if (selectedIsSchedule === false) {
+        if (selectedIsSchedule === false && selectedCinema === false) {
             setSelectedCinema(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedIsSchedule]);
     const groupSchedulesByMovieAndStatus = (rooms) => {
         const groupedData = [];
