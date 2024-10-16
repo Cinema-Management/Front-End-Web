@@ -10,41 +10,39 @@ const queryClient = new QueryClient();
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <div>
-                <Suspense fallback={<Loading />}>
-                    <Router>
-                        <Routes>
-                            {routes.map((route) => {
-                                const Page = route.page;
-                                const Layout = route.isShowSidebar ? DefaultComponent : Fragment;
-                                return (
-                                    <Route
-                                        key={route.path}
-                                        path={route.path}
-                                        element={
-                                            <Layout>
-                                                <Page />
-                                            </Layout>
-                                        }
-                                    />
-                                );
-                            })}
-                            <Route path="*" element={<NotFound />} />
-                        </Routes>
-                        <ToastContainer
-                            position="top-right"
-                            autoClose={2000}
-                            hideProgressBar={false}
-                            newestOnTop={false}
-                            closeOnClick
-                            rtl={false}
-                            pauseOnFocusLoss
-                            draggable
-                            pauseOnHover
-                        />
-                    </Router>
-                </Suspense>
-            </div>
+            <Suspense fallback={<Loading />}>
+                <Router>
+                    <Routes>
+                        {routes.map((route) => {
+                            const Page = route.page;
+                            const Layout = route.isShowSidebar ? DefaultComponent : Fragment;
+                            return (
+                                <Route
+                                    key={route.path}
+                                    path={route.path}
+                                    element={
+                                        <Layout>
+                                            <Page />
+                                        </Layout>
+                                    }
+                                />
+                            );
+                        })}
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <ToastContainer
+                        position="top-right"
+                        autoClose={2000}
+                        hideProgressBar={false}
+                        newestOnTop={false}
+                        closeOnClick
+                        rtl={false}
+                        pauseOnFocusLoss
+                        draggable
+                        pauseOnHover
+                    />
+                </Router>
+            </Suspense>
         </QueryClientProvider>
     );
 }

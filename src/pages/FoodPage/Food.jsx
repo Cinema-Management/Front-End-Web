@@ -14,7 +14,7 @@ import { FixedSizeList as List } from 'react-window';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from '~/setup/axios';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
-import { DatePicker } from 'antd';
+import { DatePicker, Modal } from 'antd';
 import dayjs from 'dayjs';
 const { getFormatteNgay, FormatSchedule } = require('~/utils/dateUtils');
 
@@ -33,6 +33,8 @@ const Food = () => {
     const [statusFood, setStatusFood] = useState('');
     const [statusFoodCode, setStatusFoodCode] = useState('');
     const queryClient = useQueryClient();
+    const [isOpenImage, setIsOpenImage] = useState(false);
+    const [currentImage, setCurrentImage] = useState('');
     const [inputSets, setInputSets] = useState([
         { code: '', name: '', quantity: 0 },
         { code: '', name: '', quantity: 0 },
@@ -229,6 +231,7 @@ const Food = () => {
     };
     const handleCloseDelete = () => {
         setOpenDelete(false);
+        setSelectedFood(null);
     };
 
     const updateInputSet = (index, field, value) => {
@@ -489,6 +492,7 @@ const Food = () => {
             await axios.delete(`api/products/${productId}`);
             toast.success('Xóa thành công!');
             refetch();
+            handleCloseDelete();
         } catch (error) {
             toast.error('Xóa thất bại!');
         }
@@ -514,7 +518,16 @@ const Food = () => {
                     <h1 className="grid pl-3 col-span-5">{item.name}</h1>
                 </div>
                 <div className="justify-center items-center grid">
-                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
+                    <LazyLoadImage
+                        src={item.image}
+                        alt={item.name}
+                        width={65}
+                        onClick={() => {
+                            setCurrentImage(item.image);
+                            setIsOpenImage(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    />
                 </div>
 
                 <h1 className="grid">{item.description}</h1>
@@ -543,11 +556,31 @@ const Food = () => {
                         >
                             <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={20} />
                         </button>
-                        <button onClick={handleOpenDelete} disabled={item.status === 0 ? false : true}>
+                        <button
+                            onClick={() => {
+                                handleOpenDelete();
+                                setSelectedFood(item);
+                            }}
+                            disabled={item.status === 0 ? false : true}
+                        >
                             <MdOutlineDeleteOutline color={`${item.status === 0 ? 'black' : 'gray'}`} fontSize={20} />
                         </button>
                     </div>
                 </div>
+
+                <Modal
+                    title="Hình ảnh"
+                    className="custom-modal"
+                    open={isOpenImage}
+                    onCancel={() => setIsOpenImage(false)}
+                    footer={[]}
+                    width={600}
+                    mask={false}
+                >
+                    <div className="modal-image-container">
+                        <img src={currentImage} alt="Large" className="w-[55%]  object-contain" />
+                    </div>
+                </Modal>
             </div>
         );
     };

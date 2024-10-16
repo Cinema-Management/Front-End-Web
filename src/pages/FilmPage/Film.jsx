@@ -5,7 +5,7 @@ import InputComponent from '~/components/InputComponent/InputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import axios from 'axios';
-import { DatePicker, Select } from 'antd';
+import { DatePicker, Modal, Select } from 'antd';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { FaRegEye } from 'react-icons/fa6';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
@@ -17,9 +17,10 @@ import dayjs from 'dayjs';
 import { FixedSizeList as List } from 'react-window';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
 import { useSelector } from 'react-redux';
+import { MdOutlineDeleteOutline } from 'react-icons/md';
 const { Option } = Select;
 
-const { getFormattedDate, getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatDate, FormatSchedule } = require('~/utils/dateUtils');
 
 const fetchMovies = async () => {
     const moviesResponse = await axios.get('api/movies');
@@ -57,7 +58,7 @@ const Film = React.memo(() => {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [selectedFilm, setSelectedFilm] = useState(null);
-    const [detailMovie, setDetailMovie] = useState(false);
+    const [openDelete, setOpenDelete] = useState(false);
     const maxTagCount = window.innerWidth < 1025 ? 1 : 2;
     const [movieFilter, setMovieFilter] = useState([]);
     const [inputSearch, setInputSearch] = useState('');
@@ -68,7 +69,10 @@ const Film = React.memo(() => {
     const height = HeightComponent();
     const queryClient = useQueryClient();
     const { RangePicker } = DatePicker;
-
+    const [isOpenImage, setIsOpenImage] = useState(false);
+    const [currentImage, setCurrentImage] = useState('');
+    const [openDetail, setOpenDetail] = useState(false);
+    const [showVideo, setShowVideo] = useState(false);
     const optionStatus = [
         { value: 3, name: 'Tất cả' },
         { value: 0, name: 'Chưa phát hành' },
@@ -105,6 +109,14 @@ const Film = React.memo(() => {
         refetchInterval: 1000 * 60 * 7,
     });
 
+    const handleOpenDelete = () => {
+        setOpenDelete(true);
+    };
+    const handleCloseDelete = () => {
+        setOpenDelete(false);
+        setSelectedFilm(null);
+    };
+
     const handleOpen = (isUpdate) => {
         setOpen(true);
         setIsUpdate(isUpdate);
@@ -112,12 +124,20 @@ const Film = React.memo(() => {
 
     const handleClose = () => {
         setOpen(false);
-
-        setDetailMovie(false);
         setSelectedFilm(null);
         setStartDate(null);
         setEndDate(null);
         clearText();
+    };
+    const handleOpenDetail = () => {
+        setOpenDetail(true);
+    };
+    const handleCloseDetail = () => {
+        setOpenDetail(false);
+        setSelectedFilm(null);
+    };
+    const handleShowVideo = () => {
+        setShowVideo(true);
     };
 
     const handleChangeDay = (value) => {
@@ -464,6 +484,17 @@ const Film = React.memo(() => {
         }
     };
 
+    const handleDeleteMovie = async (movieId) => {
+        try {
+            await axios.delete(`api/movies/${movieId}`);
+            toast.success('Xóa thành công!');
+            refetch();
+            handleCloseDelete();
+        } catch (error) {
+            toast.error('Xóa thất bại!');
+        }
+    };
+
     if (isLoading || isLoadingGenre) return <Loading />;
     if (!isFetched || isFetchedGenre) return <div>Fetching...</div>;
     if (error || errorGenre) return <div>Error loading data: {error.message}</div>;
@@ -491,7 +522,16 @@ const Film = React.memo(() => {
                 </div>
 
                 <div className=" justify-center grid">
-                    <LazyLoadImage src={item.image} alt={item.name} width={65} />
+                    <LazyLoadImage
+                        src={item.image}
+                        alt={item.name}
+                        width={75}
+                        onClick={() => {
+                            setCurrentImage(item.image);
+                            setIsOpenImage(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    />
                 </div>
 
                 <h1 className="grid items-center pl-3 col-span-2 uppercase">{item.name}</h1>
@@ -515,7 +555,7 @@ const Film = React.memo(() => {
                         </button>
                     </div>
 
-                    <div className=" col-span-2 ml-6 justify-center items-center flex">
+                    <div className=" col-span-2 ml-6 justify-center items-center ">
                         <button
                             className="mr-[8px] py-1 max-lg:mr-1 cursor-pointer"
                             onClick={() => {
@@ -531,17 +571,39 @@ const Film = React.memo(() => {
                             <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={22} />
                         </button>
                         <button
-                            className=" py-1"
+                            className=" py-3"
                             onClick={() => {
-                                handleOpen(true);
+                                handleOpenDetail(true);
                                 setSelectedFilm(item);
-                                setDetailMovie(true);
                             }}
                         >
                             <FaRegEye color="black" size={22} />
                         </button>
+
+                        <button
+                            onClick={() => {
+                                handleOpenDelete();
+                                setSelectedFilm(item);
+                            }}
+                            disabled={item.status === 0 ? false : true}
+                        >
+                            <MdOutlineDeleteOutline color={`${item.status === 0 ? 'black' : 'gray'}`} fontSize={22} />
+                        </button>
                     </div>
                 </div>
+                <Modal
+                    title="Hình ảnh"
+                    className="custom-modal"
+                    open={isOpenImage}
+                    onCancel={() => setIsOpenImage(false)}
+                    footer={[]}
+                    width={600}
+                    mask={false}
+                >
+                    <div className="modal-image-container">
+                        <img src={currentImage} alt="Large" className="w-[55%]  object-contain" />
+                    </div>
+                </Modal>
             </div>
         );
     };
@@ -642,7 +704,7 @@ const Film = React.memo(() => {
                     <div className="py-1 min-w-[1100px]">
                         <List
                             itemCount={movieFilter.length === 0 ? movies?.length : movieFilter.length}
-                            itemSize={120}
+                            itemSize={135}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
@@ -666,13 +728,12 @@ const Film = React.memo(() => {
                 mediumScreenHeight="57%"
                 largeScreenHeight="50%" // Kích thước cho màn hình lớn
                 maxHeightScreenHeight="93%" // Kích thước khi màn hình có chiều cao nhỏ
-                title={detailMovie ? 'Chi tiết phim' : isUpdate ? 'Chỉnh sửa phim' : 'Thêm phim'}
+                title={isUpdate ? 'Chỉnh sửa phim' : 'Thêm phim'}
             >
-                <div className={`h-[90%] ${detailMovie ? 'overflow-y-auto' : 'overflow-y-hidden'}`}>
+                <div className="h-[90%] ">
                     <div
-                        className={` h-[100%] ${detailMovie ? 'min-h-[700px]' : ''} overflow-y-auto grid ${
-                            detailMovie ? 'grid-rows-10' : 'grid-rows-9'
-                        } custom-height-sm22 gap-6 `}
+                        className=" h-[100%] overflow-y-auto grid grid-rows-9
+                         custom-height-sm22 gap-6"
                     >
                         <div className="grid grid-cols-7 p-2 ">
                             <div className="grid grid-cols-6 col-span-3 gap-5">
@@ -875,45 +936,200 @@ const Film = React.memo(() => {
                             </div>
                         </div>
 
-                        {detailMovie && (
-                            <div className="grid p-2">
-                                <div className="grid grid-cols-2 gap-5">
-                                    <InputComponent
-                                        value={getFormattedDate(selectedFilm?.createdAt)}
-                                        title="Ngày tạo"
-                                        className="rounded-[5px] bg-[#707070] "
-                                        disabled={true}
-                                    />
-                                    <InputComponent
-                                        value={getFormattedDate(selectedFilm?.updatedAt)}
-                                        title="Ngày cập nhật"
-                                        className="rounded-[5px] bg-[#707070] "
-                                        disabled={true}
-                                    />
+                        <div className="grid row-span-1 items-center border-t py-2">
+                            <div className="justify-end flex space-x-3 px-4">
+                                <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
+                                <ButtonComponent
+                                    text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
+                                    className="bg-blue-500"
+                                    onClick={isUpdate ? () => mutation.mutate(selectedFilm?.code) : handleAddMovie}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ModalComponent>
+
+            <ModalComponent
+                open={openDetail}
+                handleClose={handleCloseDetail}
+                width="60%"
+                height="80%"
+                smallScreenWidth="80%"
+                smallScreenHeight="60%"
+                mediumScreenWidth="80%"
+                mediumScreenHeight="50%"
+                largeScreenHeight="45%"
+                largeScreenWidth="70%"
+                maxHeightScreenHeight="92%"
+                maxHeightScreenWidth="70%"
+                heightScreen="75%"
+                title="Chi tiết phim"
+            >
+                <div className="h-90p grid grid-rows-12 gap-2 ">
+                    <div className="grid row-span-11">
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid  grid-cols-2 gap-2">
+                                    <h1 className=" font-bold">Mã phim:</h1>
+                                    <h1 className=" font-normal">{selectedFilm?.code}</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Tên phim:</h1>
+                                    <h1 className="grid col-span-2 font-normal">{selectedFilm?.name}</h1>
                                 </div>
                             </div>
-                        )}
-                        <div
-                            className={`grid row-span-1 items-center border-t ${
-                                detailMovie ? 'mt-[6px]' : 'mt-[0px] '
-                            } py-2`}
-                        >
-                            <div className="justify-end flex space-x-3 px-4">
-                                {!detailMovie ? (
-                                    <>
-                                        <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
-                                        <ButtonComponent
-                                            text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
-                                            className="bg-blue-500"
-                                            onClick={
-                                                isUpdate ? () => mutation.mutate(selectedFilm?.code) : handleAddMovie
-                                            }
-                                        />
-                                    </>
-                                ) : (
-                                    <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleClose} />
-                                )}
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Thời lượng:</h1>
+                                    <h1 className="font-normal">{selectedFilm?.duration} phút</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Thể loại:</h1>
+                                    <h1 className="grid col-span-2 font-normal">
+                                        {selectedFilm?.movieGenreCode.map((genre) => genre.name).join(', ')}
+                                    </h1>
+                                </div>
                             </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Quốc gia:</h1>
+                                    <h1 className="font-normal">{selectedFilm?.country}</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Giới hạn độ tuổi:</h1>
+                                    <h1 className="grid col-span-2 font-normal">{selectedFilm?.ageRestriction}</h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Ngày phát hành:</h1>
+                                    <h1 className="font-normal">{getFormatteNgay(selectedFilm?.startDate)}</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Ngày kết thúc:</h1>
+                                    <h1 className="grid col-span-2 font-normal">
+                                        {getFormatteNgay(selectedFilm?.endDate)}
+                                    </h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Đạo diễn:</h1>
+                                    <h1 className="grid  font-normal">{selectedFilm?.director}</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Diễn viên:</h1>
+                                    <h1 className="grid col-span-2 font-normal">{selectedFilm?.cast}</h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Ngày tạo:</h1>
+                                    <h1 className="font-normal">{FormatSchedule(selectedFilm?.createdAt)}</h1>
+                                </div>
+                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Ngày cập nhật:</h1>
+                                    <h1 className="grid col-span-2 font-normal">
+                                        {FormatSchedule(selectedFilm?.updatedAt)}
+                                    </h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Hình ảnh:</h1>
+                                    <img
+                                        src={selectedFilm?.image}
+                                        alt="phim1"
+                                        className="w-28 h-[135px] object-contain"
+                                    />
+                                </div>
+                                <div className="grid gap-2 grid-cols-2 ">
+                                    <h1 className="font-bold">Trailer:</h1>
+                                    <div>
+                                        <ButtonComponent text="Xem ngay" onClick={handleShowVideo} />
+                                    </div>
+                                </div>
+                                <div className="grid gap-2 grid-cols-2 ">
+                                    <h1 className="font-bold">Trạng thái:</h1>
+                                    <h1 className="font-normal">{changStatus(selectedFilm?.status)}</h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid gap-2 grid-cols-12">
+                                <h1 className="font-bold w-[80px]">Mô tả:</h1>
+                                <h1 className="font-normal ml-2 col-span-11">{selectedFilm?.description}</h1>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="justify-end flex space-x-3 mt-1  border-t pr-4">
+                        <div className="space-x-3 mt-[6px]">
+                            <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleCloseDetail} />
+                        </div>
+                    </div>
+
+                    {showVideo && (
+                        <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-80 z-50 flex justify-center items-center">
+                            <iframe
+                                width="640"
+                                height="360"
+                                src={`${selectedFilm?.trailer.replace('watch?v=', 'embed/')}?autoplay=1`}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                title="YouTube Video"
+                            ></iframe>
+                            <button
+                                className="absolute top-4 right-4 bg-[#a6a6a7] text-white p-2 rounded"
+                                onClick={() => setShowVideo(false)}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </ModalComponent>
+
+            <ModalComponent
+                open={openDelete}
+                handleClose={handleCloseDelete}
+                width="25%"
+                height="32%"
+                smallScreenWidth="40%"
+                smallScreenHeight="25%"
+                mediumScreenWidth="40%"
+                mediumScreenHeight="20%"
+                largeScreenHeight="20%"
+                largeScreenWidth="40%"
+                maxHeightScreenHeight="40%"
+                maxHeightScreenWidth="40%"
+                title="Xóa phim"
+            >
+                <div className="h-[80%] grid grid-rows-3 ">
+                    <h1 className="grid row-span-2 p-3">
+                        Bạn đang thực hiện xóa phim này. Bạn có chắc chắn xóa không?
+                    </h1>
+                    <div className="grid items-center ">
+                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
+                            <ButtonComponent
+                                text="Xóa"
+                                className="bg-blue-500"
+                                onClick={() => handleDeleteMovie(selectedFilm?.code)}
+                            />
                         </div>
                     </div>
                 </div>
