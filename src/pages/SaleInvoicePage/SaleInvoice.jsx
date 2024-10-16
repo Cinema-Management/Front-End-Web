@@ -277,7 +277,7 @@ const SaleInvoice = () => {
         const search = invoices.filter((item) => item.customerCode?.phone === value);
 
         if (search.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
+            toast.info('Không tìm thấy hóa đơn nào!');
         } else {
             setInvoiceFilter(search);
         }

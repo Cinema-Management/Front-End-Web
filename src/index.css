@@ -350,3 +350,26 @@ code {
     opacity: 0.9;
     border-radius: 8px;
 }
+.custom-modal .ant-modal-content {
+    background-color: rgb(58, 58, 58);
+}
+
+.custom-modal .ant-modal-header {
+    background-color: rgb(58, 58, 58);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.custom-modal .modal-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.custom-modal .ant-modal-footer {
+    background-color: rgb(58, 58, 58);
+}
+.custom-modal .ant-modal-title {
+    color: white; /* Đặt màu tiêu đề thành màu trắng */
+}
