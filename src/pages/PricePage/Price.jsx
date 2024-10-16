@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
-import { MdOutlineDeleteOutline, MdSwapVert } from 'react-icons/md';
+import { MdOutlineDeleteOutline } from 'react-icons/md';
 import { useQuery } from 'react-query';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
@@ -15,10 +15,9 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import SelectComponent from '~/components/SelectComponent/SelectComponent';
 import { DatePicker, Select } from 'antd';
 import dayjs from 'dayjs';
-import { set } from 'lodash';
 
 const { Option } = Select;
-const { getFormatteNgay } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
 
 const fetchPrice = async () => {
     try {
@@ -78,16 +77,23 @@ const Price = () => {
     const [deleteType, setDeleteType] = useState('');
     const [statusPrice, setStatusPrice] = useState('');
     const [statusPriceCode, setStatusPriceCode] = useState('');
+    const [priceFilter, setPriceFilter] = useState([]);
+    const [rangePickerValue, setRangePickerValue] = useState(['', '']);
+    const { RangePicker } = DatePicker;
+    // const queryClient = useQueryClient();
+
     const optionsSort = [
         { value: 3, name: 'Tất cả' },
         { value: 1, name: 'Ghế' },
         { value: 2, name: 'Đồ ăn & nước uống' },
     ];
     const optionsStatus = [
+        { value: 3, name: 'Tất cả' },
         { value: 0, name: 'Mới tạo' },
         { value: 1, name: 'Hoạt động' },
         { value: 2, name: 'Ngừng hoạt động' },
     ];
+    const [selectedStatus, setSelectedStatus] = useState(optionsStatus[0]);
     const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const fetchPricesAndProducts = async () => {
         try {
@@ -132,9 +138,9 @@ const Price = () => {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
-        // onSuccess: (data) => {
-        //     setFoodFilter(data.product);
-        // },
+        onSuccess: (prices) => {
+            setPriceFilter(prices);
+        },
     });
     const {
         data: { products = [], optionFood = [] } = {},
@@ -150,6 +156,7 @@ const Price = () => {
         // },
     });
 
+    console.log('priceFilter', priceFilter);
     const handleOpen = (isUpdate, type) => {
         setOpen(true);
         setTypePrice(type);
@@ -181,6 +188,9 @@ const Price = () => {
         setSelectedPrice(null);
         setProductCode('');
         setSelectedProduct('');
+        setSelectedProductType('');
+        setType('');
+        setSelectedProductTypeCode('');
     };
 
     const handleOpenDetail = (type) => {
@@ -270,7 +280,10 @@ const Price = () => {
         setDetailDescription('');
         setSelectedProductType('');
         setSelectedRoomTypeCode('');
+        setSelectedRoomType('');
+        setSelectedProductTypeCode('');
         setSelectDetail(null);
+        setType('');
     };
     const handleChange = (event) => {
         setSelectedValue(event.target.value);
@@ -423,10 +436,14 @@ const Price = () => {
 
     const handleUpdate = async () => {
         try {
+            if (!dayjs(selectedPrice?.startDate).isSame(startDate, 'day') && endDate === '') {
+                toast.error('Vui lòng chọn ngày kết thúc');
+                return;
+            }
             if (
                 !description &&
-                !startDate &&
-                !endDate &&
+                dayjs(selectedPrice?.startDate).isSame(startDate, 'day') &&
+                dayjs(selectedPrice?.endDate).isSame(endDate, 'day') &&
                 selectedDayOfWeek.length === 0 &&
                 !selectedTimeSlotCode &&
                 !statusPrice
@@ -478,8 +495,8 @@ const Price = () => {
                 }
                 await axios.post(`api/prices/${selectedPrice.code}`, {
                     description: description || selectedPrice.description,
-                    startDate: startDate || selectedPrice.startDate,
-                    endDate: endDate || selectedPrice.endDate,
+                    startDate: dayjs(selectedPrice?.startDate).isSame(startDate, 'day') ? undefined : startDate,
+                    endDate: dayjs(selectedPrice?.endDate).isSame(endDate, 'day') ? undefined : endDate,
                     status: statusPriceCode || selectedPrice.status,
                 });
             } else {
@@ -531,8 +548,8 @@ const Price = () => {
 
                 await axios.post(`api/prices/${selectedPrice.code}`, {
                     description: description,
-                    startDate: startDate,
-                    endDate: endDate,
+                    startDate: dayjs(selectedPrice?.startDate).isSame(startDate, 'day') ? undefined : startDate,
+                    endDate: dayjs(selectedPrice?.endDate).isSame(endDate, 'day') ? undefined : endDate,
                     dayOfWeek: selectedDayOfWeek.length > 0 ? selectedDayOfWeek : selectedPrice.dayOfWeek,
                     timeSlot: selectedTimeSlotCode || selectedPrice.timeSlot,
                     status: statusPriceCode,
@@ -575,6 +592,16 @@ const Price = () => {
             toast.warn('Vui lòng nhập đầy đủ thông tin');
             return;
         } else {
+            const checkExitsPriceDetail = () => {
+                return selectedPrice.priceDetails.some((detail) => {
+                    return detail.productCode.code === productCode;
+                });
+            };
+
+            if (checkExitsPriceDetail()) {
+                toast.error('Sản phẩm đã có bảng giá!');
+                return;
+            }
             try {
                 await axios.post('api/prices/addPriceDetailProduct', {
                     priceCode: selectedPrice.code,
@@ -597,7 +624,25 @@ const Price = () => {
             }
         }
     };
+
     const handleAddDetailSeat = async () => {
+        if (selectedProductType === '' || selectedRoomType === '' || detailDescription === '' || detailPrice === '') {
+            toast.warn('Vui lòng nhập đầy đủ thông tin');
+            return;
+        }
+        const checkExitsPriceDetail = () => {
+            return selectedPrice.priceDetails.some((detail) => {
+                return (
+                    detail.productTypeCode.code === selectedProductTypeCode &&
+                    detail.roomTypeCode.code === selectedRoomTypeCode
+                );
+            });
+        };
+
+        if (checkExitsPriceDetail()) {
+            toast.warn('Ghế đã có bảng giá!');
+            return;
+        }
         try {
             await axios.post('api/prices/addPriceDetailSeat', {
                 productTypeCode: selectedProductTypeCode,
@@ -623,14 +668,62 @@ const Price = () => {
 
     const handleUpdateDetail = async () => {
         try {
-            if (!detailDescription && !detailPrice) {
-                toast.error('Vui lòng nhập thông tin cần cập nhật');
-                return;
+            if (type === 1) {
+                if (!detailDescription && !detailPrice && !selectedProductTypeCode && !selectedRoomTypeCode) {
+                    toast.error('Vui lòng nhập đầy đủ thông tin');
+                    return;
+                }
+                const price = prices.find((item) => item.code === selectDetail.priceCode.code);
+                const productTypeCode = !selectedProductTypeCode
+                    ? selectDetail.productTypeCode.code
+                    : selectedProductTypeCode;
+                const roomTypeCode = !selectedRoomTypeCode ? selectDetail.roomTypeCode.code : selectedRoomTypeCode;
+                const checkExitsPriceDetail = () => {
+                    return price.priceDetails.some((detail) => {
+                        return (
+                            detail.productTypeCode.code === productTypeCode && detail.roomTypeCode.code === roomTypeCode
+                        );
+                    });
+                };
+
+                if (checkExitsPriceDetail()) {
+                    toast.error('Ghế đã có bảng giá!');
+                    return;
+                }
+
+                await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
+                    description: detailDescription,
+                    productTypeCode: selectedProductTypeCode,
+                    roomTypeCode: selectedRoomTypeCode,
+                    price: detailPrice,
+                    type: selectDetail.type,
+                });
+            } else {
+                if (!selectedProduct && !detailDescription && !detailPrice) {
+                    toast.error('Vui lòng nhập thông tin cần cập nhật');
+                    return;
+                }
+
+                const price = prices.find((item) => item.code === selectDetail.priceCode.code);
+                const codeProduct = !selectedProduct ? selectDetail.productCode.code : productCode;
+                const checkExitsPriceDetail = () => {
+                    return price.priceDetails.some((detail) => {
+                        return detail.productCode.code === codeProduct;
+                    });
+                };
+
+                if (checkExitsPriceDetail()) {
+                    toast.warn('Sản phẩm đã có bảng giá!');
+                    return;
+                }
+
+                await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
+                    description: detailDescription,
+                    price: detailPrice,
+                    productCode: productCode,
+                    type: selectDetail.type,
+                });
             }
-            await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
-                description: detailDescription || selectDetail.description,
-                price: detailPrice || selectDetail.price,
-            });
 
             toast.success('Cập nhật chi tiết bảng giá thành công');
             setOpenLoaiKM(false);
@@ -640,6 +733,8 @@ const Price = () => {
             setDetailDescription('');
             setSelectedProductType('');
             setSelectedRoomType('');
+            setSelectedProductTypeCode('');
+            setSelectedRoomTypeCode('');
             setSelectDetail(null);
             refetchPrice();
         } catch (error) {
@@ -647,10 +742,12 @@ const Price = () => {
         }
     };
 
-    const onChangeStart = (date, dateString) => {
+    const onChangeStart = (dateString) => {
         setStartDate(dateString);
+        setEndDate('');
     };
-    const onChangeEnd = (date, dateString) => {
+
+    const onChangeEnd = (dateString) => {
         setEndDate(dateString);
     };
     function formatCurrency(amount) {
@@ -684,342 +781,216 @@ const Price = () => {
         return found ? found.label : '';
     };
 
-    const sortFood = (newValue) => {
-        if (newValue === null) {
+    const sortFood = (option) => {
+        if (!option) {
+            setPriceFilter(prices);
             setSelectedSort(optionsSort[0]);
             return;
         }
-        setSelectedSort(newValue);
+        setSelectedSort(option);
+        let sortedStatus = [];
+        if (option.value === 1) {
+            sortedStatus = prices.filter((item) => item.type === '0');
+            setPriceFilter(sortedStatus);
+        } else if (option.value === 2) {
+            sortedStatus = prices.filter((item) => item.type === '1');
+            setPriceFilter(sortedStatus);
+        } else if (option.value === 3) {
+            sortedStatus = prices;
+        }
+        if (sortedStatus.length === 0) {
+            toast.info('Không có bảng giá nào!');
+        }
+        setPriceFilter(sortedStatus);
+        setSelectedStatus(optionsStatus[0]);
+        setRangePickerValue(['', '']);
+    };
+    const sortedStatus = (option) => {
+        if (!option) {
+            setPriceFilter(prices);
+            return;
+        }
+        setSelectedStatus(option);
+        let sortedStatus = [];
+        if (option.value === 0) {
+            sortedStatus = prices.filter((item) => item.status === 0);
+            setPriceFilter(sortedStatus);
+        } else if (option.value === 1) {
+            sortedStatus = prices.filter((item) => item.status === 1);
+            setPriceFilter(sortedStatus);
+        } else if (option.value === 2) {
+            sortedStatus = prices.filter((item) => item.status === 2);
+            setPriceFilter(sortedStatus);
+        } else if (option.value === 3) {
+            sortedStatus = prices;
+        }
+        if (sortedStatus.length === 0) {
+            toast.info('Không có bảng giá nào!');
+        }
+        setPriceFilter(sortedStatus);
+        setRangePickerValue(['', '']);
+        setSelectedSort(optionsSort[0]);
+    };
+
+    const onChangeRanger = (dates) => {
+        if (!Array.isArray(dates) || dates.length !== 2) {
+            setPriceFilter(prices);
+            return;
+        }
+        setRangePickerValue(dates);
+        const startDateFormatted = FormatDate(dates[0]);
+        const endDateFormatted = FormatDate(dates[1]);
+
+        const filterDate = prices.filter((item) => {
+            const itemDate = FormatDate(new Date(item.startDate));
+
+            return itemDate >= startDateFormatted && itemDate <= endDateFormatted;
+        });
+        if (filterDate.length === 0) {
+            toast.info('Không tìm thấy bảng giá nào trong khoảng thời gian này!');
+            setPriceFilter([]);
+
+            return;
+        }
+
+        setSelectedSort(optionsSort[0]);
+        setSelectedStatus(optionsStatus[0]);
+        setPriceFilter(filterDate);
     };
 
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             <div className="bg-white overflow-x-auto overflow-y-hidden  xl:overflow-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Bảng giá</h1>
-                <div className="grid grid-cols-4 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
+                <div className="grid grid-cols-7 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                     <AutoInputComponent
                         value={selectedSort?.name}
                         onChange={(newValue) => sortFood(newValue)}
                         options={optionsSort}
                         title="Loại sản phẩm"
                         freeSolo={true}
-                        disableClearable={false}
+                        disableClearable={true}
                         heightSelect={200}
                         borderRadius="10px"
+                        className1="grid col-span-2"
                         onBlur={(event) => {
                             event.preventDefault();
                         }}
                     />
-                    <InputComponent className="rounded-[10px] " title="Ngày bắt đầu" type="date" />
-                    <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
-                    <div className="relative w-full ">
-                        <MdSwapVert className="absolute bottom-[10px] left-2" />
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsSort}
-                            title="Sắp xếp"
-                            className="pl-3"
-                            selectStyles={{ borderRadius: '10px' }}
+                    <div className="grid col-span-3">
+                        <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
+                        <RangePicker
+                            value={rangePickerValue}
+                            onChange={onChangeRanger}
+                            placeholder={['Từ ngày', 'Đến ngày']}
+                            placement="bottomRight"
+                            format={'DD-MM-YYYY'}
+                            className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
                         />
                     </div>
+
+                    <AutoInputComponent
+                        value={selectedStatus.name}
+                        onChange={(newValue) => sortedStatus(newValue)}
+                        options={optionsStatus}
+                        title="Trạng thái"
+                        freeSolo={true}
+                        disableClearable={true}
+                        heightSelect={200}
+                        borderRadius="10px"
+                        className1="grid col-span-2"
+                        onBlur={(event) => {
+                            event.preventDefault();
+                        }}
+                    />
                 </div>
             </div>
             <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
                 <div>
-                    {(selectedSort.value === 1 || selectedSort.value === 3) && (
-                        <div>
-                            <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
+                    <div>
+                        <h1 className="font-bold text-[16px] p-2 ">Ghế</h1>
 
-                            <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 min-w-[1150px]">
-                                <h1 className="uppercase grid col-span-1 justify-center items-center ">Mã bảng giá</h1>
-                                <h1 className="uppercase grid col-span-2 justify-center items-center">Mô tả</h1>
-                                <h1 className="uppercase grid justify-center items-center">Thứ</h1>
-                                <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
-                                <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
-                                <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
-                                <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
-                                <div className="flex justify-center">
-                                    <button
-                                        className="border px-4 py-[3px] rounded-[40px] bg-white"
-                                        onClick={() => handleOpen(false, 0)}
-                                    >
-                                        <IoIosAddCircleOutline color="orange" size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="h-[92%] height-sm-1 mb-4 min-w-[1150px]">
-                                {[...prices.filter((item) => item.type === '0')].reverse().map((item) => (
-                                    <div key={item.code}>
-                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
-                                            <div className="grid col-span-1 grid-cols-4 items-center gap-2">
-                                                <div
-                                                    className="justify-center col-span-1 pl-4 grid"
-                                                    onClick={() => {
-                                                        toggleVisibility(item.code);
-                                                        toggleDropdown(item.code);
-                                                    }}
-                                                >
-                                                    {isDropdownOpen[item.code] ? (
-                                                        <FaChevronUp color="gray" size={20} />
-                                                    ) : (
-                                                        <FaChevronDown color="gray" size={20} />
-                                                    )}
-                                                </div>
-                                                <h1 className="uppercase grid col-span-3  pl-4 items-center">
-                                                    {item.code}
-                                                </h1>
-                                            </div>
-                                            <h1 className="uppercase grid col-span-2">{item.description}</h1>
-                                            <h1 className="grid justify-center items-center">
-                                                {item.dayOfWeek
-                                                    .map((day) => {
-                                                        if (day === 0) {
-                                                            return 'CN'; // Thay 0 bằng 'CN' cho Chủ nhật
-                                                        } else {
-                                                            return day === 1
-                                                                ? '2'
-                                                                : day === 2
-                                                                ? '3'
-                                                                : day === 3
-                                                                ? '4'
-                                                                : day === 4
-                                                                ? '5'
-                                                                : day === 5
-                                                                ? '6'
-                                                                : day === 6
-                                                                ? '7'
-                                                                : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
-                                                        }
-                                                    })
-                                                    .join(', ')}
-                                            </h1>
-                                            <h1 className="grid justify-center items-center">
-                                                {item.timeSlot === 1
-                                                    ? 'Cả ngày'
-                                                    : item.timeSlot === 2
-                                                    ? 'Trước 17h'
-                                                    : 'Sau 17h'}
-                                            </h1>
-                                            <h1 className="grid justify-center items-center">
-                                                {getFormatteNgay(item.startDate)}
-                                            </h1>
-                                            <h1 className="grid justify-center items-center">
-                                                {getFormatteNgay(item.endDate)}
-                                            </h1>
-                                            <div className="justify-center col-span-2  grid-cols-5 items-center grid">
-                                                <div className="grid col-span-3 justify-center">
-                                                    <button
-                                                        className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
-                                                            item.status === 0
-                                                                ? 'bg-gray-400'
-                                                                : item.status === 1
-                                                                ? 'bg-green-500'
-                                                                : 'bg-gray-400'
-                                                        }`}
-                                                    >
-                                                        {item.status === 0
-                                                            ? 'Mới tạo'
-                                                            : item.status === 1
-                                                            ? 'Hoạt động'
-                                                            : 'Ngừng hoạt động'}
-                                                    </button>
-                                                </div>
-
-                                                <div className="justify-center grid col-span-2 grid-cols-2 items-center ">
-                                                    <button
-                                                        className="grid justify-center"
-                                                        onClick={() => {
-                                                            handleOpen(true, 0);
-                                                            setSelectedPrice(item);
-                                                        }}
-                                                        disabled={item.status === 2 ? true : false}
-                                                    >
-                                                        <FaRegEdit
-                                                            color={`${item.status === 2 ? 'gray' : 'black'}`}
-                                                            size={22}
-                                                        />
-                                                    </button>
-                                                    <button
-                                                        className=" grid justify-center items-center"
-                                                        onClick={() => {
-                                                            handleOpenDelete(item, 1);
-                                                            setSelectedPrice(item);
-                                                        }}
-                                                        disabled={item.status === 1 || item.status === 2}
-                                                    >
-                                                        <MdOutlineDeleteOutline
-                                                            color={`${item.status === 0 ? 'black' : 'gray'}`}
-                                                            fontSize={23}
-                                                        />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {visibleRooms[item.code] && (
-                                            <>
-                                                <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-11 items-center gap-2">
-                                                    <h1 className="grid col-span-1 justify-center items-center">STT</h1>
-                                                    <h1 className="grid col-span-1 justify-center items-center">
-                                                        Mã CTBG
-                                                    </h1>
-
-                                                    <h1 className="grid col-span-2 justify-center items-center">
-                                                        Loại phòng chiếu
-                                                    </h1>
-                                                    <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
-                                                    <h1 className="grid col-span-2 justify-center items-center">
-                                                        Mô tả
-                                                    </h1>
-                                                    <h1 className="grid justify-center items-center">Giá</h1>
-
-                                                    <div className="grid justify-center col-span-2">
-                                                        <button
-                                                            className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
-                                                            onClick={() => {
-                                                                handleOpenLoaiKM(false, 1);
-                                                                setSelectedPrice(item);
-                                                            }}
-                                                        >
-                                                            <IoIosAddCircleOutline color="white" size={20} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="height-sm-1">
-                                                    {item?.priceDetails?.map((item, index) => (
-                                                        <div
-                                                            className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-11 items-center gap-3"
-                                                            key={item.code}
-                                                        >
-                                                            <h1 className=" grid col-span-1 justify-center items-center ">
-                                                                {index + 1}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-1 justify-center items-center ">
-                                                                {item.code}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-2 justify-center items-center ">
-                                                                {item.roomTypeCode?.name}
-                                                            </h1>
-                                                            <h1 className=" grid pl-3 col-span-2 items-center">
-                                                                {item.productTypeCode?.name}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-2 pl-3 items-center">
-                                                                {item?.description}
-                                                            </h1>
-                                                            <h1 className=" grid items-center justify-center">
-                                                                {formatCurrency(item?.price)}
-                                                            </h1>
-
-                                                            <div className="justify-center space-x-5 items-center col-span-2 flex  ">
-                                                                <button
-                                                                    className=""
-                                                                    onClick={() => {
-                                                                        handleOpenLoaiKM(true, 1);
-                                                                        setSelectDetail(item);
-                                                                        setSelectedPrice(
-                                                                            prices.find(
-                                                                                (price) =>
-                                                                                    price.code === item.priceCode,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                    disabled={item?.priceCode?.status === 1}
-                                                                >
-                                                                    <FaRegEdit
-                                                                        color={`${
-                                                                            item?.priceCode?.status === 1
-                                                                                ? 'gray'
-                                                                                : 'black'
-                                                                        }`}
-                                                                        size={20}
-                                                                    />
-                                                                </button>
-                                                                <button
-                                                                    className=""
-                                                                    onClick={() => handleOpenDetail(item.type)}
-                                                                >
-                                                                    <FaRegEye color="black" fontSize={20} />
-                                                                </button>
-
-                                                                <button
-                                                                    className=" grid justify-center items-center"
-                                                                    onClick={() => {
-                                                                        handleOpenDelete(item, 2);
-                                                                    }}
-                                                                    disabled={item?.priceCode?.status === 1}
-                                                                >
-                                                                    <MdOutlineDeleteOutline
-                                                                        color={`${
-                                                                            item?.priceCode?.status === 1
-                                                                                ? 'gray'
-                                                                                : 'black'
-                                                                        }`}
-                                                                        fontSize={22}
-                                                                    />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
+                        <div className="gradient-button text-[13px] text-white font-semibold h-auto py-1 grid grid-cols-9 items-center gap-3 min-w-[1150px]">
+                            <h1 className="uppercase grid col-span-1 justify-center items-center ">Mã bảng giá</h1>
+                            <h1 className="uppercase grid col-span-2 justify-center items-center">Mô tả</h1>
+                            <h1 className="uppercase grid justify-center items-center">Thứ</h1>
+                            <h1 className="uppercase grid justify-center items-center">Khung giờ</h1>
+                            <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
+                            <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
+                            <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
+                            <div className="flex justify-center">
+                                <button
+                                    className="border px-4 py-[3px] rounded-[40px] bg-white"
+                                    onClick={() => handleOpen(false, 0)}
+                                >
+                                    <IoIosAddCircleOutline color="orange" size={20} />
+                                </button>
                             </div>
                         </div>
-                    )}
-                    {(selectedSort.value === 2 || selectedSort.value === 3) && (
-                        <div className="bg-slate-200 h-8 min-w-[1150px]"></div>
-                    )}
-                    {(selectedSort.value === 2 || selectedSort.value === 3) && (
-                        <div>
-                            <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
-                            <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-8 items-center gap-3 min-w-[1150px] ">
-                                <h1 className="uppercase grid col-span-1 justify-center items-center">Mã bảng giá</h1>
-                                <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
-                                <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
-                                <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
-                                <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
-                                <div className="flex justify-center">
-                                    <button
-                                        className="border px-4 py-1 rounded-[40px] bg-white"
-                                        onClick={() => handleOpen(false, 1)}
-                                    >
-                                        <IoIosAddCircleOutline color="orange" size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="h-[70%] height-sm-1 mb-8 min-w-[1150px]">
-                                {[...prices.filter((item) => item.type === '1')].reverse().map((item) => (
-                                    <div key={item.code}>
-                                        <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-8 items-center gap-3 mb-1 ">
-                                            <div className="grid col-span-1 grid-cols-4 items-center gap-5">
-                                                <div
-                                                    className="justify-center col-span-1 pl-4 grid"
-                                                    onClick={() => {
-                                                        toggleVisibility(item.code);
-                                                        toggleDropdown(item.code);
-                                                    }}
-                                                >
-                                                    {isDropdownOpen[item.code] ? (
-                                                        <FaChevronUp color="gray" size={20} />
-                                                    ) : (
-                                                        <FaChevronDown color="gray" size={20} />
-                                                    )}
-                                                </div>
-                                                <h1 className="uppercase grid col-span-3 pl-2 items-center">
-                                                    {item.code}
-                                                </h1>
+                        <div className="h-[92%] height-sm-1 mb-4 min-w-[1150px]">
+                            {(priceFilter.length > 0
+                                ? [...priceFilter.filter((item) => item.type === '0')].reverse()
+                                : [...prices.filter((item) => item.type === '0')].reverse()
+                            ).map((item) => (
+                                <div key={item.code}>
+                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-9 items-center gap-3 mb-1 ">
+                                        <div className="grid col-span-1 grid-cols-4 items-center gap-2">
+                                            <div
+                                                className="justify-center col-span-1 pl-4 grid"
+                                                onClick={() => {
+                                                    toggleVisibility(item.code);
+                                                    toggleDropdown(item.code);
+                                                }}
+                                            >
+                                                {isDropdownOpen[item.code] ? (
+                                                    <FaChevronUp color="gray" size={20} />
+                                                ) : (
+                                                    <FaChevronDown color="gray" size={20} />
+                                                )}
                                             </div>
-                                            <h1 className="uppercase grid col-span-3">{item.description}</h1>
-
-                                            <h1 className="grid justify-center items-center">
-                                                {getFormatteNgay(item.startDate)}
+                                            <h1 className="uppercase grid col-span-3  pl-4 items-center">
+                                                {item.code}
                                             </h1>
-                                            <h1 className="grid justify-center items-center">
-                                                {getFormatteNgay(item.endDate)}
-                                            </h1>
-                                            <div className="justify-center items-center grid">
+                                        </div>
+                                        <h1 className="uppercase grid col-span-2">{item.description}</h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {item.dayOfWeek
+                                                .map((day) => {
+                                                    if (day === 0) {
+                                                        return 'CN'; // Thay 0 bằng 'CN' cho Chủ nhật
+                                                    } else {
+                                                        return day === 1
+                                                            ? '2'
+                                                            : day === 2
+                                                            ? '3'
+                                                            : day === 3
+                                                            ? '4'
+                                                            : day === 4
+                                                            ? '5'
+                                                            : day === 5
+                                                            ? '6'
+                                                            : day === 6
+                                                            ? '7'
+                                                            : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
+                                                    }
+                                                })
+                                                .join(', ')}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {item.timeSlot === 1
+                                                ? 'Cả ngày'
+                                                : item.timeSlot === 2
+                                                ? 'Trước 17h'
+                                                : 'Sau 17h'}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.startDate)}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.endDate)}
+                                        </h1>
+                                        <div className="justify-center col-span-2  grid-cols-5 items-center grid">
+                                            <div className="grid col-span-3 justify-center">
                                                 <button
                                                     className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
                                                         item.status === 0
@@ -1036,136 +1007,331 @@ const Price = () => {
                                                         : 'Ngừng hoạt động'}
                                                 </button>
                                             </div>
-                                            <div className="justify-center grid grid-cols-2 items-center ">
-                                                <button
-                                                    className=" grid justify-center"
-                                                    onClick={() => {
-                                                        handleOpen(true, 1);
-                                                        setSelectedPrice(item);
-                                                    }}
-                                                >
-                                                    <FaRegEdit color="black" size={22} />
-                                                </button>
 
+                                            <div className="justify-center grid col-span-2 grid-cols-2 items-center ">
+                                                <button
+                                                    className="grid justify-center"
+                                                    onClick={() => {
+                                                        handleOpen(true, 0);
+                                                        setSelectedPrice(item);
+                                                        setStartDate(dayjs(item.startDate));
+                                                        setEndDate(dayjs(item.endDate));
+                                                    }}
+                                                    disabled={item.status === 2 ? true : false}
+                                                >
+                                                    <FaRegEdit
+                                                        color={`${item.status === 2 ? 'gray' : 'black'}`}
+                                                        size={22}
+                                                    />
+                                                </button>
                                                 <button
                                                     className=" grid justify-center items-center"
                                                     onClick={() => {
                                                         handleOpenDelete(item, 1);
                                                         setSelectedPrice(item);
                                                     }}
-                                                    disabled={item.status === 1}
+                                                    disabled={item.status === 1 || item.status === 2}
                                                 >
                                                     <MdOutlineDeleteOutline
-                                                        color={`${item.status === 1 ? 'gray' : 'black'}`}
+                                                        color={`${item.status === 0 ? 'black' : 'gray'}`}
                                                         fontSize={23}
                                                     />
                                                 </button>
                                             </div>
                                         </div>
-                                        {visibleRooms[item.code] && (
-                                            <>
-                                                <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3">
-                                                    <h1 className="grid col-span-1 justify-center items-center">STT</h1>
-                                                    <h1 className="grid col-span-1 justify-center items-center">
-                                                        Mã CTBG
-                                                    </h1>
-                                                    <h1 className="grid col-span-3 justify-center items-center">Tên</h1>
-                                                    <h1 className="grid col-span-2 justify-center items-center">
-                                                        Mô tả
-                                                    </h1>
-                                                    <h1 className="grid justify-center items-center">Giá</h1>
-
-                                                    <div className="grid justify-center col-span-2">
-                                                        <button
-                                                            className="border px-4 py-1 rounded-[40px] gradient-button"
-                                                            onClick={() => {
-                                                                handleOpenLoaiKM(false, 2);
-                                                                setSelectedPrice(item);
-                                                            }}
-                                                        >
-                                                            <IoIosAddCircleOutline color="white" size={20} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="height-sm-1">
-                                                    {item.priceDetails.map((item, index) => (
-                                                        <div
-                                                            className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3"
-                                                            key={item.code}
-                                                        >
-                                                            <h1 className=" grid col-span-1 justify-center items-center ">
-                                                                {index + 1}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-1 justify-center items-center ">
-                                                                {item.code}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-3 pl-3 items-center ">
-                                                                {item.productCode.name}
-                                                            </h1>
-                                                            <h1 className=" grid col-span-2  items-center">
-                                                                {item.description}
-                                                            </h1>
-                                                            <h1 className=" grid items-center justify-center">
-                                                                {formatCurrency(item.price)}
-                                                            </h1>
-
-                                                            <div className="justify-center space-x-5 items-center col-span-2 flex  ">
-                                                                <button
-                                                                    className=""
-                                                                    onClick={() => {
-                                                                        handleOpenLoaiKM(true, 2);
-                                                                        setSelectDetail(item);
-                                                                        setSelectedPrice(
-                                                                            prices.find(
-                                                                                (price) =>
-                                                                                    price.code === item.priceCode,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                    disabled={item?.priceCode?.status === 1}
-                                                                >
-                                                                    <FaRegEdit
-                                                                        color={`${
-                                                                            item?.priceCode?.status === 1
-                                                                                ? 'gray'
-                                                                                : 'black'
-                                                                        }`}
-                                                                        size={20}
-                                                                    />
-                                                                </button>
-                                                                <button
-                                                                    className=""
-                                                                    onClick={() => handleOpenDetail(item.type)}
-                                                                >
-                                                                    <FaRegEye color="black" fontSize={20} />
-                                                                </button>
-                                                                <button
-                                                                    className=" grid justify-center items-center"
-                                                                    onClick={() => {
-                                                                        handleOpenDelete(item, 2);
-                                                                    }}
-                                                                    disabled={item?.priceCode?.status === 1}
-                                                                >
-                                                                    <MdOutlineDeleteOutline
-                                                                        color={`${
-                                                                            item?.priceCode?.status === 1
-                                                                                ? 'gray'
-                                                                                : 'black'
-                                                                        }`}
-                                                                        fontSize={22}
-                                                                    />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
                                     </div>
-                                ))}
+                                    {visibleRooms[item.code] && (
+                                        <>
+                                            <div className="border-b  text-[13px] font-bold h-[45px] uppercase text-slate-500 grid grid-cols-11 items-center gap-2">
+                                                <h1 className="grid col-span-1 justify-center items-center">STT</h1>
+                                                <h1 className="grid col-span-1 justify-center items-center">Mã CTBG</h1>
+
+                                                <h1 className="grid col-span-2 justify-center items-center">
+                                                    Loại phòng chiếu
+                                                </h1>
+                                                <h1 className="grid justify-center col-span-2 items-center">Tên</h1>
+                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
+                                                <h1 className="grid justify-center items-center">Giá</h1>
+
+                                                <div className="grid justify-center col-span-2">
+                                                    <button
+                                                        className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
+                                                        onClick={() => {
+                                                            handleOpenLoaiKM(false, 1);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                    >
+                                                        <IoIosAddCircleOutline color="white" size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="height-sm-1">
+                                                {item?.priceDetails?.map((item, index) => (
+                                                    <div
+                                                        className="border-b text-[15px] py-1 font-normal h-[45px] text-slate-500 grid grid-cols-11 items-center gap-3"
+                                                        key={item.code}
+                                                    >
+                                                        <h1 className=" grid col-span-1 justify-center items-center ">
+                                                            {index + 1}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-1 justify-center items-center ">
+                                                            {item.code}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-2 justify-center items-center ">
+                                                            {item.roomTypeCode?.name}
+                                                        </h1>
+                                                        <h1 className=" grid pl-3 col-span-2 items-center">
+                                                            {item.productTypeCode?.name}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-2 pl-3 items-center">
+                                                            {item?.description}
+                                                        </h1>
+                                                        <h1 className=" grid items-center justify-center">
+                                                            {formatCurrency(item?.price)}
+                                                        </h1>
+
+                                                        <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                                            <button
+                                                                className=""
+                                                                onClick={() => {
+                                                                    handleOpenLoaiKM(true, 1);
+                                                                    setSelectDetail(item);
+                                                                    setSelectedPrice(
+                                                                        prices.find(
+                                                                            (price) => price.code === item.priceCode,
+                                                                        ),
+                                                                    );
+                                                                }}
+                                                                disabled={item?.priceCode?.status === 1}
+                                                            >
+                                                                <FaRegEdit
+                                                                    color={`${
+                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                    }`}
+                                                                    size={20}
+                                                                />
+                                                            </button>
+                                                            <button
+                                                                className=""
+                                                                onClick={() => handleOpenDetail(item.type)}
+                                                            >
+                                                                <FaRegEye color="black" fontSize={20} />
+                                                            </button>
+
+                                                            <button
+                                                                className=" grid justify-center items-center"
+                                                                onClick={() => {
+                                                                    handleOpenDelete(item, 2);
+                                                                }}
+                                                                disabled={item?.priceCode?.status === 1}
+                                                            >
+                                                                <MdOutlineDeleteOutline
+                                                                    color={`${
+                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                    }`}
+                                                                    fontSize={22}
+                                                                />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-200 h-8 min-w-[1150px]"></div>
+
+                    <div>
+                        <h1 className="font-bold text-[16px] p-2 ">Đồ ăn và nước uống</h1>
+                        <div className="gradient-button text-[13px] text-white font-semibold h-[40px] py-1 grid grid-cols-8 items-center gap-3 min-w-[1150px] ">
+                            <h1 className="uppercase grid col-span-1 justify-center items-center">Mã bảng giá</h1>
+                            <h1 className="uppercase grid col-span-3 justify-center items-center">Mô tả</h1>
+                            <h1 className="uppercase grid  justify-center items-center">Ngày bắt đầu</h1>
+                            <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
+                            <h1 className="uppercase grid justify-center items-center">Trạng thái</h1>
+                            <div className="flex justify-center">
+                                <button
+                                    className="border px-4 py-1 rounded-[40px] bg-white"
+                                    onClick={() => handleOpen(false, 1)}
+                                >
+                                    <IoIosAddCircleOutline color="orange" size={20} />
+                                </button>
                             </div>
                         </div>
-                    )}
+                        <div className="h-[70%] height-sm-1 mb-4 min-w-[1150px]">
+                            {(priceFilter.length > 0
+                                ? [...priceFilter.filter((item) => item.type === '1')].reverse()
+                                : [...prices.filter((item) => item.type === '1')].reverse()
+                            ).map((item) => (
+                                <div key={item.code}>
+                                    <div className="bg-[#E6E6E6] text-[14px] py-[6px] font-normal h-[45px] text-slate-500 grid grid-cols-8 items-center gap-3 mb-1 ">
+                                        <div className="grid col-span-1 grid-cols-4 items-center gap-5">
+                                            <div
+                                                className="justify-center col-span-1 pl-4 grid"
+                                                onClick={() => {
+                                                    toggleVisibility(item.code);
+                                                    toggleDropdown(item.code);
+                                                }}
+                                            >
+                                                {isDropdownOpen[item.code] ? (
+                                                    <FaChevronUp color="gray" size={20} />
+                                                ) : (
+                                                    <FaChevronDown color="gray" size={20} />
+                                                )}
+                                            </div>
+                                            <h1 className="uppercase grid col-span-3 pl-2 items-center">{item.code}</h1>
+                                        </div>
+                                        <h1 className="uppercase grid col-span-3">{item.description}</h1>
+
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.startDate)}
+                                        </h1>
+                                        <h1 className="grid justify-center items-center">
+                                            {getFormatteNgay(item.endDate)}
+                                        </h1>
+                                        <div className="justify-center items-center grid">
+                                            <button
+                                                className={`border px-2 uppercase text-white text-[13px] truncate py-1 flex rounded-[40px] ${
+                                                    item.status === 0
+                                                        ? 'bg-gray-400'
+                                                        : item.status === 1
+                                                        ? 'bg-green-500'
+                                                        : 'bg-gray-400'
+                                                }`}
+                                            >
+                                                {item.status === 0
+                                                    ? 'Mới tạo'
+                                                    : item.status === 1
+                                                    ? 'Hoạt động'
+                                                    : 'Ngừng hoạt động'}
+                                            </button>
+                                        </div>
+                                        <div className="justify-center grid grid-cols-2 items-center ">
+                                            <button
+                                                className=" grid justify-center"
+                                                onClick={() => {
+                                                    handleOpen(true, 1);
+                                                    setSelectedPrice(item);
+                                                    setStartDate(dayjs(item.startDate));
+                                                    setEndDate(dayjs(item.endDate));
+                                                }}
+                                            >
+                                                <FaRegEdit color="black" size={22} />
+                                            </button>
+
+                                            <button
+                                                className=" grid justify-center items-center"
+                                                onClick={() => {
+                                                    handleOpenDelete(item, 1);
+                                                    setSelectedPrice(item);
+                                                }}
+                                                disabled={item.status === 1}
+                                            >
+                                                <MdOutlineDeleteOutline
+                                                    color={`${item.status === 1 ? 'gray' : 'black'}`}
+                                                    fontSize={23}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {visibleRooms[item.code] && (
+                                        <>
+                                            <div className="border-b text-[13px] font-bold uppercase h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3">
+                                                <h1 className="grid col-span-1 justify-center items-center">STT</h1>
+                                                <h1 className="grid col-span-1 justify-center items-center">Mã CTBG</h1>
+                                                <h1 className="grid col-span-3 justify-center items-center">Tên</h1>
+                                                <h1 className="grid col-span-2 justify-center items-center">Mô tả</h1>
+                                                <h1 className="grid justify-center items-center">Giá</h1>
+
+                                                <div className="grid justify-center col-span-2">
+                                                    <button
+                                                        className="border px-4 py-1 rounded-[40px] gradient-button"
+                                                        onClick={() => {
+                                                            handleOpenLoaiKM(false, 2);
+                                                            setSelectedPrice(item);
+                                                        }}
+                                                    >
+                                                        <IoIosAddCircleOutline color="white" size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="height-sm-1">
+                                                {item.priceDetails.map((item, index) => (
+                                                    <div
+                                                        className="border-b py-1 text-[15px] font-normal h-[40px] text-slate-500 grid grid-cols-10 items-center gap-3"
+                                                        key={item.code}
+                                                    >
+                                                        <h1 className=" grid col-span-1 justify-center items-center ">
+                                                            {index + 1}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-1 justify-center items-center ">
+                                                            {item.code}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-3 pl-3 items-center ">
+                                                            {item.productCode.name}
+                                                        </h1>
+                                                        <h1 className=" grid col-span-2  items-center">
+                                                            {item.description}
+                                                        </h1>
+                                                        <h1 className=" grid items-center justify-center">
+                                                            {formatCurrency(item.price)}
+                                                        </h1>
+
+                                                        <div className="justify-center space-x-5 items-center col-span-2 flex  ">
+                                                            <button
+                                                                className=""
+                                                                onClick={() => {
+                                                                    handleOpenLoaiKM(true, 2);
+                                                                    setSelectDetail(item);
+                                                                    setSelectedPrice(
+                                                                        prices.find(
+                                                                            (price) => price.code === item.priceCode,
+                                                                        ),
+                                                                    );
+                                                                }}
+                                                                disabled={item?.priceCode?.status === 1}
+                                                            >
+                                                                <FaRegEdit
+                                                                    color={`${
+                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                    }`}
+                                                                    size={20}
+                                                                />
+                                                            </button>
+                                                            <button
+                                                                className=""
+                                                                onClick={() => handleOpenDetail(item.type)}
+                                                            >
+                                                                <FaRegEye color="black" fontSize={20} />
+                                                            </button>
+                                                            <button
+                                                                className=" grid justify-center items-center"
+                                                                onClick={() => {
+                                                                    handleOpenDelete(item, 2);
+                                                                }}
+                                                                disabled={item?.priceCode?.status === 1}
+                                                            >
+                                                                <MdOutlineDeleteOutline
+                                                                    color={`${
+                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                    }`}
+                                                                    fontSize={22}
+                                                                />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1201,16 +1367,6 @@ const Price = () => {
                                 heightSelect={200}
                                 disabled={selectedPrice?.status === 1 ? true : false}
                             />
-                            {/* value={isUpdate ? selectDetail?.roomTypeCode?.name : selectedRoomType}
-                            onChange={handleRoomTypeChang}
-                            options={data.optionRoomTypes.map((item) => item.name)}
-                            title="Loại phòng chiếu"
-                            freeSolo={false}
-                            disableClearable={true}
-                            placeholder="Nhập ..."
-                            heightSelect={130}
-                            className1="p-3"
-                            disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false} */}
                             <AutoInputComponent
                                 value={isUpdate ? changStatus(selectedPrice?.status) : changStatus(statusPrice)}
                                 onChange={handleStatusChang}
@@ -1233,18 +1389,12 @@ const Price = () => {
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                                 <DatePicker
-                                    value={
-                                        startDate
-                                            ? dayjs(startDate)
-                                            : isUpdate && selectedPrice?.startDate
-                                            ? dayjs(selectedPrice.startDate)
-                                            : null
-                                    }
+                                    value={startDate}
                                     minDate={dayjs().add(1, 'day')}
                                     onChange={onChangeStart}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
-                                    format="YYYY-MM-DD"
+                                    format="DD-MM-YYYY"
                                     disabled={selectedPrice?.status === 1 ? true : false}
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                 />
@@ -1252,19 +1402,13 @@ const Price = () => {
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                 <DatePicker
-                                    value={
-                                        endDate
-                                            ? dayjs(endDate)
-                                            : isUpdate && selectedPrice?.endDate
-                                            ? dayjs(selectedPrice.endDate)
-                                            : null
-                                    }
+                                    value={endDate}
                                     onChange={onChangeEnd}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     minDate={startDate ? dayjs(startDate) : dayjs()}
-                                    format="YYYY-MM-DD"
-                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    format="DD-MM-YYYY" // Thay đổi định dạng thành DD-MM-YYYY
+                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black]"
                                 />
                             </div>
                         </div>

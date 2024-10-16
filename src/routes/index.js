@@ -1,18 +1,18 @@
 import { lazy } from 'react';
-const SaleInvoice = lazy(() => import('~/pages/SaleInvoicePage/SaleInvoice'));
-const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
-const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
-const Film = lazy(() => import('~/pages/FilmPage/Film'));
-const Food = lazy(() => import('~/pages/FoodPage/Food'));
 const Home = lazy(() => import('~/pages/HomePage/Home'));
-const Login = lazy(() => import('~/pages/LoginPage/Login'));
-const Order = lazy(() => import('~/pages/OrderPage/Order'));
-const Price = lazy(() => import('~/pages/PricePage/Price'));
-const Promotion = lazy(() => import('~/pages/PromotionPage/Promotion'));
-const Room = lazy(() => import('~/pages/RoomPage/Room'));
-const Schedule = lazy(() => import('~/pages/SchedulePage/Schedule'));
-const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
+const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
+const Food = lazy(() => import('~/pages/FoodPage/Food'));
+const Film = lazy(() => import('~/pages/FilmPage/Film'));
 const Staff = lazy(() => import('~/pages/StaffPage/Staff'));
+const Customer = lazy(() => import('~/pages/CustomerPage/Customer'));
+const Schedule = lazy(() => import('~/pages/SchedulePage/Schedule'));
+const Promotion = lazy(() => import('~/pages/PromotionPage/Promotion'));
+const Price = lazy(() => import('~/pages/PricePage/Price'));
+const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
+const Order = lazy(() => import('~/pages/OrderPage/Order'));
+const Room = lazy(() => import('~/pages/RoomPage/Room'));
+const SaleInvoice = lazy(() => import('~/pages/SaleInvoicePage/SaleInvoice'));
+const Login = lazy(() => import('~/pages/LoginPage/Login'));
 const Register = lazy(() => import('~/pages/RegisterPage/Register'));
 const ForgotPassword = lazy(() => import('~/pages/ForgotPasswordPage/ForgotPassword'));
 
@@ -85,13 +85,17 @@ export const routes = [
     {
         path: '/login',
         page: Login,
+        isShowSidebar: false,
     },
+
     {
         path: '/register',
         page: Register,
+        isShowSidebar: false,
     },
     {
         path: '/forgot-password',
         page: ForgotPassword,
+        isShowSidebar: false,
     },
 ];
