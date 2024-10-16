@@ -11,10 +11,11 @@ const FoodComponent = () => {
     const dispatch = useDispatch();
 
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Moved this to the top
+    const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
 
     const fetchProductNotSeat = async () => {
         try {
-            const response = await axios.get('api/prices/getAllPriceFood');
+            const response = await axios.get(`api/prices/getAllPriceFood?date=${schedule?.date}`);
             const sortedProducts = response.data.sort((a, b) => {
                 const nameA = a.productName.toUpperCase(); // Chuyển đổi về chữ hoa để so sánh không phân biệt chữ hoa chữ thường
                 const nameB = b.productName.toUpperCase();
