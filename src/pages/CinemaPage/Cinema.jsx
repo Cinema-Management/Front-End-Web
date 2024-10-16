@@ -8,7 +8,7 @@ import AutoInputComponent from '~/components/AutoInputComponent/AutoInputCompone
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import ky from 'ky';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import axios from 'axios';
 import { MultiSelect } from 'react-multi-select-component';
@@ -46,6 +46,7 @@ const Cinema = () => {
     const [selectedSort, setSelectedSort] = useState('');
     const [selectedStatusCinema, setSelectedStatusCinema] = useState('');
     const [selectedStatusRoom, setSelectedStatusRoom] = useState('');
+    const queryClient = useQueryClient();
 
     const optionStatusCinema = [
         { value: 0, name: 'Mới tạo' },
@@ -222,78 +223,6 @@ const Cinema = () => {
         }
     };
 
-    const {
-        data: { cinemas = [], optionNameCinema = [] } = {},
-        isLoading: isLoadingCinemas,
-        error: CinemaError,
-        refetch,
-    } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
-        enabled: !!user,
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 3,
-        onSuccess: (data) => {
-            setCinemasFilter(data.cinemas);
-        },
-    });
-
-    const {
-        data: optionRoomTypes = [],
-        isLoading: isLoadingRoomType,
-        error: errorRoomType,
-    } = useQuery('fetchRoomTypes', fetchRoomTypes, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 3,
-    });
-
-    const {
-        data: optionRoomSizes = [],
-        isLoading: isLoadingRoomSize,
-        error: errorRoomSize,
-    } = useQuery('fetchRoomSizes', fetchRoomSizes, {
-        staleTime: 1000 * 60 * 3,
-        cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 3,
-    });
-
-    const {
-        data: provinces = [],
-        isLoading: isLoadingProvinces,
-        error: provincesError,
-    } = useQuery(
-        'provinces',
-        async () => {
-            const response = await ky.get(`${BASE_API_URL}/p/`);
-            return response.json();
-        },
-        {
-            staleTime: 1000 * 60 * 3,
-            cacheTime: 1000 * 60 * 10,
-            refetchInterval: 1000 * 60 * 3,
-        },
-    );
-
-    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType) {
-        return <Loading />;
-    }
-
-    // Kiểm tra lỗi khi tải rạp chiếu phim
-    if (CinemaError) {
-        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
-    }
-
-    // Kiểm tra lỗi khi tải tỉnh
-    if (provincesError) {
-        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
-    }
-    if (errorRoomType) {
-        return <div>Lỗi khi tải loại phòng: {errorRoomType.message}</div>;
-    }
-    if (errorRoomSize) {
-        return <div>Lỗi khi tải kích cỡ phòng: {errorRoomSize.message}</div>;
-    }
-
     const clearTextModalCinema = () => {
         setNameCinema('');
         setSelectedProvince('');
@@ -357,6 +286,12 @@ const Cinema = () => {
         try {
             const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
             const status = optionStatusRoom.find((option) => option.name === selectedStatusRoom).value;
+
+            const check = await axios.get(`api/schedules/checkRoomHasSchedules/${selectedRoom?.code}`);
+            if (check.data.hasSchedules === true && status === 2) {
+                toast.warning('Phòng đang có lịch chiếu không thể ngừng hoạt động!');
+                return;
+            }
 
             if (!validateRoom()) return;
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
@@ -476,9 +411,13 @@ const Cinema = () => {
         }
     };
 
-    const handleUpdateCinema = async (cinemaCode) => {
+    const handleUpdateCinema = async () => {
         try {
             const status = optionStatusCinema.find((option) => option.name === selectedStatusCinema).value;
+            if (rooms.some((room) => room.status === 1) && status === 2) {
+                toast.warning('Các phòng đang hoạt động không thể ngùng hoạt động !');
+                return;
+            }
 
             if (!validateCinema()) return;
             const hierarchyValues = [
@@ -508,7 +447,7 @@ const Cinema = () => {
                 }
             }
             const cinema = {
-                code: cinemaCode,
+                code: selectedCinema?.code,
                 name: nameCinema,
                 hierarchyValueCode: parentCode,
                 status: status,
@@ -576,6 +515,119 @@ const Cinema = () => {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
+
+    const getRoomByCinemaCode1 = async (cinemaCode) => {
+        if (!cinemaCode) return; // Nếu cinemaCode rỗng thì không gọi API
+
+        try {
+            const response = await axios.get(`api/rooms/${cinemaCode}`);
+            if (response.data) {
+                setRooms(response.data);
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
+        }
+    };
+
+    const mutationUpdateCinema = useMutation(handleUpdateCinema, {
+        onSuccess: () => {
+            // Sau khi mutation thành công, refetch lại dữ liệu
+            queryClient.refetchQueries('cinemasFullAddress1');
+        },
+    });
+
+    const mutationAddCinema = useMutation(handleAddCinema, {
+        onSuccess: () => {
+            // Sau khi mutation thành công, refetch lại dữ liệu
+            queryClient.refetchQueries('cinemasFullAddress1');
+        },
+    });
+
+    const mutationUpdateRoom = useMutation(handleUpdateRoom, {
+        onSuccess: () => {
+            // Sau khi mutation thành công, refetch lại dữ liệu
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+        },
+    });
+
+    const mutationAddRoom = useMutation(handleAddRoom, {
+        onSuccess: () => {
+            // Sau khi mutation thành công, refetch lại dữ liệu
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+        },
+    });
+
+    const {
+        data: { cinemas = [], optionNameCinema = [] } = {},
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+        refetch,
+    } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
+        enabled: !!user,
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 3,
+        onSuccess: (data) => {
+            setCinemasFilter(data.cinemas);
+        },
+    });
+
+    const {
+        data: optionRoomTypes = [],
+        isLoading: isLoadingRoomType,
+        error: errorRoomType,
+    } = useQuery('fetchRoomTypes', fetchRoomTypes, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 3,
+    });
+
+    const {
+        data: optionRoomSizes = [],
+        isLoading: isLoadingRoomSize,
+        error: errorRoomSize,
+    } = useQuery('fetchRoomSizes', fetchRoomSizes, {
+        staleTime: 1000 * 60 * 3,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 3,
+    });
+
+    const {
+        data: provinces = [],
+        isLoading: isLoadingProvinces,
+        error: provincesError,
+    } = useQuery(
+        'provinces',
+        async () => {
+            const response = await ky.get(`${BASE_API_URL}/p/`);
+            return response.json();
+        },
+        {
+            staleTime: 1000 * 60 * 10,
+            cacheTime: 1000 * 60 * 10,
+            refetchInterval: 1000 * 60 * 10,
+        },
+    );
+
+    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType) {
+        return <Loading />;
+    }
+
+    // Kiểm tra lỗi khi tải rạp chiếu phim
+    if (CinemaError) {
+        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
+    }
+
+    // Kiểm tra lỗi khi tải tỉnh
+    if (provincesError) {
+        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
+    }
+    if (errorRoomType) {
+        return <div>Lỗi khi tải loại phòng: {errorRoomType.message}</div>;
+    }
+    if (errorRoomSize) {
+        return <div>Lỗi khi tải kích cỡ phòng: {errorRoomSize.message}</div>;
+    }
 
     const fetchDistricts = async (provinceCode) => {
         try {
@@ -709,6 +761,7 @@ const Cinema = () => {
                             className=" grid "
                             onClick={() => {
                                 handleOpenCinema(true);
+                                getRoomByCinemaCode1(item.code);
                                 setSelectedCinema(item);
                                 getAddress(item.code);
                                 setNameCinema(item.name);
@@ -941,7 +994,7 @@ const Cinema = () => {
                         <ButtonComponent
                             text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
                             className=" bg-blue-500"
-                            onClick={isUpdate ? () => handleUpdateCinema(selectedCinema?.code) : handleAddCinema}
+                            onClick={isUpdate ? () => mutationUpdateCinema.mutate() : () => mutationAddCinema.mutate()}
                         />
                     </div>
                 </div>
@@ -1182,7 +1235,9 @@ const Cinema = () => {
                             <ButtonComponent
                                 text={isUpdateRoom ? 'Cập nhật' : 'Thêm mới'}
                                 className=" bg-blue-500 "
-                                onClick={isUpdateRoom ? () => handleUpdateRoom() : handleAddRoom}
+                                onClick={
+                                    isUpdateRoom ? () => mutationUpdateRoom.mutate() : () => mutationAddRoom.mutate()
+                                }
                             />
                         </div>
                     </div>

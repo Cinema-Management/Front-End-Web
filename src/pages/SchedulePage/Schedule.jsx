@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
-import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
@@ -11,11 +11,10 @@ import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs from 'dayjs';
-import TextField from '@mui/material/TextField';
-import { DatePicker } from 'antd';
+import { DatePicker, TimePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
+import { MdOutlineDeleteOutline } from 'react-icons/md';
 
 const Schedule = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -33,6 +32,67 @@ const Schedule = () => {
     const [selectedSchedule, setSelectedSchedule] = useState([]);
     const queryClient = useQueryClient();
     const [visibleRooms, setVisibleRooms] = useState({});
+
+    const [showAllSchedules, setShowAllSchedules] = useState(false);
+    const [availableSchedules, setAvailableSchedules] = useState([]);
+
+    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
+    const [selectedDate, setSelectedDate] = useState(dayjs());
+    const isDisabledAdd = dayjs(selectedDate).isBefore(dayjs(), 'day');
+    const [openDelete, setOpenDelete] = useState(false);
+    const [openUpdateStatus, setOpenUpdateStatus] = useState(false);
+    const [isUpdateStatus, setIsUpdateStatus] = useState(false);
+
+    const [isDeleteAll, setIsDeleteAll] = useState(false);
+
+    let toastAdd = 0;
+
+    const disabledTime = () => {
+        const now = dayjs();
+        const isToday = selectedDate.isSame(now, 'day');
+
+        return {
+            // Vô hiệu hóa giờ trước 9:00 sáng, và nếu là hôm nay thì vô hiệu hóa giờ trước giờ hiện tại
+            disabledHours: () => {
+                if (isToday) {
+                    const currentHour = now.hour();
+                    return Array.from({ length: 24 }, (_, i) => i).filter((hour) => hour < 9 || hour < currentHour);
+                }
+                return Array.from({ length: 9 }, (_, i) => i); // Vô hiệu hóa giờ trước 9:00 nếu không phải hôm nay
+            },
+            // Vô hiệu hóa phút nếu giờ được chọn là giờ hiện tại
+            disabledMinutes: (selectedHour) => {
+                if (isToday && selectedHour === now.hour()) {
+                    return Array.from({ length: 60 }, (_, i) => i).filter((minute) => minute < now.minute());
+                }
+                return [];
+            },
+        };
+    };
+
+    // Hàm để vô hiệu hóa phút
+
+    const handleCheckboxChange = (event) => {
+        const checked = event.target.checked;
+        setShowAllSchedules(checked); // Update the checkbox state
+
+        // Get available schedules based on the current checkbox state
+        const { availableSchedules } = getAvailableSchedules(checked); //
+        setAvailableSchedules(availableSchedules || []); // Update the state with available schedules
+        if (availableSchedules.length === 0 && checked) {
+            if (toastAdd === 1) {
+                toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
+            } else {
+                toast.info('Phòng này đã hết suất chiếu !');
+            }
+        }
+    };
+
+    const handleDeleteSchedule = (id) => {
+        const updatedSchedules = availableSchedules.filter((schedule) => schedule._id !== id);
+        setAvailableSchedules(updatedSchedules);
+    };
+
     const groupAndSortSchedules = (rooms) => {
         return rooms.map((room) => {
             // Sắp xếp các schedule chỉ theo startTime
@@ -54,10 +114,12 @@ const Schedule = () => {
 
             const data = response.data;
 
-            const arrayNameCinema = data.map((cinema) => ({
-                name: cinema.name,
-                code: cinema.code,
-            }));
+            const arrayNameCinema = data
+                .filter((item) => item.status === 1)
+                .map((cinema) => ({
+                    name: cinema.name,
+                    code: cinema.code,
+                }));
 
             return { optionNameCinema: arrayNameCinema };
         } catch (error) {
@@ -119,9 +181,7 @@ const Schedule = () => {
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
     });
-    const [selectedOptionFilterCinema, setSelectedFilterCinema] = useState('');
-    const [selectedDate, setSelectedDate] = useState(dayjs());
-    const isDisabledAdd = dayjs(selectedDate).isBefore(dayjs(), 'day');
+
     const {
         data: optionMovieName = [],
         isLoading: isLoadingOptionMovieName,
@@ -191,6 +251,266 @@ const Schedule = () => {
             },
         },
     );
+    const [movieByCode, setMovieByCode] = useState('');
+
+    useEffect(() => {
+        const fetchMovieByCode = async () => {
+            const optionFind = optionMovieName.find(
+                (map) => map.name.toUpperCase() === selectedMovieName.toUpperCase(),
+            );
+            const movie = await axios.get(`api/movies/${optionFind?.code}`);
+            setMovieByCode(movie.data);
+        };
+
+        if (selectedMovieName) {
+            fetchMovieByCode();
+        }
+    }, [selectedMovieName, optionMovieName]);
+
+    useEffect(() => {
+        if (room.length > 0) {
+            const initialVisibleRooms = {};
+            const initialIsDropdownOpen = {};
+
+            room.forEach((item) => {
+                initialVisibleRooms[item.code] = true;
+                initialIsDropdownOpen[item.code] = true;
+            });
+
+            setVisibleRooms(initialVisibleRooms);
+            setIsDropdownOpen(initialIsDropdownOpen);
+        }
+    }, [room]);
+
+    const checkAdd = (newSchedule) => {
+        const rooms = room.find((r) => r.code === selectedRoom?.code);
+
+        const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
+
+        const duration = movieByCode?.duration;
+
+        if (!selectedDate) return false;
+
+        const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
+        const combinedDateTime = dayjs(`${formattedDate} ${newSchedule.startTime}`); // Sử dụng lịch chiếu mới
+
+        const startTime1 = combinedDateTime.toISOString(); // Định dạng giờ
+        const startTime = new Date(startTime1);
+
+        const startDate = new Date(movieByCode?.startDate);
+
+        // Kiểm tra xem ngày tạo suất chiếu có nằm trong khoảng 1 đến 3 ngày so với ngày phát hành không
+        const selectedDay1 = new Date(`${formattedDate}T00:00:00.000Z`);
+        const differenceInTime = startDate.getTime() - selectedDay1.getTime();
+        const differenceInDays = differenceInTime / (1000 * 3600 * 24);
+        if (differenceInDays > 3) {
+            toastAdd = 1;
+
+            return false; // Ngày không hợp lệ
+        }
+
+        const endTime = new Date(startTime.getTime() + duration * 60000 + 15 * 60000);
+        const schedules = rooms.schedules || [];
+
+        const conflictingSchedules = schedules.filter((schedule) => {
+            // Kiểm tra xung đột với lịch chiếu khác
+            return new Date(schedule.startTime) < endTime && new Date(schedule.endTime) > startTime;
+        });
+
+        if (conflictingSchedules.length > 0) {
+            return false;
+        }
+
+        const movie = optionMovieName.find((option) => option.name.toUpperCase() === selectedMovieName.toUpperCase());
+
+        for (const room1 of room) {
+            const existingSchedules = room1.schedules || [];
+
+            // Kiểm tra xung đột lịch chiếu trong phòng
+            const isConflict = existingSchedules.some(
+                (schedule) =>
+                    schedule.movieCode.code === movie?.code &&
+                    schedule.startTime === startTime1 &&
+                    schedule.screeningFormatCode.code === screeningFormat?.code,
+            );
+
+            if (isConflict) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const getAvailableSchedules = (showAll) => {
+        if (!selectedMovieName) {
+            toast.warning('Vui lòng chọn phim');
+            return [];
+        }
+
+        const today = dayjs(); // Ngày hôm nay
+        const selectedDay = selectedDate.startOf('day');
+        const availableSchedules = [];
+        const mongoSchedules = [];
+        const movieCode = optionMovieName.find(
+            (option) => option.name.toUpperCase() === selectedMovieName.toUpperCase(),
+        )?.code;
+
+        const cleaningTime = 15 * 60000;
+
+        const roundToNearestMinutes = (time, interval) => {
+            const minutes = Math.ceil(time.minute() / interval) * interval;
+            return time.minute(minutes).second(0);
+        };
+
+        room.forEach((roomItem) => {
+            const schedules = roomItem.schedules || [];
+            const duration = movieByCode?.duration;
+            const endOfDay = selectedDay.endOf('day');
+
+            if (showAll) {
+                let lastEndTime;
+
+                if (selectedDay.isSame(today, 'day')) {
+                    lastEndTime = today.isAfter(today.hour(9)) ? today : today.hour(9).minute(0);
+                } else {
+                    lastEndTime = selectedDay.hour(9).minute(0);
+                }
+
+                lastEndTime = roundToNearestMinutes(lastEndTime, 5);
+
+                // Lọc lịch chiếu cho ngày được chọn cùng với phim và phòng được chọn
+                const todaysSchedules = schedules.filter(
+                    (schedule) =>
+                        dayjs(schedule.startTime).isSame(selectedDay, 'day') &&
+                        schedule.movieCode.code === movieCode &&
+                        schedule.roomCode.code === selectedRoom?.code,
+                );
+
+                // Nếu có lịch chiếu hiện có, tìm thời gian kết thúc cuối cùng
+                if (todaysSchedules.length > 0) {
+                    const lastSchedule = todaysSchedules[todaysSchedules.length - 1];
+                    lastEndTime = dayjs(lastSchedule.endTime);
+                }
+
+                // Tạo lịch chiếu mới cho đến khi hết ngày
+                while (lastEndTime.isBefore(endOfDay)) {
+                    const newScheduleStartTime = lastEndTime.clone(); // Clone để duy trì tham chiếu
+                    const newScheduleEndTime = lastEndTime.clone().add(duration, 'minute');
+
+                    // Làm tròn thời gian bắt đầu và kết thúc theo bội số 5 phút
+                    const roundedStartTime = roundToNearestMinutes(newScheduleStartTime, 5);
+                    const roundedEndTime = roundToNearestMinutes(newScheduleEndTime, 5);
+
+                    // Kiểm tra xem có xung đột với lịch chiếu khác không
+
+                    const schedule = {
+                        _id: `NEW_SCHEDULE_${roomItem.code}_${availableSchedules.length + 1}`,
+                        startTime: roundedStartTime.format('HH:mm'), // Hiển thị giờ
+                        endTime: roundedEndTime.add(cleaningTime, 'millisecond').format('HH:mm'), // Hiển thị giờ cộng thời gian dọn dẹp
+                        code: `NEW_SCHEDULE_${availableSchedules.length + 1}`,
+                        movieCode: { code: movieCode },
+                    };
+                    const isValid = checkAdd(schedule);
+
+                    // Nếu lịch chiếu không hợp lệ, tăng lên 10 phút
+                    if (!isValid) {
+                        lastEndTime = roundedStartTime.add(10, 'minute'); // Tăng 10 phút cho lần kiểm tra tiếp theo
+                        continue; // Quay lại vòng lặp để kiểm tra lịch mới
+                    }
+
+                    if (roomItem.code === selectedRoom?.code) {
+                        const newSchedule = {
+                            _id: `NEW_SCHEDULE_${roomItem.code}_${availableSchedules.length + 1}`,
+                            startTime: roundedStartTime.format('HH:mm'),
+                            endTime: roundedEndTime.add(cleaningTime, 'millisecond').format('HH:mm'),
+                            code: `NEW_SCHEDULE_${availableSchedules.length + 1}`,
+                            movieCode: { code: movieCode },
+                        };
+
+                        if (roundedStartTime.isValid() && roundedEndTime.isValid()) {
+                            const mongoSchedule = {
+                                _id: `MONGO_SCHEDULE_${roomItem.code}_${mongoSchedules.length + 1}`,
+                                startTime: roundedStartTime.toISOString(),
+                                endTime: roundedEndTime.add(cleaningTime, 'millisecond').toISOString(),
+                                code: `MONGO_SCHEDULE_${mongoSchedules.length + 1}`,
+                                movieCode: { code: movieCode },
+                            };
+
+                            availableSchedules.push(newSchedule);
+                            mongoSchedules.push(mongoSchedule);
+                        }
+                    }
+
+                    lastEndTime = roundedEndTime.add(cleaningTime, 'millisecond');
+                }
+            }
+        });
+
+        return { availableSchedules, mongoSchedules };
+    };
+
+    const handleAddSchedules = async () => {
+        let loadingToastId;
+        if (validateSchedule() === false) return;
+
+        const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
+
+        // Tạo danh sách lịch chiếu từ mongoSchedules
+        const schedulesToAdd = availableSchedules.map((schedule) => {
+            const combinedDateTime = dayjs(`${formattedDate} ${schedule.startTime}`);
+            const startTime = combinedDateTime.toISOString(); // Định dạng giờ
+
+            const movieCode = optionMovieName.find(
+                (option) => option.name.toUpperCase() === selectedMovieName.toUpperCase(),
+            )?.code;
+
+            const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
+            const audio = optionAudio.find((option) => option.name === selectedAudio);
+            const subtitle = optionSubtitle.find((option) => option.name === selectedSubtitle);
+
+            return {
+                roomCode: selectedRoom?.code,
+                movieCode: movieCode,
+                screeningFormatCode: screeningFormat?.code,
+                date: formattedDate,
+                startTime: startTime,
+                audioCode: audio?.code,
+                subtitleCode: subtitle?.code,
+            };
+        });
+        loadingToastId = toast.loading('Đang tạo suất chiếu!');
+        cleanText();
+
+        try {
+            // Thêm từng lịch chiếu một
+            for (const schedule of schedulesToAdd) {
+                const response = await axios.post('api/schedules', schedule);
+                if (response.data) {
+                    const seatStatus = {
+                        scheduleCode: response.data.code,
+                    };
+
+                    // Gửi yêu cầu cập nhật trạng thái ghế cho lịch chiếu vừa thêm
+                    await axios.post('api/seat-status-in-schedules', seatStatus);
+                } else {
+                    // Nếu thêm lịch chiếu thất bại
+                    toast.dismiss(loadingToastId);
+
+                    toast.error('Thêm thất bại');
+                    return; // Kết thúc hàm nếu có lỗi
+                }
+            }
+
+            // Nếu tất cả lịch chiếu đã được thêm thành công
+            toast.dismiss(loadingToastId);
+            toast.success('Thêm thành công');
+            toastAdd = 0;
+            refetchRoom();
+            handleClose();
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
 
     const cleanText = () => {
         setSelectedMovieName('');
@@ -213,21 +533,23 @@ const Schedule = () => {
         // Định dạng thời gian thành ISO string
         const startTime = combinedDateTime.toISOString(); // Định dạng giờ
 
-        const movie = optionMovieName.find((option) => option.name.toUpperCase() === selectedMovieName.toUpperCase());
+        const movieCode = optionMovieName.find(
+            (option) => option.name.toUpperCase() === selectedMovieName.toUpperCase(),
+        )?.code;
         const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
 
         const audio = optionAudio.find((option) => option.name === selectedAudio);
         const subtitle = optionSubtitle.find((option) => option.name === selectedSubtitle);
-
         const schedule = {
             roomCode: selectedRoom?.code,
-            movieCode: movie?.code,
+            movieCode: movieCode,
             screeningFormatCode: screeningFormat?.code,
             date: formattedDate,
             startTime: startTime,
             audioCode: audio?.code,
             subtitleCode: subtitle?.code,
         };
+        console.log('schedule', schedule);
 
         try {
             const response = await axios.post('api/schedules', schedule);
@@ -235,6 +557,7 @@ const Schedule = () => {
                 const seatStatus = {
                     scheduleCode: response.data.code,
                 };
+                cleanText();
 
                 const seatStatusInSchedules = await axios.post('api/seat-status-in-schedules', seatStatus);
                 if (seatStatusInSchedules.data) {
@@ -262,7 +585,7 @@ const Schedule = () => {
         // Định dạng thời gian thành ISO string
         const startTime = combinedDateTime.toISOString(); // Định dạng giờ
 
-        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
+        const movie = optionMovieName.find((option) => option.name.toUpperCase() === selectedMovieName.toUpperCase());
         const screeningFormat = optionScreeningFormat.find((option) => option.name === selectedScreeningFormat);
 
         const audio = optionAudio.find((option) => option.name === selectedAudio);
@@ -299,14 +622,92 @@ const Schedule = () => {
             if (response.data) {
                 toast.success('Cập nhật trạng thái thành công!');
                 refetchRoom();
+                handleCloseUpdateStatus();
             } else {
                 toast.error('Cập nhật thất bại thất bại');
+                handleCloseUpdateStatus();
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
-    const mutation = useMutation(handleUpdateStatus, {
+
+    const handleUpdateMultipleStatuses = async (schedules) => {
+        try {
+            // Tạo một mảng các promises cho việc gọi API cập nhật nhiều lịch chiếu
+            const updatePromises = schedules.map((schedule) => axios.put(`api/schedules/status/${schedule.code}`));
+
+            // Chờ tất cả các promises hoàn thành
+            const responses = await Promise.all(updatePromises);
+
+            // Kiểm tra xem tất cả các phản hồi có thành công hay không
+            const allSuccessful = responses.every((response) => response.data);
+
+            if (allSuccessful) {
+                toast.success('Cập nhật trạng thái thành công!');
+
+                refetchRoom(); // Làm mới dữ liệu phòng
+                handleCloseUpdateStatus();
+            } else {
+                handleCloseUpdateStatus();
+
+                toast.error('Cập nhật thất bại thất bại');
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const handleDelete = async (code) => {
+        try {
+            const response = await axios.delete(`api/schedules/${code}`);
+            if (response.data) {
+                toast.success('Xóa thành công!');
+                refetchRoom();
+                handleCloseDelete();
+            } else {
+                toast.error('Xóa thất bại');
+                handleCloseDelete();
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response.data.message || error.message));
+        }
+    };
+
+    const handleDeleteMultiple = async (schedules) => {
+        try {
+            // Tạo một mảng các promises cho việc gọi API cập nhật nhiều lịch chiếu
+            const updatePromises = schedules.map((schedule) => axios.delete(`api/schedules/${schedule.code}`));
+
+            // Chờ tất cả các promises hoàn thành
+            const responses = await Promise.all(updatePromises);
+
+            // Kiểm tra xem tất cả các phản hồi có thành công hay không
+            const allSuccessful = responses.every((response) => response.data);
+
+            if (allSuccessful) {
+                toast.success('Xóa thành công!');
+
+                refetchRoom(); // Làm mới dữ liệu phòng
+                handleCloseDelete();
+            } else {
+                handleCloseDelete();
+
+                toast.error('Xóa thất bại');
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const mutationUpdateStatusAll = useMutation(handleUpdateMultipleStatuses, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+        },
+    });
+
+    const mutationUpdateStatus = useMutation(handleUpdateStatus, {
         onSuccess: () => {
             // Refetch dữ liệu cần thiết
             queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
@@ -318,6 +719,16 @@ const Schedule = () => {
     };
 
     const handleTimeChange = (time) => {
+        console.log('time', time);
+        // const formattedDate = selectedDate ? selectedDate.format('YYYY-MM-DD') : ''; // Định dạng ngày
+
+        // const combinedDateTime = dayjs(`${formattedDate} ${time.format('HH:mm')}`);
+
+        // // Định dạng thời gian thành ISO string
+        // const startTime = combinedDateTime.toISOString(); // Định dạng giờ
+
+        // console.log('time', startTime);
+
         const now = dayjs(); // Lấy thời gian hiện tại
         const isToday = selectedDate.isSame(now, 'day'); // Kiểm tra nếu là ngày hôm nay
 
@@ -332,37 +743,23 @@ const Schedule = () => {
             setSelectedTime(time); // Nếu hợp lệ, lưu lại thời gian được chọn
         }
     };
-    const isTimeDisabled = (current) => {
-        const now = dayjs(); // Lấy thời gian hiện tại
-        const isToday = selectedDate.isSame(now, 'day'); // Kiểm tra xem có phải ngày hôm nay không
-
-        if (!current) return false; // Tránh lỗi nếu current là null
-
-        if (isToday) {
-            // Nếu ngày được chọn là ngày hôm nay, không cho chọn giờ nhỏ hơn giờ hiện tại
-            return current.isBefore(now, 'minute') || current.hour() < 9;
-        } else {
-            // Nếu ngày được chọn là ngày sau hôm nay, chỉ vô hiệu hóa giờ nhỏ hơn 9
-            return current.hour() < 9;
-        }
-    };
 
     const convertToVietnamTime = (utcDateString) => {
         // Tạo đối tượng Date từ chuỗi UTC
         const utcDate = new Date(utcDateString);
 
         // Chuyển đổi sang múi giờ Việt Nam (GMT+7)
-        const vnTime = new Date(utcDate.getTime());
+        // const vnTime = new Date(utcDate.getTime());
 
         // Lấy giờ và phút
-        const hours = vnTime.getHours().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
-        const minutes = vnTime.getMinutes().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
+        const hours = utcDate.getHours().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
+        const minutes = utcDate.getMinutes().toString().padStart(2, '0'); // Đảm bảo luôn có 2 chữ số
 
         return `${hours}:${minutes}`; // Trả về định dạng "HH:mm"
     };
 
     const validateSchedule = () => {
-        if (!selectedTime) {
+        if (!selectedTime && showAllSchedules === false) {
             toast.warning('Vui lòng chọn giờ chiếu');
             return false;
         }
@@ -382,24 +779,12 @@ const Schedule = () => {
             toast.warning('Vui lòng chọn phụ đề');
             return false;
         }
+        if (showAllSchedules && availableSchedules.length === 0) {
+            return false;
+        }
 
         return true;
     };
-    const [movieByCode, setMovieByCode] = useState('');
-
-    useEffect(() => {
-        const fetchMovieByCode = async () => {
-            const optionFind = optionMovieName.find(
-                (map) => map.name.toUpperCase() === selectedMovieName.toUpperCase(),
-            );
-            const movie = await axios.get(`api/movies/${optionFind?.code}`);
-            setMovieByCode(movie.data);
-        };
-
-        if (selectedMovieName) {
-            fetchMovieByCode();
-        }
-    }, [selectedMovieName, optionMovieName]);
 
     if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
     if (errorRoom || CinemaError || optionCinemaNameError)
@@ -434,7 +819,7 @@ const Schedule = () => {
         const differenceInDays = differenceInTime / (1000 * 3600 * 24);
 
         if (differenceInDays > 3) {
-            toast.warning('Suất chiếu phải trước ngày phát hành phim tối đa 3 ngày.');
+            toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
             return false; // Ngày không hợp lệ
         }
 
@@ -454,7 +839,10 @@ const Schedule = () => {
             toast.warning('Khung giờ này đang chiếu phim khác');
             return false;
         }
-        const movie = optionMovieName.find((option) => option.name === selectedMovieName);
+        const movie = optionMovieName.find((option) => option.name.toUpperCase() === selectedMovieName.toUpperCase());
+        const screeningFormat = optionScreeningFormat.find(
+            (option) => option.name.toUpperCase() === selectedScreeningFormat.toUpperCase(),
+        );
 
         for (const room1 of room) {
             const existingSchedules = room1.schedules || []; // Lịch chiếu hiện có trong phòng
@@ -464,6 +852,7 @@ const Schedule = () => {
                 (schedule) =>
                     schedule.movieCode.code === movie?.code &&
                     schedule.startTime === startTime1 &&
+                    schedule.screeningFormatCode.code === screeningFormat?.code &&
                     schedule.code !== selectedSchedule?.code, // Kiểm tra thời gian bắt đầu
             );
 
@@ -514,11 +903,29 @@ const Schedule = () => {
         }
     };
 
+    const handleOpenUpdateStatus = (item) => {
+        setOpenUpdateStatus(true);
+        setIsUpdateStatus(item);
+    };
+    const handleCloseUpdateStatus = () => {
+        setOpenUpdateStatus(false);
+    };
+
+    const handleOpenDelete = (item) => {
+        setOpenDelete(true);
+        setIsDeleteAll(item);
+    };
+    const handleCloseDelete = () => {
+        setOpenDelete(false);
+    };
+
     const handleOpen = (isUpdate) => {
         setOpen(true);
         setIsUpdate(isUpdate);
     };
     const handleClose = () => {
+        setAvailableSchedules([]);
+        setShowAllSchedules(false);
         setOpen(false);
         cleanText();
     };
@@ -539,6 +946,8 @@ const Schedule = () => {
     const handleOnChangeOptionMovie = (option) => {
         if (option) {
             setSelectedMovieName(option);
+            setShowAllSchedules(false);
+            setAvailableSchedules([]);
         }
     };
 
@@ -557,6 +966,9 @@ const Schedule = () => {
     const handleOnChangeOptionScreeningFormat = (option) => {
         if (option) {
             setSelectedScreeningFormat(option);
+            setShowAllSchedules(false);
+
+            setAvailableSchedules([]);
         }
     };
 
@@ -564,7 +976,7 @@ const Schedule = () => {
         return room.map((item) => (
             <div key={item.code}>
                 <div className="bg-[#E6E6E6] text-[14px] py-2 font-normal uppercase text-slate-500 grid grid-cols-3 items-center gap-3 mb-2 min-w-[1150px]">
-                    <div className="grid grid-cols-10 items-center gap-5">
+                    <div className="grid grid-cols-10 items-center gap-5 ">
                         <div
                             className="justify-center items-center col-span-3 grid"
                             onClick={() => {
@@ -585,7 +997,7 @@ const Schedule = () => {
                 </div>
                 {visibleRooms[item.code] && (
                     <>
-                        <div className="border-b py-[2px] text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-3 mx-2 min-w-[1150px]">
+                        <div className="border-b py-[2px] text-[13px] font-bold text-slate-500 grid grid-cols-12 items-center gap-3 mx-2 min-w-[1150px] ">
                             <div className="uppercase grid col-span-3 grid-cols-10 justify-center items-center  gap-3">
                                 <h1 className="uppercase grid col-span-4 justify-center items-center ">
                                     Mã suất chiếu
@@ -605,9 +1017,15 @@ const Schedule = () => {
                                     className={`border px-4 py-1 rounded-[40px] ${
                                         !isDisabledAdd ? ' gradient-button' : 'bg-gray-200'
                                     } `}
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (!isDisabledAdd) {
+                                            const check = await axios.get(`api/rooms/getAll/${item.code}`);
+                                            if (check.data.status === 2) {
+                                                toast.warning('Phòng đã ngừng hoạt động');
+                                                return;
+                                            }
                                             handleOpen(false);
+
                                             setSelectedRoom(item);
                                             setOptionScreeningFormat(item.roomTypeCode);
                                         }
@@ -656,13 +1074,16 @@ const Schedule = () => {
                                                         ? 'bg-gray-400'
                                                         : item.status === 1 && isDisabledAdd
                                                         ? 'bg-gray-400'
-                                                        : item.status === 2
+                                                        : item.status === 2 && isDisabledAdd
+                                                        ? 'bg-gray-400'
+                                                        : item.status === 2 && !isDisabledAdd
                                                         ? 'bg-yellow-400'
                                                         : 'bg-green-500'
                                                 }`}
                                                 onClick={() => {
                                                     if (!isDisabledAdd || item.status === 0) {
-                                                        mutation.mutate(item.code);
+                                                        handleOpenUpdateStatus(false);
+                                                        setSelectedSchedule(item);
                                                     }
                                                 }}
                                                 disabled={isDisabledAdd || item.status !== 0}
@@ -671,40 +1092,77 @@ const Schedule = () => {
                                                     ? 'Chưa chiếu'
                                                     : item.status === 1 && isDisabledAdd
                                                     ? 'Đã chiếu'
-                                                    : item.status === 2
+                                                    : item.status === 2 && isDisabledAdd
+                                                    ? 'Đã chiếu'
+                                                    : item.status === 2 && !isDisabledAdd
                                                     ? 'Suất chiếu sớm'
                                                     : 'Đang chiếu'}
                                             </button>
                                         </div>
-                                        <div className="justify-center space-x-5 items-center col-span-1 flex ">
+                                        <div className={'justify-center space-x-5 items-center col-span-1 flex '}>
                                             <button
-                                                className=""
+                                                className={`grid  ${
+                                                    item.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                }`}
                                                 onClick={() => {
-                                                    if (!isDisabledAdd || item.status === 0) {
-                                                        handleOpen(true);
-                                                        setSelectedSchedule(item);
-                                                        setSelectedTime(dayjs(item.startTime));
-                                                        setSelectedMovieName(item.movieCode.name);
-                                                        setSelectedAudio(item.audioCode.name);
-                                                        setSelectedSubtitle(item.subtitleCode.name);
-                                                        setSelectedScreeningFormat(item.screeningFormatCode.name);
-                                                    }
+                                                    handleOpenDelete(false);
+                                                    setSelectedSchedule(item);
                                                 }}
-                                                disabled={isDisabledAdd || item.status !== 0}
                                             >
-                                                <FaRegEdit
-                                                    color={` ${
-                                                        isDisabledAdd || item.status !== 0 ? 'bg-gray-100' : 'black'
-                                                    }  `}
-                                                    size={20}
-                                                />
-                                            </button>
-                                            <button className="">
-                                                <FaRegEye color="black" fontSize={20} />
+                                                <MdOutlineDeleteOutline color="black" fontSize={20} />
                                             </button>
                                         </div>
                                     </div>
                                 ))}
+
+                            {item.schedules && item.schedules.length > 1 && (
+                                <div
+                                    className={`flex  justify-end items-center space-x-5 border-t p-2 pr-2 ${
+                                        isDisabledAdd ? 'pointer-events-none opacity-50' : ''
+                                    }`}
+                                >
+                                    <button
+                                        className="gradient-button text-white text-sm px-2  py-1 rounded-[40px]    flex grid-cols-2"
+                                        onClick={() => {
+                                            const schedulesToUpdate = item.schedules.filter(
+                                                (item) => item.status === 0,
+                                            );
+                                            if (schedulesToUpdate.length > 0) {
+                                                handleOpenUpdateStatus(true);
+                                                setSelectedSchedule(schedulesToUpdate);
+                                            } else {
+                                                toast.info('Không có lịch chiếu nào cần cập nhật!');
+                                            }
+                                        }}
+                                    >
+                                        <FaRegEdit color="black" size={20} />
+                                        Cập nhật tất cả
+                                    </button>
+
+                                    <button
+                                        className={`bg-gray-400  text-white 
+                                         text-sm  px-2 py-1 flex  rounded-[40px] space-x-1  grid-cols-2 ${
+                                             item.schedules.some((item) => item.status === 0)
+                                                 ? ''
+                                                 : 'pointer-events-none opacity-50'
+                                         } `}
+                                        onClick={() => {
+                                            const schedulesToUpdate = item.schedules.filter(
+                                                (item) => item.status === 0,
+                                            );
+                                            if (schedulesToUpdate.length > 0) {
+                                                handleOpenDelete(true);
+                                                setSelectedSchedule(schedulesToUpdate);
+                                            } else {
+                                                toast.info('Không có lịch chiếu nào cần cập nhật!');
+                                            }
+                                        }}
+                                    >
+                                        <MdOutlineDeleteOutline color="black" fontSize={20} />
+                                        <span className=""> Xóa tất cả</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -770,7 +1228,7 @@ const Schedule = () => {
                     open={open}
                     handleClose={handleClose}
                     width="55%"
-                    height="48%"
+                    height="auto"
                     top="35%"
                     left="55%"
                     smallScreenWidth="75%"
@@ -788,29 +1246,24 @@ const Schedule = () => {
                 >
                     <div className="grid   ">
                         <div className="grid grid-cols-2 gap-16 p-2  ">
-                            <TimePicker
-                                label="Chọn giờ"
-                                value={selectedTime || null}
-                                onChange={handleTimeChange}
-                                minTime={selectedDate?.hour(9).minute(0).second(0)}
-                                ampm={false} // Vô hiệu hóa AM/PM
-                                shouldDisableTime={isTimeDisabled}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        sx={{
-                                            width: '100px', // Set width
-                                            '& .MuiInputBase-root': {
-                                                height: '40px', // Set height of the outer container
-                                            },
-                                            '& input': {
-                                                height: '40px', // Set the height of the input inside
-                                                padding: 0, // Remove extra padding if needed
-                                            },
-                                        }}
-                                    />
-                                )}
-                            />
+                            <div>
+                                <h1 className="text-[16px] truncate mb-1">Thời gian chiếu</h1>
+                                <TimePicker
+                                    label="Chọn giờ"
+                                    value={selectedTime || null}
+                                    onChange={handleTimeChange}
+                                    ampm={false} // Vô hiệu hóa AM/PM
+                                    disabledTime={disabledTime}
+                                    minuteStep={5}
+                                    hourStep={1}
+                                    placeholder="Chọn giờ"
+                                    format="HH:mm"
+                                    getPopupContainer={(trigger) => trigger.parentNode}
+                                    disabled={showAllSchedules}
+                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                />
+                            </div>
+
                             <AutoInputComponent
                                 options={optionMovieName.map((option) => option.name.toUpperCase())}
                                 value={selectedMovieName}
@@ -824,21 +1277,52 @@ const Schedule = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-16 p-2  ">
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="online"
-                                    name="status"
-                                    value="Online"
-                                    className="p-20 h-10"
-                                    style={{ width: '20px', height: '20px' }}
-                                    defaultChecked
-                                />
-                                <label htmlFor="online" className="text-[16px] ml-3 ">
-                                    Tất cả suất chiếu còn lại trong ngày
-                                </label>
+                        <div className="grid grid-cols-2 gap-16 p-2    ">
+                            <div className="grid-rows-2 items-center  space-y-3 ">
+                                {/* Container có thanh kéo (scroll) */}
+                                <div
+                                    className="overflow-x-auto"
+                                    style={{ maxHeight: '70px', paddingRight: '10px' }} // Đặt chiều cao cố định và đảm bảo có padding cho thanh kéo
+                                >
+                                    <div className="grid grid-cols-3 gap-2 p-1">
+                                        {availableSchedules.map((schedule) => (
+                                            <div
+                                                key={schedule._id}
+                                                className="relative flex border-2 border-blue-500 rounded-md justify-center items-center  hover:border-red-500 "
+                                                onClick={() => handleDeleteSchedule(schedule._id)}
+                                            >
+                                                <button>
+                                                    {schedule.startTime} - {schedule.endTime}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Checkbox cho 'Tất cả suất chiếu' */}
+                                <div
+                                    className={
+                                        selectedMovieName && selectedScreeningFormat
+                                            ? ''
+                                            : 'pointer-events-none opacity-50'
+                                    }
+                                >
+                                    <input
+                                        type="checkbox"
+                                        id="online"
+                                        name="status"
+                                        value="Online"
+                                        className="p-20 h-10"
+                                        style={{ width: '20px', height: '20px' }}
+                                        checked={showAllSchedules}
+                                        onChange={handleCheckboxChange} // Thêm hàm để xử lý thay đổi
+                                    />
+                                    <label htmlFor="online" className="text-[16px] ml-3 ">
+                                        Tất cả suất chiếu còn lại trong ngày
+                                    </label>
+                                </div>
                             </div>
+
                             <AutoInputComponent
                                 value={selectedAudio}
                                 onChange={handleOnChangeOptionAudio}
@@ -877,15 +1361,101 @@ const Schedule = () => {
                                         borderRadius={'5px'}
                                     />
                                 </div>
-                                <div className="justify-end flex space-x-3 border-t pt-4 pr-4">
+                                <div className="justify-end flex space-x-3 border-t pt-4 pr-4 pb-2">
                                     <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                                     <ButtonComponent
                                         text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
-                                        className=" bg-blue-500 "
-                                        onClick={() => (isUpdate ? handleUpdateSchedule() : handleAddSchedule())}
+                                        className={` bg-blue-500 ${
+                                            (showAllSchedules && availableSchedules === 0) ||
+                                            !selectedMovieName ||
+                                            !selectedScreeningFormat ||
+                                            !selectedAudio ||
+                                            !selectedSubtitle ||
+                                            toastAdd === 2
+                                                ? 'pointer-events-none opacity-50'
+                                                : ''
+                                        } `}
+                                        onClick={() =>
+                                            isUpdate
+                                                ? handleUpdateSchedule()
+                                                : showAllSchedules
+                                                ? handleAddSchedules()
+                                                : handleAddSchedule()
+                                        }
                                     />
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </ModalComponent>
+
+                <ModalComponent
+                    open={openDelete}
+                    handleClose={handleCloseDelete}
+                    width="25%"
+                    height="20%"
+                    smallScreenWidth="40%"
+                    smallScreenHeight="25%"
+                    mediumScreenWidth="40%"
+                    mediumScreenHeight="20%"
+                    largeScreenHeight="20%"
+                    largeScreenWidth="40%"
+                    maxHeightScreenHeight="40%"
+                    maxHeightScreenWidth="40%"
+                    title="Xóa suât chiếu chưa chiếu"
+                >
+                    <div className="h-[50%] grid grid-rows-3 ">
+                        <h1 className="grid row-span-2 p-3">
+                            {isDeleteAll ? ' Bạn có chắc chắn xóa tất cả không?' : ' Bạn có chắc chắn xóa không?'}
+                        </h1>
+                        <div className="grid items-center ">
+                            <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                                <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
+                                <ButtonComponent
+                                    text="Xóa"
+                                    className="bg-blue-500"
+                                    onClick={
+                                        isDeleteAll
+                                            ? () => handleDeleteMultiple(selectedSchedule)
+                                            : () => handleDelete(selectedSchedule?.code)
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </ModalComponent>
+
+                <ModalComponent
+                    open={openUpdateStatus}
+                    handleClose={handleCloseUpdateStatus}
+                    width="30%" // Điều chỉnh kích thước cho phù hợp với nội dung
+                    height="auto" // Chiều cao tự động tùy thuộc vào nội dung
+                    smallScreenWidth="90%" // Với màn hình nhỏ, modal chiếm phần lớn màn hình
+                    smallScreenHeight="auto"
+                    mediumScreenWidth="60%" // Điều chỉnh modal cho màn hình trung bình
+                    mediumScreenHeight="auto"
+                    largeScreenWidth="40%" // Modal nhỏ gọn hơn với màn hình lớn
+                    largeScreenHeight="auto"
+                    maxHeightScreenWidth="40%"
+                    title="Cập nhật trạng thái"
+                >
+                    <div className="grid gap-3  ">
+                        <h1 className=" p-4 rounded ">
+                            {isUpdateStatus
+                                ? 'Bạn có chắc chắn đưa tất cả suất chiếu vào hoạt động không?'
+                                : 'Bạn có chắc chắn đưa suất chiếu vào hoạt động không?'}
+                        </h1>
+                        <div className="flex justify-end space-x-4  p-2 border-t">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseUpdateStatus} />
+                            <ButtonComponent
+                                text="Cập nhật"
+                                className="bg-blue-500"
+                                onClick={
+                                    isUpdateStatus
+                                        ? () => mutationUpdateStatusAll.mutate(selectedSchedule)
+                                        : () => mutationUpdateStatus.mutate(selectedSchedule.code)
+                                }
+                            />
                         </div>
                     </div>
                 </ModalComponent>

@@ -253,7 +253,7 @@ const PayComponent = () => {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [promotionDetails, groupedCombos, totalPriceBefore]);
 
     if (isLoadingPromotionDetail)
         return (
