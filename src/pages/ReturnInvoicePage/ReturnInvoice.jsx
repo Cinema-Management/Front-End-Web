@@ -1,25 +1,20 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FaRegEye } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { RiRefund2Fill } from 'react-icons/ri';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import { DatePicker } from 'antd';
 import { FormatDate, FormatSchedule } from '~/utils/dateUtils';
 import axios from 'axios';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import { FixedSizeList as List } from 'react-window';
 import HeightInVoiceComponent from '~/components/HeightComponent/HeightInVoiceComponent';
-import { useSelector } from 'react-redux';
-import { set } from 'lodash';
 
 const SaleInvoice = () => {
     const [open, setOpen] = useState(false);
-    const [openDelete, setOpenDelete] = useState(false);
-    const descriptionRef = useRef('');
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [invoiceFilter, setInvoiceFilter] = useState([]);
     const [selectedOptionFilterCinema, setSelectedOptionFilterCinema] = useState('');
@@ -28,13 +23,11 @@ const SaleInvoice = () => {
     const [searchSDT, setSearchSDT] = useState('');
     const [searchCodeHD, setSearchCodeHD] = useState('');
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
-    const user = useSelector((state) => state.auth.login?.currentUser);
+
     const height = HeightInVoiceComponent();
-    const queryClient = useQueryClient();
     const optionStatus = [
         { value: 3, name: 'Tất cả' },
-        { value: 1, name: 'Đã thanh toán' },
-        { value: 2, name: 'Đã trả' },
+        { value: 1, name: 'Hoàn tất' },
     ];
 
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
@@ -42,22 +35,7 @@ const SaleInvoice = () => {
         setOpen(true);
     };
     const { RangePicker } = DatePicker;
-    const handleClose = () => {
-        setOpen(false);
-        setSelectedInvoice(null);
-    };
-    const handleOpenDelete = () => {
-        setOpenDelete(true);
-        setSelectedInvoice(null);
-    };
-    const handleCloseDelete = () => {
-        setOpenDelete(false);
-        setSelectedInvoice(null);
-        descriptionRef.current = '';
-    };
-    const handleInputChange = (event) => {
-        descriptionRef.current = event.target.value; // Cập nhật giá trị vào ref
-    };
+    const handleClose = () => setOpen(false);
 
     const fetchMovies = async () => {
         const moviesResponse = await axios.get('api/movies');
@@ -75,9 +53,9 @@ const SaleInvoice = () => {
         }));
         return { optionStaff: arrayStaff };
     };
-    const fetchSaleInvoice = async () => {
+    const fetchReturnInvoice = async () => {
         try {
-            const response = await axios.get('api/sales-invoices');
+            const response = await axios.get('api/return-invoices');
             const data = response.data;
 
             return { invoices: data };
@@ -113,8 +91,8 @@ const SaleInvoice = () => {
         isLoading,
         isFetched,
         isError,
-        refetch: refetchInvoice,
-    } = useQuery('fetchSaleInvoice', fetchSaleInvoice, {
+        // refetch,
+    } = useQuery('fetchReturnInvoice', fetchReturnInvoice, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -156,38 +134,15 @@ const SaleInvoice = () => {
         refetchInterval: 1000 * 60 * 7,
     });
 
-    const handleReturnInvoice = async () => {
-        if (!descriptionRef.current || descriptionRef.current.trim() === '') {
-            toast.error('Vui lòng nhập lý do trả hóa đơn!');
-            return;
-        }
-
-        try {
-            await axios.post('api/return-invoices', {
-                staffCode: user.code,
-                customerCode: selectedInvoice.customerCode?.code,
-                scheduleCode: selectedInvoice.scheduleCode?.code,
-                paymentMethod: 0,
-                type: 0,
-                salesInvoiceCode: selectedInvoice.code,
-                returnReason: descriptionRef.current,
-            });
-
-            toast.success('Trả hóa đơn thành công!');
-            refetchInvoice();
-            descriptionRef.current = '';
-            handleCloseDelete();
-        } catch (error) {
-            console.log('error', error);
-            toast.error('Trả hóa đơn thất bại!');
-        }
-    };
-
-    const mutation = useMutation(handleReturnInvoice, {
-        onSuccess: () => {
-            queryClient.refetchQueries('fetchReturnInvoice');
-        },
-    });
+    if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff) return <Loading />;
+    if (!isFetched || !isFetchedMovies || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
+    if (isError || isErrorMovies || CinemaError || isErrorStaff)
+        return (
+            <div>
+                Error loading data:{' '}
+                {isError.message || isErrorMovies.message || CinemaError.message || isErrorStaff.message}
+            </div>
+        );
 
     const onChangeRanger = (dates) => {
         if (!Array.isArray(dates) || dates.length !== 2) {
@@ -425,19 +380,9 @@ const SaleInvoice = () => {
                             item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
                     >
-                        {item.status === 1 ? 'Đã thanh toán' : 'Đã trả'}
+                        {item.status === 1 ? 'Hoàn tất' : 'Đã hủy'}
                     </button>
-                    <div className="grid grid-cols-2 col-span-2">
-                        <button
-                            className="col-span-1 ml-[10px] "
-                            onClick={() => {
-                                handleOpenDelete();
-                                setSelectedInvoice(item);
-                            }}
-                            disabled={item?.status === 0 ? true : false}
-                        >
-                            <RiRefund2Fill color={`${item.status === 0 ? 'gray' : 'black'}`} size={22} />
-                        </button>
+                    <div className="grid col-span-2 justify-center">
                         <button
                             className="ml-2"
                             onClick={() => {
@@ -453,19 +398,10 @@ const SaleInvoice = () => {
         );
     };
 
-    if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff) return <Loading />;
-    if (!isFetched || !isFetchedMovies || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
-    if (isError || isErrorMovies || CinemaError || isErrorStaff)
-        return (
-            <div>
-                Error loading data:{' '}
-                {isError.message || isErrorMovies.message || CinemaError.message || isErrorStaff.message}
-            </div>
-        );
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[195px] mb-5">
-                <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Hóa đơn bán</h1>
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Hóa đơn trả</h1>
 
                 <div className="min-w-[900px]">
                     <div className="grid grid-cols-4  gap-10 mb-2 items-center w-full h-16 px-3">
@@ -620,7 +556,7 @@ const SaleInvoice = () => {
                 title="Chi tiết hóa đơn"
             >
                 <div className="h-90p grid grid-rows-11 gap-2 ">
-                    <div className="grid row-span-4">
+                    <div className="grid row-span-5">
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="grid  grid-cols-2 gap-2">
@@ -704,6 +640,14 @@ const SaleInvoice = () => {
                                 </div>
                             </div>
                         </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid gap-2">
+                                <div className="flex">
+                                    <h1 className="font-bold">Lý do hủy:</h1>
+                                    <h1 className="font-normal ml-2">{selectedInvoice?.returnReason}</h1>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div className="grid items-center border-b ">
                         <div className="grid grid-cols-6 gap-2 text-sm  uppercase font-bold text-slate-700  px-3">
@@ -714,13 +658,13 @@ const SaleInvoice = () => {
                             <h1 className=" justify-center grid items-center ">Thành tiền</h1>
                         </div>
                     </div>
-                    <div className="grid row-span-5">
+                    <div className="grid row-span-4">
                         <div className="h-[100%] overflow-auto">
                             {Object.entries(groupedDetails).map(([productName, items]) => {
                                 const firstItem = items[0];
                                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                                 const totalAmount = items.reduce((sum, item) => sum + item.totalAmount, 0);
-
+                                console.log('items', items);
                                 return (
                                     <div
                                         key={firstItem.code}
@@ -746,48 +690,6 @@ const SaleInvoice = () => {
                     <div className="justify-end flex space-x-3 mt-1  border-t pr-4">
                         <div className="space-x-3 mt-[6px]">
                             <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleClose} />
-                        </div>
-                    </div>
-                </div>
-            </ModalComponent>
-
-            <ModalComponent
-                open={openDelete}
-                handleClose={handleCloseDelete}
-                width="30%"
-                height="35%"
-                smallScreenWidth="40%"
-                smallScreenHeight="25%"
-                mediumScreenWidth="40%"
-                mediumScreenHeight="20%"
-                largeScreenHeight="20%"
-                largeScreenWidth="40%"
-                maxHeightScreenHeight="40%"
-                maxHeightScreenWidth="40%"
-                title="Trả hóa đơn"
-            >
-                <div className="h-[80%] grid grid-rows-4 ">
-                    <div className="row-span-3 grid-rows-5 grid ">
-                        <h1 className="grid row-span-1 px-3 py-2">Vui lòng nhập lý do trả hóa đơn bên dưới:</h1>
-                        <div className="px-3 row-span-4 mt-3">
-                            <textarea
-                                className="border py-[6px] px-3 border-[gray] rounded-[5px] h-[90%] w-full resize-none overflow-auto"
-                                placeholder="Nhập ..."
-                                defaultValue={descriptionRef.current}
-                                onChange={handleInputChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="grid items-center ">
-                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
-                            <ButtonComponent
-                                text="Xác nhận"
-                                className="bg-blue-500"
-                                onClick={() => {
-                                    mutation.mutate();
-                                }}
-                            />
                         </div>
                     </div>
                 </div>

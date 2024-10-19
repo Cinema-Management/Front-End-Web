@@ -13,6 +13,11 @@ const scheduleSlice = createSlice({
             isFetching: false,
             error: false,
         },
+        movieSchedule: {
+            currentMovieSchedule: null,
+            isFetching: false,
+            error: false,
+        },
     },
     reducers: {
         getScheduleStart: (state) => {
@@ -40,6 +45,19 @@ const scheduleSlice = createSlice({
             state.isSchedule.isFetching = false;
             state.isSchedule.error = true;
         },
+
+        getMovieScheduleStart: (state) => {
+            state.movieSchedule.isFetching = true;
+        },
+        getMovieScheduleSuccess: (state, action) => {
+            state.movieSchedule.isFetching = false;
+            state.movieSchedule.currentMovieSchedule = action.payload;
+            state.movieSchedule.error = false;
+        },
+        getMovieScheduleFailed: (state) => {
+            state.movieSchedule.isFetching = false;
+            state.movieSchedule.error = true;
+        },
     },
 });
 
@@ -50,6 +68,9 @@ export const {
     getIsScheduleStart,
     getIsScheduleSuccess,
     getIsScheduleFailed,
+    getMovieScheduleStart,
+    getMovieScheduleSuccess,
+    getMovieScheduleFailed,
 } = scheduleSlice.actions;
 
 export default scheduleSlice.reducer;

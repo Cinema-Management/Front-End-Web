@@ -313,6 +313,48 @@ const Price = () => {
         setSelectedTimeSlotCode('');
     };
 
+    function disableEndDatePrice(prices, selectedStartDate) {
+        const currentDate = dayjs(); // Ngày hiện tại dưới dạng dayjs
+
+        return (current) => {
+            if (!current || !dayjs(current).isValid()) {
+                return true; // Nếu không có giá trị current hoặc không hợp lệ, vô hiệu hóa
+            }
+
+            const currentDayjs = dayjs(current);
+            const startDayjs = dayjs(selectedStartDate); // Ngày bắt đầu đã chọn
+
+            if (currentDayjs.isBefore(currentDate, 'day')) {
+                return true; // Disable the current date and any past dates
+            }
+
+            if (currentDayjs.isBefore(startDayjs, 'day')) {
+                return true; // Disable dates before selected start date
+            }
+
+            let nextPriceStartDate = null;
+
+            for (let i = 0; i < prices.length; i++) {
+                const priceStartDate = dayjs(prices[i].startDate);
+
+                // Tìm ngày bắt đầu khuyến mãi tiếp theo lớn hơn ngày bắt đầu đã chọn
+                if (priceStartDate.isAfter(startDayjs)) {
+                    nextPriceStartDate = priceStartDate;
+                    break; // Không cần tìm thêm
+                }
+            }
+
+            // Vô hiệu hóa ngày nếu nằm trong khoảng thời gian khuyến mãi tiếp theo
+            if (nextPriceStartDate) {
+                if (currentDayjs.isAfter(nextPriceStartDate.subtract(1, 'day'))) {
+                    return true; // Disable dates in the next promotion range
+                }
+            }
+
+            return false; // Ngày không bị vô hiệu hóa
+        };
+    }
+
     const changStatus = (value) => {
         if (value === 2) {
             return 'Ngừng hoạt động';
@@ -1403,11 +1445,12 @@ const Price = () => {
                                 <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                 <DatePicker
                                     value={endDate}
+                                    disabledDate={disableEndDatePrice(selectedPrice, startDate)}
                                     onChange={onChangeEnd}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     minDate={startDate ? dayjs(startDate) : dayjs()}
-                                    format="DD-MM-YYYY" // Thay đổi định dạng thành DD-MM-YYYY
+                                    format="DD-MM-YYYY"
                                     className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black]"
                                 />
                             </div>
