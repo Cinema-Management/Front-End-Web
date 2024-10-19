@@ -12,6 +12,7 @@ const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 const Order = lazy(() => import('~/pages/OrderPage/Order'));
 const Room = lazy(() => import('~/pages/RoomPage/Room'));
 const SaleInvoice = lazy(() => import('~/pages/SaleInvoicePage/SaleInvoice'));
+const ReturnInvoice = lazy(() => import('~/pages/ReturnInvoicePage/ReturnInvoice'));
 const Login = lazy(() => import('~/pages/LoginPage/Login'));
 const Register = lazy(() => import('~/pages/RegisterPage/Register'));
 const ForgotPassword = lazy(() => import('~/pages/ForgotPasswordPage/ForgotPassword'));
@@ -80,6 +81,11 @@ export const routes = [
     {
         path: '/sale-invoice',
         page: SaleInvoice,
+        isShowSidebar: true,
+    },
+    {
+        path: '/return-invoice',
+        page: ReturnInvoice,
         isShowSidebar: true,
     },
     {
