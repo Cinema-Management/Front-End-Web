@@ -44,7 +44,7 @@ const Schedule = () => {
     const [isUpdateStatus, setIsUpdateStatus] = useState(false);
 
     const [isDeleteAll, setIsDeleteAll] = useState(false);
-
+    const formattedDate = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate]);
     let toastAdd = 0;
 
     const disabledTime = () => {
@@ -120,7 +120,7 @@ const Schedule = () => {
                     name: cinema.name,
                     code: cinema.code,
                 }));
-
+            setSelectedFilterCinema(arrayNameCinema[0]?.name);
             return { optionNameCinema: arrayNameCinema };
         } catch (error) {
             if (error.response) {
@@ -211,8 +211,6 @@ const Schedule = () => {
             }
         }
     }, [optionNameCinema, selectedOptionFilterCinema]);
-
-    const formattedDate = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate]);
 
     const fetchAllScheduleInRoomByCinemaCode = async (selectedOptionFilterCinema) => {
         if (!selectedOptionFilterCinema) return;
@@ -504,7 +502,6 @@ const Schedule = () => {
             // Nếu tất cả lịch chiếu đã được thêm thành công
             toast.dismiss(loadingToastId);
             toast.success('Thêm thành công');
-            toastAdd = 0;
             refetchRoom();
             handleClose();
         } catch (error) {
@@ -620,11 +617,11 @@ const Schedule = () => {
         try {
             const response = await axios.put(`api/schedules/status/${code}`);
             if (response.data) {
-                toast.success('Cập nhật trạng thái thành công!');
+                toast.success('Cập nhật thành công!');
                 refetchRoom();
                 handleCloseUpdateStatus();
             } else {
-                toast.error('Cập nhật thất bại thất bại');
+                toast.error('Cập nhật thất bại');
                 handleCloseUpdateStatus();
             }
         } catch (error) {
@@ -634,6 +631,7 @@ const Schedule = () => {
 
     const handleUpdateMultipleStatuses = async (schedules) => {
         try {
+            handleCloseUpdateStatus();
             // Tạo một mảng các promises cho việc gọi API cập nhật nhiều lịch chiếu
             const updatePromises = schedules.map((schedule) => axios.put(`api/schedules/status/${schedule.code}`));
 
@@ -644,14 +642,12 @@ const Schedule = () => {
             const allSuccessful = responses.every((response) => response.data);
 
             if (allSuccessful) {
-                toast.success('Cập nhật trạng thái thành công!');
-
+                toast.success('Cập nhật thành công!');
                 refetchRoom(); // Làm mới dữ liệu phòng
-                handleCloseUpdateStatus();
             } else {
-                handleCloseUpdateStatus();
+                refetchRoom(); // Làm mới dữ liệu phòng
 
-                toast.error('Cập nhật thất bại thất bại');
+                toast.error('Cập nhật thất bại');
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
@@ -660,14 +656,14 @@ const Schedule = () => {
 
     const handleDelete = async (code) => {
         try {
+            handleCloseDelete();
             const response = await axios.delete(`api/schedules/${code}`);
             if (response.data) {
                 toast.success('Xóa thành công!');
                 refetchRoom();
-                handleCloseDelete();
             } else {
                 toast.error('Xóa thất bại');
-                handleCloseDelete();
+                refetchRoom();
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
@@ -676,9 +672,11 @@ const Schedule = () => {
 
     const handleDeleteMultiple = async (schedules) => {
         try {
+            handleCloseDelete();
+            let loadingToastId;
+            loadingToastId = toast.loading('Đang xóa !');
             // Tạo một mảng các promises cho việc gọi API cập nhật nhiều lịch chiếu
             const updatePromises = schedules.map((schedule) => axios.delete(`api/schedules/${schedule.code}`));
-
             // Chờ tất cả các promises hoàn thành
             const responses = await Promise.all(updatePromises);
 
@@ -686,14 +684,15 @@ const Schedule = () => {
             const allSuccessful = responses.every((response) => response.data);
 
             if (allSuccessful) {
-                toast.success('Xóa thành công!');
+                toast.dismiss(loadingToastId);
 
+                toast.success('Xóa thành công!');
                 refetchRoom(); // Làm mới dữ liệu phòng
-                handleCloseDelete();
             } else {
-                handleCloseDelete();
+                toast.dismiss(loadingToastId);
 
                 toast.error('Xóa thất bại');
+                refetchRoom(); // Làm mới dữ liệu phòng
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
@@ -786,11 +785,7 @@ const Schedule = () => {
         return true;
     };
 
-    if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
-    if (errorRoom || CinemaError || optionCinemaNameError)
-        return (
-            <div>Error loading data: {errorRoom.message || CinemaError.message || optionCinemaNameError.message}</div>
-        );
+
 
     const checkAddAndUpdate = () => {
         let rooms = [];
@@ -868,7 +863,7 @@ const Schedule = () => {
     const handleSearch = (searchValue) => {
         setSelectedFilterCinema(searchValue);
 
-        const filteredRooms = room.filter((item) => item.cinemaCode.name === searchValue);
+        const filteredRooms = room.filter((item) => item.cinemaCode.name.toUpperCase() === searchValue.toUpperCase());
         if (filteredRooms.length > 0) {
             setRoomsFilter(filteredRooms);
         } else {
@@ -885,7 +880,9 @@ const Schedule = () => {
 
         const filteredRooms = room
             .map((room) => {
-                const filteredSchedules = room.schedules.filter((schedule) => schedule.movieCode.name === searchValue);
+                const filteredSchedules = room.schedules.filter(
+                    (schedule) => schedule.movieCode.name.toUpperCase() === searchValue.toUpperCase(),
+                );
 
                 return {
                     ...room,
@@ -971,6 +968,11 @@ const Schedule = () => {
             setAvailableSchedules([]);
         }
     };
+    if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
+    if (errorRoom || CinemaError || optionCinemaNameError)
+        return (
+            <div>Error loading data: {errorRoom.message || CinemaError.message || optionCinemaNameError.message}</div>
+        );
 
     const renderRoomByCinemaCode = (room) => {
         return room.map((item) => (
@@ -1122,7 +1124,11 @@ const Schedule = () => {
                                     }`}
                                 >
                                     <button
-                                        className="gradient-button text-white text-sm px-2  py-1 rounded-[40px]    flex grid-cols-2"
+                                        className={`gradient-button text-white text-sm px-2  py-1 rounded-[40px]    flex grid-cols-2${
+                                            item.schedules.some((item) => item.status === 0)
+                                                ? ''
+                                                : 'pointer-events-none opacity-50'
+                                        } `}
                                         onClick={() => {
                                             const schedulesToUpdate = item.schedules.filter(
                                                 (item) => item.status === 0,
@@ -1131,7 +1137,7 @@ const Schedule = () => {
                                                 handleOpenUpdateStatus(true);
                                                 setSelectedSchedule(schedulesToUpdate);
                                             } else {
-                                                toast.info('Không có lịch chiếu nào cần cập nhật!');
+                                                toast.info('Tất cả đang chiếu!');
                                             }
                                         }}
                                     >
@@ -1154,7 +1160,7 @@ const Schedule = () => {
                                                 handleOpenDelete(true);
                                                 setSelectedSchedule(schedulesToUpdate);
                                             } else {
-                                                toast.info('Không có lịch chiếu nào cần cập nhật!');
+                                                toast.info('Tất cả đang chiếu không thể xóa!');
                                             }
                                         }}
                                     >
@@ -1366,12 +1372,11 @@ const Schedule = () => {
                                     <ButtonComponent
                                         text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
                                         className={` bg-blue-500 ${
-                                            (showAllSchedules && availableSchedules === 0) ||
+                                            (showAllSchedules && availableSchedules.length === 0) ||
                                             !selectedMovieName ||
                                             !selectedScreeningFormat ||
                                             !selectedAudio ||
-                                            !selectedSubtitle ||
-                                            toastAdd === 2
+                                            !selectedSubtitle
                                                 ? 'pointer-events-none opacity-50'
                                                 : ''
                                         } `}

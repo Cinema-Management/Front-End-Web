@@ -9,7 +9,7 @@ import { styled } from '@mui/system';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { useDispatch, useSelector } from 'react-redux';
-import { getIsSchedule } from '~/redux/apiRequest';
+import { getCustomer, getIsSchedule } from '~/redux/apiRequest';
 import { resetSeats, resetCombo } from '~/redux/seatSlice';
 
 import { increment, decrement, resetValue } from '~/redux/valueSlice';
@@ -54,6 +54,7 @@ const fetchAddressCinemaCode = async (code) => {
 const Seat = () => {
     const value = useSelector((state) => state.value.value);
     const [openPay, setOpenPay] = useState(false);
+    const customer = useSelector((state) => state.customers.customer.currentCustomer) || null;
 
     const [selectedCombos, setSelectedCombos] = useState([]);
     const dispatch = useDispatch();
@@ -116,6 +117,7 @@ const Seat = () => {
 
         if (value === 1) {
             dispatch(increment());
+            getCustomer(dispatch, null);
             return;
         }
     };
@@ -269,6 +271,7 @@ const Seat = () => {
 
                 const salesInvoice = {
                     staffCode: user?.code,
+                    customerCode: customer?.code,
                     scheduleCode: schedule?.scheduleCode,
                     paymentMethod: 0,
                     type: 0,

@@ -10,10 +10,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toggleSeat } from '~/redux/seatSlice';
 const SeatComponent = memo(({ setSetGhe }) => {
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
-    const fetchSeatByRoomCode = async () => {
+    const fetchSeatByRoomCode = async (code) => {
         try {
             const response = await axios.get(
-                `api/seat-status-in-schedules/getAllSeatsStatusInSchedule?scheduleCode=${schedule.scheduleCode}`,
+                `api/seat-status-in-schedules/getAllSeatsStatusInSchedule?scheduleCode=${code}`,
             );
             const data = response.data;
             return data;
@@ -34,10 +34,11 @@ const SeatComponent = memo(({ setSetGhe }) => {
         isFetching,
         error,
         // refetch,
-    } = useQuery(['fetchSeatByRoomCode', schedule.roomCode], () => fetchSeatByRoomCode(schedule.roomCode), {
+    } = useQuery(['fetchSeatByRoomCode', schedule.scheduleCode], () => fetchSeatByRoomCode(schedule.scheduleCode), {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
-        enabled: !!schedule.roomCode,
+        refetchInterval: 1000 * 60 * 3,
+        enabled: !!schedule.scheduleCode,
     });
     const dispatch = useDispatch();
     const selectedSeatsFromStore = useSelector((state) => state.seat.seat.selectedSeats);

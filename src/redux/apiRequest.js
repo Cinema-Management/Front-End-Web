@@ -11,6 +11,9 @@ import {
     getIsScheduleFailed,
     getIsScheduleSuccess,
     getIsScheduleStart,
+    getMovieScheduleFailed,
+    getMovieScheduleSuccess,
+    getMovieScheduleStart,
 } from './scheduleSlice';
 import {
     loginFailed,
@@ -23,6 +26,8 @@ import {
     registerStart,
     registerSuccess,
 } from './authSlice';
+
+import { customerFailed, customerStart, customerSuccess } from './customerSlice';
 //npm install axios
 
 export const getAllSeatByRoomCode = async (dispatch, roomCode) => {
@@ -121,5 +126,23 @@ export const logOut = async (dispatch, id, navigate, accessToken, axiosJWT) => {
         navigate('/login');
     } catch (err) {
         dispatch(logOutFailed());
+    }
+};
+
+export const getCustomer = async (dispatch, customer) => {
+    dispatch(customerStart());
+    try {
+        dispatch(customerSuccess(customer));
+    } catch (err) {
+        dispatch(customerFailed());
+    }
+};
+
+export const getMovieSchedule = async (dispatch, movieSchedule) => {
+    dispatch(getMovieScheduleStart());
+    try {
+        dispatch(getMovieScheduleSuccess(movieSchedule));
+    } catch (err) {
+        dispatch(getMovieScheduleFailed());
     }
 };

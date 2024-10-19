@@ -12,6 +12,7 @@ import vouCher from '~/assets/voucher.png';
 import { FaCheck } from 'react-icons/fa'; // Import icon dấu tích
 import { Button } from 'antd';
 import { setCalculatedPrice, setFreeProduct } from '~/redux/productSlice';
+import { getCustomer } from '~/redux/apiRequest';
 
 const isPromotionApplicable = (promotion, groupedCombos, totalPriceBefore) => {
     if (promotion.type === 0) {
@@ -84,6 +85,9 @@ const PayComponent = () => {
 
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Lấy danh sách số lượng sản phẩm
     const dispatch = useDispatch();
+    const [searchPhone, setSearchPhone] = useState('');
+    const [nameCustomer, setNameCustomer] = useState('');
+    const [points, setPoints] = useState(0);
 
     const calculateTotalWithPromotion = (
         totalPriceMain,
@@ -253,7 +257,36 @@ const PayComponent = () => {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [promotionDetails, groupedCombos, totalPriceBefore]);
+    }, [promotionDetails, totalPriceBefore]);
+
+    const handleEnterPress = (newValue) => {
+        handleSearchPhone(newValue);
+    };
+    const handleSearchPhone = async (value) => {
+        try {
+            setSearchPhone(value);
+            if (value === '' || value === null) {
+                return;
+            }
+            const customerResponse = await axios.get('api/users');
+            const customers = customerResponse.data;
+            const search = customers.find((item) => item.phone === value);
+
+            if (!search) {
+                toast.info('Không tìm thấy!');
+                setNameCustomer('');
+                setPoints('');
+                getCustomer(dispatch, null);
+            } else {
+                console.log(search.points);
+                setNameCustomer(search?.name);
+                setPoints(`${search?.points}`);
+                getCustomer(dispatch, search);
+            }
+        } catch (error) {
+            toast.error('Lỗi' || error.message);
+        }
+    };
 
     if (isLoadingPromotionDetail)
         return (
@@ -299,18 +332,23 @@ const PayComponent = () => {
                     borderRadius={'10px'}
                 />
                 <AutoInputComponent
-                    value={selectedMovie}
-                    onChange={setSelectedMovie}
+                    value={searchPhone}
+                    onChange={(newValue) => handleSearchPhone(newValue)}
                     title="Số điện thoại"
                     freeSolo={true}
                     disableClearable={false}
                     placeholder="Nhập ..."
                     heightSelect={200}
                     borderRadius="10px"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleEnterPress(e.target.value);
+                        }
+                    }}
                 />
                 <AutoInputComponent
-                    value={selectedMovie}
-                    onChange={setSelectedMovie}
+                    value={nameCustomer}
+                    // onChange={setNameCustomer}
                     title="Tên khách hàng"
                     freeSolo={true}
                     disableClearable={false}
@@ -320,9 +358,9 @@ const PayComponent = () => {
                     className="bg-gray-200 rounded-[10px]"
                 />
                 <AutoInputComponent
-                    value={selectedMovie}
-                    onChange={setSelectedMovie}
-                    title="Tích điểm"
+                    value={points}
+                    onChange={setPoints}
+                    title="Điểm tích lũy"
                     freeSolo={true}
                     disableClearable={false}
                     heightSelect={200}
