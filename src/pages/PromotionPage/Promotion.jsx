@@ -4,17 +4,16 @@ import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
 import { IoIosAddCircleOutline } from 'react-icons/io';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
-import InputComponent from '~/components/InputComponent/InputComponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-
 import { toast } from 'react-toastify';
 import Loading from '~/components/LoadingComponent/Loading';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
+import { FormatDate } from '~/utils/dateUtils';
 
 const sortPromotions = (promotions) => {
     // Sắp xếp danh sách khuyến mãi theo startDate tăng dần
@@ -125,7 +124,6 @@ const Promotion = () => {
     const [isUpdateKMDetail, setIsUpdateKMDetail] = useState(false);
 
     const [type, setType] = useState('');
-    const [selectedMovie, setSelectedMovie] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
     const [selectedStartDateKM, setSelectedStartDateKM] = useState(null);
     const [selectedEndDateKM, setSelectedEndDateKM] = useState(null);
@@ -135,9 +133,9 @@ const Promotion = () => {
     const [selectedEndDateKMLine, setSelectedEndDateKMLine] = useState(null);
     const [descriptionKMLine, setDescriptionKMLine] = useState('');
 
-    const [selectedKM, setSelectedKM] = useState([]);
-    const [selectedKMLine, setSelectedKMLine] = useState([]);
-    const [selectedKMDetail, setSelectedKMDetail] = useState([]);
+    const [selectedKM, setSelectedKM] = useState('');
+    const [selectedKMLine, setSelectedKMLine] = useState('');
+    const [selectedKMDetail, setSelectedKMDetail] = useState('');
 
     const [selectedOptionKMLine, setSelectedOptionKMLine] = useState('');
     const [salesProduct, setSalesProduct] = useState('');
@@ -149,12 +147,28 @@ const Promotion = () => {
     const [discountPercentage, setDiscountPercentage] = useState(0);
     const [maxDiscountAmount, setMaxDiscountAmount] = useState(0);
     const [openDelete, setOpenDelete] = useState(false);
+    const [selectedStatusKMLine, setSelectedStatusKMLine] = useState('');
+    const [promotionFilter, setPromotionFilter] = useState([]);
+    const [promotionFilterLine, setPromotionLinesFilter] = useState([]);
+    const [selectedFilterPromotion, setSelectedFilterPromotion] = useState('');
+    const [selectedFilterPromotionLine, setSelectedFilterPromotionLine] = useState('');
+    const { RangePicker } = DatePicker;
+    const [rangePickerValue, setRangePickerValue] = useState(['', '']);
+
+    const isDisabled = (endDate) => {
+        return dayjs().isAfter(dayjs(endDate), 'day');
+    };
     const queryClient = useQueryClient();
 
     const optionKMLines = [
         { name: 'Khuyến mãi sản phẩm', value: 0 },
         { name: 'Khuyến mãi tiền', value: 1 },
         { name: 'Chiết khấu hóa đơn', value: 2 },
+    ];
+    const optionStatusKMLine = [
+        { value: 0, name: 'Chưa hoạt động' },
+        { value: 1, name: 'Hoạt động' },
+        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const {
@@ -165,6 +179,10 @@ const Promotion = () => {
     } = useQuery('fetchPromotionsWithLines', fetchPromotionsWithLines, {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
+
+        onSuccess: (data) => {
+            setPromotionFilter(data.cinemas);
+        },
     });
 
     const {
@@ -190,6 +208,109 @@ const Promotion = () => {
             enabled: !!selectedKMLine?.code, // Chỉ kích hoạt khi có mã KM
         },
     );
+
+    // filter
+    const handleFilterPromotion = (searchValue) => {
+        if (!searchValue) {
+            setPromotionFilter([]);
+
+            return;
+        }
+        if (searchValue) {
+            setSelectedFilterPromotion(searchValue);
+            setRangePickerValue(['', '']);
+            setSelectedFilterPromotionLine('');
+            setPromotionLinesFilter([]);
+            const filterPromotion = promotions.filter(
+                (promotion) => promotion.description.toLowerCase() === searchValue.toLowerCase(),
+            );
+            if (filterPromotion.length > 0) {
+                setPromotionFilter(filterPromotion);
+            }
+            return;
+        }
+    };
+
+    const handleFilterPromotionLine = (searchValue) => {
+        if (!searchValue) {
+            setPromotionLinesFilter(promotionFilter);
+            return;
+        }
+
+        // Set giá trị lọc theo dòng khuyến mãi
+
+        // Kiểm tra xem có giá trị lọc khuyến mãi không
+        if (selectedFilterPromotion && searchValue) {
+            setSelectedFilterPromotionLine(searchValue);
+
+            // Lọc các promotion dựa trên description
+            const filterPromotion = promotionFilter?.filter(
+                (promotion) => promotion.description.toLowerCase() === selectedFilterPromotion.toLowerCase(),
+            );
+
+            if (filterPromotion.length > 0) {
+                // Tìm giá trị type từ searchValue
+                const type = optionKMLines.find((item) => item.name === searchValue)?.value;
+
+                // Lọc tiếp promotion dựa trên dòng promotionLines có type khớp
+                const filterPromotionLine = filterPromotion
+                    .map((promotion) => {
+                        const filteredLines = promotion.promotionLines.filter((line) => line.type === type);
+                        return {
+                            ...promotion,
+                            promotionLines: filteredLines, // Chỉ giữ các promotionLines đã lọc theo type
+                        };
+                    })
+                    .filter((promotion) => promotion.promotionLines.length > 0); // Loại bỏ promotion không có dòng khuyến mãi
+
+                // Cập nhật lại danh sách promotion sau khi lọc
+                if (filterPromotionLine.length > 0) {
+                    setPromotionLinesFilter(filterPromotionLine);
+                } else {
+                    toast.info('Không tìm thấy khuyến mãi phù hợp');
+                    setPromotionLinesFilter(promotionFilter);
+
+                    // toast.warning('Không tìm thấy khuyến mãi phù hợp');
+                    // setSelectedFilterPromotionLine('');
+                    // setSelectedFilterPromotion('');
+                }
+            }
+        }
+    };
+
+    const onChangeRanger = (dates) => {
+        if (!Array.isArray(dates) || dates.length !== 2) {
+            setPromotionFilter(promotions);
+            return;
+        }
+
+        setPromotionFilter([]);
+        setPromotionLinesFilter([]);
+        setSelectedFilterPromotionLine('');
+        setSelectedFilterPromotion('');
+        setRangePickerValue(dates);
+
+        const startDateFormatted = FormatDate(dates[0]);
+        const endDateFormatted = FormatDate(dates[1]);
+
+        const filterDate = promotions.filter((item) => {
+            const startDate = FormatDate(new Date(item.startDate));
+            const endDate = FormatDate(new Date(item.endDate));
+
+            // Check if the promotion is active within the selected date range
+            return (
+                startDate <= endDateFormatted && endDate >= startDateFormatted // Ensure the promotion is active within the range
+            );
+        });
+
+        if (filterDate.length === 0) {
+            toast.info('Không tìm thấy bảng giá nào trong khoảng thời gian này!');
+            setPromotionFilter([]);
+            return;
+        }
+
+        setPromotionFilter(filterDate);
+    };
 
     //header
 
@@ -234,17 +355,20 @@ const Promotion = () => {
 
     //delete
 
-    const handleOpenDelete = (item) => {
-        setSelectedKMLine(item);
+    const handleOpenDelete = () => {
         setOpenDelete(true);
     };
+
     const handleCloseDelete = () => {
+        setSelectedKM('');
+        setSelectedKMLine('');
+        setSelectedKMDetail('');
         setOpenDelete(false);
     };
 
     const handleDeleteKMDetail = async (code) => {
         try {
-            await axios.delete(`api/promotion-details/${code}`);
+            await axios.patch(`api/promotion-details/${code}`);
             toast.success('Xóa thành công!');
             refetchKMDetail();
         } catch (error) {
@@ -254,9 +378,10 @@ const Promotion = () => {
 
     const handleDeleteKM = async (code) => {
         try {
-            await axios.delete(`api/promotions/${code}`);
+            await axios.patch(`api/promotions/${code}`);
             toast.success('Xóa thành công!');
             refetchKM();
+            handleCloseDelete();
         } catch (error) {
             toast.error('Xóa thất bại!');
         }
@@ -264,7 +389,7 @@ const Promotion = () => {
 
     const handleDeleteKMLine = async (code) => {
         try {
-            await axios.delete(`api/promotion-lines/${code}`);
+            await axios.patch(`api/promotion-lines/${code}`);
             toast.success('Xóa thành công!');
             refetchKM();
             handleCloseDelete();
@@ -289,17 +414,21 @@ const Promotion = () => {
     // clean text
 
     const cleanTextKM = () => {
+        setSelectedKM('');
+        setSelectedKMLine('');
         setSelectedEndDateKM(null);
         setSelectedStartDateKM(null);
         setDescriptionKM('');
-        setSelectedKM([]);
+        setSelectedStatusKMLine('');
     };
 
     const cleanTextKMLine = () => {
         setSelectedEndDateKMLine(null);
         setSelectedStartDateKMLine(null);
+        setSelectedOptionKMLine('');
         setDescriptionKMLine('');
-        setSelectedKMLine([]);
+        setSelectedKMLine('');
+        setSelectedKM('');
     };
 
     const cleanTextKMDetail = () => {
@@ -404,18 +533,21 @@ const Promotion = () => {
     };
 
     const checkPromotionAddAndUpdate = (promotions, startDate, endDate) => {
-        const currentDate = new Date();
-
-        // Kiểm tra ngày bắt đầu có lớn hơn ngày hiện tại hay không
-        if (new Date(startDate) <= currentDate) {
-            toast.warning('Ngày bắt đầu phải lớn hơn ngày hiện tại');
-            return false; // Trả về false nếu có lỗi
-        }
-
         // Kiểm tra ngày kết thúc có lớn hơn hoặc bằng ngày bắt đầu không
         if (new Date(endDate) < new Date(startDate)) {
             toast.warning('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu');
             return false; // Trả về false nếu có lỗi
+        }
+        if (isUpdateKM) {
+            for (const line of selectedKM?.promotionLines) {
+                const lineEndDate = new Date(line.endDate);
+                if (new Date(endDate) < lineEndDate) {
+                    toast.warning(
+                        'Ngày kết thúc của khuyến mãi không thể nhỏ hơn ngày kết thúc của các dòng khuyến mãi.',
+                    );
+                    return false;
+                }
+            }
         }
 
         // Kiểm tra chồng chéo ngày với các chương trình khuyến mãi khác
@@ -441,14 +573,6 @@ const Promotion = () => {
     };
 
     const checkPromotionLineAddAndUpdate = (promotionLines, startDate, endDate, type) => {
-        const currentDate = new Date();
-
-        // Kiểm tra ngày bắt đầu có lớn hơn ngày hiện tại hay không
-        if (new Date(startDate) <= currentDate) {
-            toast.warning('Ngày bắt đầu phải lớn hơn ngày hiện tại');
-            return false; // Trả về false nếu có lỗi
-        }
-
         // Kiểm tra ngày kết thúc có lớn hơn hoặc bằng ngày bắt đầu không
         if (new Date(endDate) < new Date(startDate)) {
             toast.warning('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu');
@@ -497,11 +621,12 @@ const Promotion = () => {
 
         try {
             const response = await axios.post('api/promotions', promotion);
+            handleCloseKM();
+
             if (response.data) {
-                toast.success('Thêm suất Khuyến mãi thành công');
+                toast.success('Thêm thành công!');
                 refetchKM();
                 cleanTextKM();
-                handleCloseKM();
             } else {
                 toast.error('Thêm thất bại');
             }
@@ -522,11 +647,12 @@ const Promotion = () => {
 
         try {
             const response = await axios.put(`api/promotions/${selectedKM?.code}`, promotion);
+            handleCloseKM();
+
             if (response.data) {
                 toast.success('Cập nhật thành công');
                 refetchKM();
                 cleanTextKM();
-                handleCloseKM();
             } else {
                 toast.error('Cập nhật thất bại');
             }
@@ -561,11 +687,12 @@ const Promotion = () => {
 
         try {
             const response = await axios.post('api/promotion-lines', promotion);
+            handleCloseKMLine();
+
             if (response.data) {
                 toast.success('Thêm thành công');
                 refetchKM();
                 cleanTextKMLine();
-                handleCloseKMLine();
             } else {
                 toast.error('Thêm thất bại');
             }
@@ -576,21 +703,40 @@ const Promotion = () => {
 
     const handleUpdateKMLine = async () => {
         if (!validateKMLine()) return;
-        if (!checkPromotionAddAndUpdate(promotions, selectedStartDateKM, selectedEndDateKM)) return;
         if (!selectedKM) return;
-        const promotion = {
-            description: descriptionKM,
-            startDate: selectedStartDateKM,
-            endDate: selectedEndDateKM,
+        const type = optionKMLines.find((item) => item.name === selectedOptionKMLine).value;
+        const status = optionStatusKMLine.find((item) => item.name === selectedStatusKMLine).value;
+        if (status === 1 && promotionDetails.length === 0) {
+            toast.warning('Phải có ít nhất một chi tiêt khuyến mãi');
+            return;
+        }
+
+        if (
+            !checkPromotionLineAddAndUpdate(
+                selectedKM?.promotionLines,
+                selectedStartDateKMLine,
+                selectedEndDateKMLine,
+                type,
+            )
+        )
+            return;
+
+        const promotionLine = {
+            description: descriptionKMLine,
+            startDate: selectedStartDateKMLine,
+            endDate: selectedEndDateKMLine,
+            type: type,
+            status: status,
         };
 
         try {
-            const response = await axios.put(`api/promotions/${selectedKM?.code}`, promotion);
+            const response = await axios.put(`api/promotion-lines/${selectedKMLine?.code}`, promotionLine);
+            handleCloseKMLine();
+
             if (response.data) {
-                toast.success('Thêm suất Khuyến mãi thành công');
+                toast.success('Thêm suất thành công');
                 refetchKM();
                 cleanTextKMLine();
-                handleCloseKMLine();
             } else {
                 toast.error('Thêm thất bại');
             }
@@ -599,22 +745,7 @@ const Promotion = () => {
         }
     };
 
-    const handleUpdateStatus = async (item) => {
-        const newStatus = item.status === 0 ? 1 : 0;
-        const line = {
-            code: item.code,
-            status: newStatus,
-        };
-
-        try {
-            await axios.put(`api/promotion-lines/updateStatus`, line);
-            toast.success('Cập nhật trạng thái thành công!');
-            refetchKM();
-        } catch (error) {
-            toast.error('Cập nhật trạng thái thất bại!');
-        }
-    };
-    const mutation = useMutation(handleUpdateStatus, {
+    const mutation = useMutation(handleUpdateKMLine, {
         onSuccess: () => {
             // Refetch dữ liệu cần thiết
             queryClient.refetchQueries('fetchKMDetail');
@@ -720,12 +851,15 @@ const Promotion = () => {
         }
     };
 
-    const handleOptionKMLine = (value) => {
+    const handleOnchangeOptionKMLine = (value) => {
         if (!value) {
             setSelectedOptionKMLine('');
             return;
+        } else {
+            setSelectedOptionKMLine(value);
+            setSelectedStartDateKMLine(null);
+            setSelectedEndDateKMLine(null);
         }
-        setSelectedOptionKMLine(value);
     };
 
     const onChangeSelectedStartDateKM = (value) => {
@@ -747,22 +881,6 @@ const Promotion = () => {
         setSelectedEndDateKMLine(null);
     };
 
-    const nuoc = [
-        {
-            id: 1,
-            name: 'Rạp Lotte',
-            address: '120 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh   ',
-            slRoom: '3',
-            status: 'Active',
-        },
-        {
-            id: 2,
-            name: 'Rạp Galaxy',
-            address: '180 Quang Trung, Phường 5,  Quận Gò Vấp, TP  Hồ Chí Minh ',
-            slRoom: '2',
-            status: 'InActive',
-        },
-    ];
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -842,6 +960,166 @@ const Promotion = () => {
             setMaxDiscountAmount(0); // Hoặc giá trị mặc định khác nếu cần
         }
     };
+    function disableStartDatePromotion(promotions) {
+        const currentDate = dayjs().add(1, 'day'); // Ngày hiện tại dưới dạng dayjs
+
+        return (current) => {
+            if (!current || !dayjs(current).isValid()) {
+                return true; // Nếu không có giá trị current hoặc không hợp lệ, vô hiệu hóa
+            }
+
+            // Chuyển đổi current thành dayjs
+            const currentDayjs = dayjs(current);
+
+            // Vô hiệu hóa ngày hiện tại hoặc ngày trước ngày hiện tại
+            if (currentDayjs.isBefore(currentDate, 'day')) {
+                return true; // Disable the current date and any past dates
+            }
+
+            // Kiểm tra nếu ngày nằm trong bất kỳ khoảng thời gian khuyến mãi nào
+            for (let i = 0; i < promotions.length; i++) {
+                const promotionStartDate = dayjs(promotions[i].startDate);
+                const promotionEndDate = dayjs(promotions[i].endDate);
+
+                // Vô hiệu hóa ngày nếu nó nằm trong khoảng thời gian của khuyến mãi
+                if (!currentDayjs.isBefore(promotionStartDate) && !currentDayjs.isAfter(promotionEndDate)) {
+                    return true; // Disable the date within the promotion range
+                }
+            }
+
+            return false; // Ngày không bị vô hiệu hóa
+        };
+    }
+
+    function disableEndDatePromotion(promotions, selectedStartDate) {
+        const currentDate = dayjs(); // Ngày hiện tại dưới dạng dayjs
+
+        return (current) => {
+            if (!current || !dayjs(current).isValid()) {
+                return true; // Nếu không có giá trị current hoặc không hợp lệ, vô hiệu hóa
+            }
+
+            const currentDayjs = dayjs(current);
+            const startDayjs = dayjs(selectedStartDate); // Ngày bắt đầu đã chọn
+
+            if (currentDayjs.isBefore(currentDate, 'day')) {
+                return true; // Disable the current date and any past dates
+            }
+
+            if (currentDayjs.isBefore(startDayjs, 'day')) {
+                return true; // Disable dates before selected start date
+            }
+
+            let nextPromotionStartDate = null;
+
+            for (let i = 0; i < promotions.length; i++) {
+                const promotionStartDate = dayjs(promotions[i].startDate);
+
+                // Tìm ngày bắt đầu khuyến mãi tiếp theo lớn hơn ngày bắt đầu đã chọn
+                if (promotionStartDate.isAfter(startDayjs)) {
+                    nextPromotionStartDate = promotionStartDate;
+                    break; // Không cần tìm thêm
+                }
+            }
+
+            // Vô hiệu hóa ngày nếu nằm trong khoảng thời gian khuyến mãi tiếp theo
+            if (nextPromotionStartDate) {
+                if (currentDayjs.isAfter(nextPromotionStartDate.subtract(1, 'day'))) {
+                    return true; // Disable dates in the next promotion range
+                }
+            }
+
+            return false; // Ngày không bị vô hiệu hóa
+        };
+    }
+
+    const isDateDisabled = (selectedKM, promotionLines, selectedOptionKMLine) => {
+        return (current) => {
+            const startDate = dayjs(selectedKM?.startDate);
+            const endDate = dayjs(selectedKM?.endDate);
+            const currentType = optionKMLines.find((item) => item.name === selectedOptionKMLine)?.value; // Lấy type từ selectedOptionKMLine
+
+            // Chuyển đổi current thành dayjs
+            const currentDayjs = dayjs(current);
+
+            // Kiểm tra nếu current không hợp lệ
+            if (!currentDayjs.isValid()) {
+                return true; // Nếu current không hợp lệ, vô hiệu hóa
+            }
+
+            // Vô hiệu hóa ngày hiện tại và ngày hiện tại + 1
+            if (currentDayjs.isBefore(dayjs().add(1, 'day'), 'day')) {
+                return true; // Vô hiệu hóa ngày hiện tại và các ngày trước
+            }
+
+            // Vô hiệu hóa nếu không nằm trong khoảng thời gian của selectedKM
+            if (currentDayjs.isBefore(startDate, 'day') || currentDayjs.isAfter(endDate, 'day')) {
+                return true; // Vô hiệu hóa các ngày ngoài khoảng thời gian của selectedKM
+            }
+
+            // Kiểm tra xem ngày hiện tại có chồng chéo với các khuyến mãi cùng type không
+            for (const line of promotionLines) {
+                if (line.type !== currentType) continue; // Chỉ kiểm tra các dòng có cùng type
+
+                const lineStartDate = dayjs(line.startDate);
+                const lineEndDate = dayjs(line.endDate);
+
+                // Vô hiệu hóa ngày nếu nó nằm trong khoảng thời gian của bất kỳ khuyến mãi nào khác cùng type
+                if (
+                    (currentDayjs.isAfter(lineStartDate) && currentDayjs.isBefore(lineEndDate)) || // Ngày nằm giữa start và end
+                    currentDayjs.isSame(lineStartDate) || // Ngày là ngày bắt đầu
+                    currentDayjs.isSame(lineEndDate) // Ngày là ngày kết thúc
+                ) {
+                    return true; // Vô hiệu hóa nếu ngày hiện tại nằm trong khoảng thời gian của khuyến mãi
+                }
+            }
+
+            return false; // Cho phép các ngày trong khoảng
+        };
+    };
+
+    let isDateDisabledTest = isDateDisabled(selectedKM, selectedKM?.promotionLines, selectedOptionKMLine);
+
+    const isEndDateDisabled = (current, selectedStartDateKMLine, selectedKM, promotionLines, selectedOptionKMLine) => {
+        const startDate = dayjs(selectedStartDateKMLine);
+        const selectedKMStartDate = dayjs(selectedKM?.startDate);
+        const selectedKMEndDate = dayjs(selectedKM?.endDate);
+        const currentType = optionKMLines.find((item) => item.name === selectedOptionKMLine).value; // Lấy type từ selectedOptionKMLine
+
+        // Kiểm tra nếu current không hợp lệ
+        if (!current.isValid()) {
+            return true;
+        }
+
+        // Vô hiệu hóa nếu trước ngày bắt đầu đã chọn
+        if (current.isBefore(startDate, 'day') || current.isBefore(dayjs(), 'day')) {
+            return true; // Disable dates before the selected start date
+        }
+
+        // Vô hiệu hóa nếu không nằm trong khoảng thời gian của selectedKM
+        if (current.isBefore(selectedKMStartDate, 'day') || current.isAfter(selectedKMEndDate, 'day')) {
+            return true; // Disable dates outside the selectedKM range
+        }
+
+        // Tìm các khuyến mãi có cùng type
+        const overlappingPromotionLines = promotionLines.filter((line) => line.type === currentType);
+
+        // Tìm ngày khuyến mãi bắt đầu tiếp theo lớn hơn ngày đã chọn
+        const nextPromotionStartDate = overlappingPromotionLines
+            .map((line) => dayjs(line.startDate))
+            .find((promotionStartDate) => promotionStartDate.isAfter(startDate)); // Lấy ngày bắt đầu khuyến mãi lớn hơn startDate
+
+        // Nếu có ngày khuyến mãi bắt đầu tiếp theo
+        if (nextPromotionStartDate) {
+            // Vô hiệu hóa các ngày nằm trong khoảng từ ngày đã chọn đến ngày khuyến mãi bắt đầu tiếp theo
+            const nextPromotionEndDate = nextPromotionStartDate.subtract(1, 'day'); // Ngày kết thúc khuyến mãi tiếp theo là ngày trước ngày bắt đầu
+            if (current.isAfter(nextPromotionEndDate)) {
+                return true; // Disable dates that are overlapping with the next promotion
+            }
+        }
+
+        return false; // Ngày không bị vô hiệu hóa
+    };
 
     // Xử lý khi đang loading hoặc có lỗi
     if (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) return <Loading />;
@@ -878,11 +1156,7 @@ const Promotion = () => {
 
                     <h1 className="grid justify-center items-center">{formatDate(promotion.endDate)}</h1>
 
-                    <div
-                        className={`justify-center grid items-center grid-cols-2 px-2   ${
-                            promotion.promotionLines.length > 0 ? 'pointer-events-none opacity-50' : ''
-                        }`}
-                    >
+                    <div className="justify-center grid items-center grid-cols-2 px-2   ">
                         <button className=" grid " onClick={() => handleOpenKM(true)}>
                             <FaRegEdit
                                 color="black"
@@ -896,7 +1170,15 @@ const Promotion = () => {
                             />
                         </button>
 
-                        <button className="grid" onClick={() => handleDeleteKM(promotion.code)}>
+                        <button
+                            className={`grid ${
+                                promotion.promotionLines.length > 0 ? 'pointer-events-none opacity-50' : ''
+                            }`}
+                            onClick={() => {
+                                handleOpenDelete();
+                                setSelectedKM(promotion);
+                            }}
+                        >
                             <MdOutlineDeleteOutline color="black" fontSize={23} />
                         </button>
                     </div>
@@ -926,6 +1208,7 @@ const Promotion = () => {
                                         onClick={() => {
                                             handleOpenKMLine(false);
                                             setSelectedKM(promotion);
+                                            setSelectedStatusKMLine('Chưa hoạt động');
                                         }}
                                     >
                                         <IoIosAddCircleOutline color="white" size={20} />
@@ -969,17 +1252,18 @@ const Promotion = () => {
                                         </div>
 
                                         <div className=" grid col-span-2 grid-cols-9 justify-center items-center ">
-                                            <div
-                                                className="justify-center  items-center grid col-span-5   "
-                                                onClick={() => mutation.mutate(item)}
-                                            >
-                                                <button
-                                                    className={`border uppercase  px-2 text-white text-[13px] py-[1px] flex  rounded-[40px] ${
-                                                        item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
+                                            <div className="justify-center  items-center grid col-span-5   ">
+                                                <div
+                                                    className={`border uppercase  px-1 text-white text-[12px] py-[2px] flex  rounded-[40px] ${
+                                                        item.status !== 1 ? 'bg-gray-400' : 'bg-green-500'
                                                     }`}
                                                 >
-                                                    {item.status === 0 ? 'Chưa diễn ra' : 'Đang diễn ra'}
-                                                </button>
+                                                    {item.status === 0
+                                                        ? 'Chưa hoạt động'
+                                                        : item.status === 1
+                                                        ? 'Hoạt động'
+                                                        : 'Ngừng hoạt động'}
+                                                </div>
                                             </div>
                                             <div className=" justify-around items-center col-span-4 flex  ">
                                                 <button
@@ -990,17 +1274,37 @@ const Promotion = () => {
                                                         setDescriptionKMLine(item.description);
                                                         setSelectedStartDateKMLine(dayjs(item.startDate));
                                                         setSelectedEndDateKMLine(dayjs(item.endDate));
+                                                        setSelectedOptionKMLine(
+                                                            optionKMLines.find((option) => option.value === item.type)
+                                                                ?.name,
+                                                        );
+                                                        setSelectedKM(promotion);
+
+                                                        setSelectedStatusKMLine(
+                                                            optionStatusKMLine.find(
+                                                                (option) => option.value === item.status,
+                                                            )?.name,
+                                                        );
                                                     }}
                                                 >
                                                     <FaRegEdit color="black" size={20} />
                                                 </button>
-                                                <button
-                                                    className="grid"
-                                                    onClick={() => handleOpenDelete(item)}
-                                                    disabled={item?.status === 1 ? true : false}
+
+                                                <div
+                                                    className={
+                                                        item?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                    }
                                                 >
-                                                    <MdOutlineDeleteOutline color="black" fontSize={23} />
-                                                </button>
+                                                    <button
+                                                        className="grid"
+                                                        onClick={() => {
+                                                            handleOpenDelete();
+                                                            setSelectedKMLine(item);
+                                                        }}
+                                                    >
+                                                        <MdOutlineDeleteOutline color="black" fontSize={23} />
+                                                    </button>
+                                                </div>
                                                 <button
                                                     className=""
                                                     onClick={() => {
@@ -1028,32 +1332,43 @@ const Promotion = () => {
                 <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
                     <AutoInputComponent
                         options={optionPromotion.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
+                        value={selectedFilterPromotion}
+                        onChange={(newValue) => handleFilterPromotion(newValue)}
                         title="Chương trình khuyến mãi"
                         freeSolo={false}
                         disableClearable={false}
-                        placeholder="Nhập ..."
+                        placeholder="Tất cả"
                         heightSelect={200}
                         borderRadius="10px"
                     />
                     <AutoInputComponent
-                        options={nuoc.map((option) => option.name)}
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Loại khuyến mãi"
+                        options={optionKMLines.map((option) => option.name)}
+                        value={selectedFilterPromotionLine}
+                        onChange={(newValue) => handleFilterPromotionLine(newValue)}
+                        title="Dòng khuyến mãi"
                         freeSolo={false}
                         disableClearable={false}
-                        placeholder="Nhập ..."
+                        placeholder="Tất cả"
                         heightSelect={200}
                         borderRadius="10px"
+                        disabled={selectedFilterPromotion === ''}
                     />
-                    <InputComponent className="rounded-[10px] " title="Ngày bắt đầu" type="date" />
-                    <InputComponent className="rounded-[10px] " title="Ngày kết thúc" type="date" />
+
+                    <div className="grid col-span-2 ">
+                        <h1 className="text-[16px] truncate mb-1">Khoảng thời gian</h1>
+                        <RangePicker
+                            value={rangePickerValue}
+                            onChange={onChangeRanger}
+                            placeholder={['Từ ngày', 'Đến ngày']}
+                            placement="bottomRight"
+                            format={'DD-MM-YYYY'}
+                            className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
+                        />
+                    </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border  h-[515px] max-h-screen custom-height-xs custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="gradient-button text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-6 items-center gap-3 rounded-lg">
+            <div className="bg-white border overflow-auto  shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+                <div className="gradient-button text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-6 items-center gap-3 ">
                     <div className=" grid col-span-3 grid-cols-10">
                         <div className="uppercase grid justify-center items-center col-span-2 "></div>
                         <h1 className="uppercase grid justify-center items-center   col-span-3">Mã Khuyến mãi</h1>
@@ -1071,7 +1386,13 @@ const Promotion = () => {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-auto h-[92%] height-sm-1 ">{renderPromotion(promotions)}</div>
+                <div className="overflow-auto h-[92%] height-sm-1">
+                    {Array.isArray(promotionFilterLine) && promotionFilterLine.length > 0
+                        ? renderPromotion(promotionFilterLine)
+                        : Array.isArray(promotionFilter) && promotionFilter.length > 0
+                        ? renderPromotion(promotionFilter)
+                        : renderPromotion(promotions)}
+                </div>
             </div>
 
             <ModalComponent
@@ -1100,6 +1421,7 @@ const Promotion = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
+                            disabled={isUpdateKM}
                         />
                     </div>
 
@@ -1109,12 +1431,13 @@ const Promotion = () => {
                                 <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                                 <DatePicker
                                     value={selectedStartDateKM ? dayjs(selectedStartDateKM) : null}
-                                    minDate={dayjs().add(3, 'day')}
+                                    disabledDate={disableStartDatePromotion(promotions)} // Hàm vô hiệu hóa ngày
                                     onChange={onChangeSelectedStartDateKM}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
-                                    className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    disabled={isUpdateKM}
+                                    className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black]"
                                 />
                             </div>
 
@@ -1122,7 +1445,7 @@ const Promotion = () => {
                                 <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                 <DatePicker
                                     value={selectedEndDateKM ? dayjs(selectedEndDateKM) : null}
-                                    minDate={dayjs(selectedStartDateKM)}
+                                    disabledDate={disableEndDatePromotion(promotions, selectedStartDateKM)} // Hàm vô hiệu hóa ngày
                                     onChange={setSelectedEndDateKM}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     disabled={!selectedStartDateKM}
@@ -1158,21 +1481,10 @@ const Promotion = () => {
                 maxHeightScreenHeight="48%"
                 maxHeightScreenWidth="55%"
                 heightScreen="35%"
-                title={isUpdateKMLine ? 'Chỉnh sửa loại khuyến mãi' : 'Thêm loại khuyến mãi'}
+                title={isUpdateKMLine ? 'Chỉnh sửa dòng khuyến mãi' : 'Thêm dòng khuyến mãi'}
             >
                 <div className=" h-[90%] grid grid-rows-3 space-y-2  mx-2 ">
                     <div className="grid grid-cols-2 gap-12   items-center  ">
-                        <AutoInputComponent
-                            options={optionKMLines.map((option) => option.name)}
-                            value={selectedOptionKMLine}
-                            onChange={handleOptionKMLine}
-                            title="Loại khuyến mãi"
-                            freeSolo={false}
-                            disableClearable={true}
-                            placeholder="Nhập ..."
-                            heightSelect={200}
-                            disabled={selectedKMLine?.status === 1 ? true : false}
-                        />
                         <AutoInputComponent
                             value={descriptionKMLine}
                             onChange={setDescriptionKMLine}
@@ -1181,48 +1493,97 @@ const Promotion = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
-                            disabled={selectedKMLine?.status === 1 ? true : false}
+                            disabled={selectedKMLine?.status === 1 || selectedKMLine?.status === 2}
+                        />
+
+                        <AutoInputComponent
+                            options={optionKMLines.map((option) => option.name)}
+                            value={selectedOptionKMLine}
+                            onChange={handleOnchangeOptionKMLine}
+                            title="Dòng khuyến mãi"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Chọn"
+                            heightSelect={200}
+                            disabled={selectedKMLine?.status === 1 || selectedKMLine?.status === 2}
                         />
                     </div>
 
-                    <div className="grid items-center    ">
-                        <div className="grid grid-cols-2 gap-8 ">
+                    <div className="grid grid-cols-2 gap-12   items-center   ">
+                        <div className="grid grid-cols-2 gap-8 col-span-1 ">
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
 
                                 <DatePicker
                                     value={selectedStartDateKMLine}
-                                    maxDate={isUpdateKMLine ? dayjs(selectedEndDateKM) : dayjs(selectedKM?.endDate)}
+                                    disabledDate={selectedOptionKMLine && isDateDisabledTest} // Gọi hàm với promotionLines và selectedOptionKMLine
                                     onChange={onChangeSelectedStartDateKMLine}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
-                                    disabled={selectedKMLine?.status === 1 ? true : false}
+                                    disabled={
+                                        selectedKMLine?.status === 1 ||
+                                        selectedKMLine?.status === 2 ||
+                                        !selectedOptionKMLine
+                                    }
                                 />
                             </div>
 
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                 <DatePicker
+                                    disabledDate={(current) =>
+                                        isEndDateDisabled(
+                                            current,
+                                            selectedStartDateKMLine,
+                                            selectedKM,
+                                            selectedKM.promotionLines,
+                                            selectedOptionKMLine,
+                                        )
+                                    } // Gọi hàm với promotionLines và selectedOptionKMLine
                                     value={selectedEndDateKMLine ? dayjs(selectedEndDateKMLine) : null}
-                                    minDate={dayjs(selectedStartDateKMLine)}
                                     onChange={setSelectedEndDateKMLine}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
-                                    disabled={!selectedStartDateKMLine}
+                                    disabled={
+                                        !selectedStartDateKMLine ||
+                                        optionStatusKMLine.find((item) => item.name === selectedStatusKMLine)?.value ===
+                                            2
+                                    }
                                     format="DD-MM-YYYY"
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                 />
                             </div>
                         </div>
+                        <AutoInputComponent
+                            options={
+                                selectedKMLine?.status === 0
+                                    ? optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
+                                    : selectedKMLine?.status === 1 && isDisabled(selectedEndDateKMLine)
+                                    ? optionStatusKMLine.filter((item) => item.value !== 0).map((item) => item.name)
+                                    : optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
+                            }
+                            value={selectedStatusKMLine}
+                            onChange={setSelectedStatusKMLine}
+                            title="Trạng thái"
+                            freeSolo={false}
+                            disableClearable={true}
+                            placeholder="Chọn"
+                            heightSelect={200}
+                            disabled={
+                                (selectedKMLine?.status === 1 && !isDisabled(selectedKMLine.endDate)) ||
+                                !isUpdateKMLine ||
+                                selectedKMLine?.status === 2
+                            }
+                        />
                     </div>
                     <div className="justify-end flex space-x-3 border-t pt-1 ">
                         <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseKMLine} />
                         <ButtonComponent
                             text={isUpdateKMLine ? 'Cập nhật' : 'Thêm mới'}
                             className=" bg-blue-500 "
-                            onClick={() => (isUpdateKMLine ? handleUpdateKMLine() : handleAddKMLine())}
+                            onClick={isUpdateKMLine ? () => mutation.mutate() : () => handleAddKMLine()}
                         />
                     </div>
                 </div>
@@ -1309,7 +1670,7 @@ const Promotion = () => {
                         <div className="flex justify-center">
                             <button
                                 className={`border px-4 py-1 rounded-[40px] bg-orange-400 ${
-                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                    selectedKMLine?.status === 2 ? 'pointer-events-none opacity-50' : ''
                                 }`}
                                 onClick={() => handleOpenKMDetailAction(false)}
                             >
@@ -1715,28 +2076,30 @@ const Promotion = () => {
                 open={openDelete}
                 handleClose={handleCloseDelete}
                 width="25%"
-                height="32%"
+                height="auto"
                 smallScreenWidth="40%"
-                smallScreenHeight="25%"
+                smallScreenHeight="auto"
                 mediumScreenWidth="40%"
-                mediumScreenHeight="20%"
-                largeScreenHeight="20%"
+                mediumScreenHeight="auto"
+                largeScreenHeight="auto"
                 largeScreenWidth="40%"
-                maxHeightScreenHeight="40%"
-                maxHeightScreenWidth="40%"
-                title="Xóa "
+                maxHeightScreenHeight="auto"
+                maxHeightScreenWidth="auto"
+                title={selectedKM?.code ? 'Xóa chương trình khuyến mãi' : 'Xóa dòng khuyến mãi'}
             >
-                <div className="h-[80%] grid grid-rows-3 ">
-                    <h1 className="grid row-span-2 p-3">
-                        Khi xóa sẽ không thể khôi phục lại. Bạn có chắc chắn xóa chứ?{' '}
-                    </h1>
+                <div className=" grid grid-rows-2 ">
+                    <h1 className="grid row-span-1 p-3 ">Bạn có chắc chắn muốn xóa không?</h1>
                     <div className="grid items-center ">
-                        <div className="justify-end flex space-x-3 border-t pt-3 pr-4 ">
+                        <div className="justify-end flex space-x-3 border-t p-3 pr-4  ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
                             <ButtonComponent
                                 text="Xóa"
                                 className="bg-blue-500"
-                                onClick={() => handleDeleteKMLine(selectedKMLine?.code)}
+                                onClick={() =>
+                                    selectedKM?.code
+                                        ? handleDeleteKM(selectedKM?.code)
+                                        : handleDeleteKMLine(selectedKMLine?.code)
+                                }
                             />
                         </div>
                     </div>

@@ -7,6 +7,7 @@ import scheduleReducer from './scheduleSlice';
 import valueReducer from './valueSlice';
 import authReducer from './authSlice';
 import productsReducer from './productSlice';
+import customersReducer from './customerSlice';
 
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 
@@ -24,6 +25,7 @@ const rootReducers = combineReducers({
     schedule: scheduleReducer,
     value: valueReducer,
     products: productsReducer,
+    customers: customersReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducers);
