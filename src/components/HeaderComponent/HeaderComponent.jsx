@@ -9,7 +9,7 @@ import { FcStatistics } from 'react-icons/fc';
 import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { BsTag } from 'react-icons/bs';
 import { ImSpoonKnife } from 'react-icons/im';
-import { MdOutlineAttachMoney } from 'react-icons/md';
+import { MdOutlineAttachMoney, MdOutlineRealEstateAgent } from 'react-icons/md';
 import { FaMoneyBills } from 'react-icons/fa6';
 
 const HeaderComponent = () => {
@@ -170,6 +170,15 @@ const HeaderComponent = () => {
                         >
                             <FaMoneyBills className="mr-2" color="green" />
                             Hóa đơn bán
+                        </button>
+                    </li>
+                    <li className={`hover:bg-orange-500 w-full ${isActive('/return-invoice')}`}>
+                        <button
+                            className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full"
+                            onClick={() => handleNavigate('/return-invoice')}
+                        >
+                            <MdOutlineRealEstateAgent className="mr-2" color="green" />
+                            Hóa đơn trả
                         </button>
                     </li>
                     <li className={`hover:bg-orange-500 w-full ${isActive('/seat')}`}>

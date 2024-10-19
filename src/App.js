@@ -2,7 +2,7 @@ import React, { Fragment, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { routes } from '~/routes';
 import DefaultComponent from './components/DefaultComponent/DefaultComponent';
-import Loading from './components/LoadingComponent/Loading';
+// import Loading from './components/LoadingComponent/Loading';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ToastContainer } from 'react-toastify';
 import NotFound from './pages/NotFoundPage/NotFound';
@@ -10,7 +10,9 @@ const queryClient = new QueryClient();
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <Suspense fallback={<Loading />}>
+            <Suspense
+            // fallback={<Loading />}
+            >
                 <Router>
                     <Routes>
                         {routes.map((route) => {
