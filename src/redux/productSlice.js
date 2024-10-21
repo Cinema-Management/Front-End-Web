@@ -7,7 +7,8 @@ const productSlice = createSlice({
         isFetching: false, // Trạng thái fetch
         error: false, // Trạng thái lỗi
         calculatedPrice: 0, // Giá đã tính toán
-        freeProduct: [], // Sản phẩm miễn phí
+        freeProduct: '', // Sản phẩm miễn phí
+        promotionDetailCode: '', // Mã khuyến mãi
     },
     reducers: {
         setProducts: (state, action) => {
@@ -19,9 +20,17 @@ const productSlice = createSlice({
         setFreeProduct: (state, action) => {
             state.freeProduct = action.payload; // Lưu danh sách sản phẩm miễn phí
         },
+        setPromotionDetailCode: (state, action) => {
+            state.promotionDetailCode = action.payload; // Lưu mã khuyến mãi
+        },
+        resetPromotionData: (state) => {
+            state.promotionDetailCode = ''; // Reset mã khuyến mãi
+            state.freeProduct = ''; // Reset danh sách sản phẩm miễn phí
+        },
     },
 });
 
-export const { setProducts, setCalculatedPrice, setFreeProduct } = productSlice.actions;
+export const { setProducts, setCalculatedPrice, setFreeProduct, setPromotionDetailCode, resetPromotionData } =
+    productSlice.actions;
 
 export default productSlice.reducer;

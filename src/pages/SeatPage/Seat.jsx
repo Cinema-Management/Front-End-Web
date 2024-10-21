@@ -17,6 +17,8 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import Barcode from 'react-barcode';
+import { resetPromotionData } from '~/redux/productSlice';
+import Loading from '~/components/LoadingComponent/Loading';
 
 const { FormatSchedule, getFormatteNgay } = require('~/utils/dateUtils');
 const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
@@ -55,7 +57,8 @@ const Seat = () => {
     const value = useSelector((state) => state.value.value);
     const [openPay, setOpenPay] = useState(false);
     const customer = useSelector((state) => state.customers.customer.currentCustomer) || null;
-
+    const promotionDetailCode = useSelector((state) => state.products?.promotionDetailCode); // Lấy danh sách sản phẩm từ store
+    const freeProduct = useSelector((state) => state.products?.freeProduct); // Lấy danh sách sản phẩm từ store
     const [selectedCombos, setSelectedCombos] = useState([]);
     const dispatch = useDispatch();
     const handleOpenPay = () => setOpenPay(true);
@@ -74,6 +77,7 @@ const Seat = () => {
     };
     const handleClosePrint = () => {
         setOpenPrint(false);
+        dispatch(resetPromotionData());
         dispatch(resetCombo());
         dispatch(resetSeats());
         dispatch(resetValue());
@@ -170,7 +174,6 @@ const Seat = () => {
         }, []);
     };
     const combos = useSelector((state) => state.seat.seat.selectedCombo); // Lấy danh sách số lượng sản phẩm
-    const arrayFeeProduct = useSelector((state) => state.products?.freeProduct); // Lấy danh sách sản phẩm từ store
 
     const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
 
@@ -186,6 +189,7 @@ const Seat = () => {
 
     const totalPrice = useMemo(() => calculateTotalPrice(arraySeat), [arraySeat]);
     const totalPriceMain = useMemo(() => totalPriceCombo + totalPrice, [totalPriceCombo, totalPrice]);
+    const discountAmount = totalPriceMain - priceAfter;
 
     const [cashGiven, setCashGiven] = useState(0);
     const [changeAmount, setChangeAmount] = useState(0);
@@ -232,10 +236,8 @@ const Seat = () => {
 
     const {
         data: addressCinema = '',
-        // isLoading,
-        // isFetching,
-        // error,
-        // refetch,
+        isLoading: isLoadingAddressCinema,
+        error: errorAddressCinema,
     } = useQuery(['addressCinemaByCode', schedule.cinemaCode], () => fetchAddressCinemaCode(schedule.cinemaCode), {
         staleTime: 1000 * 60 * 3,
         cacheTime: 1000 * 60 * 10,
@@ -267,6 +269,7 @@ const Seat = () => {
                     return;
                 }
                 let loadingToastId;
+                setCashGiven(0);
                 loadingToastId = toast.loading('Đang thanh toán!');
 
                 const salesInvoice = {
@@ -307,6 +310,17 @@ const Seat = () => {
                             await axios.post('api/sales-invoices-details', salesInvoiceDetail);
                             console.log(`Đã gửi hóa đơn cho sản phẩm: ${combo.productCode}`);
                         }
+                    }
+                    if (promotionDetailCode) {
+                        const promotionResult = {
+                            salesInvoiceCode: salesInvoices.code,
+                            promotionDetailCode: promotionDetailCode,
+                            freeProductCode: freeProduct?.freeProductCode,
+                            freeQuantity: freeProduct?.freeQuantity,
+                            discountAmount: discountAmount,
+                        };
+
+                        await axios.post('api/promotion-results', promotionResult);
                     }
                     handleUpdateStatusSeat(3);
                     toast.dismiss(loadingToastId);
@@ -358,14 +372,12 @@ const Seat = () => {
         createdAt: FormatSchedule(new Date()),
         staffName: user?.name,
     };
-    const freeProduct = arrayFeeProduct[1];
     const freeProductPrint = {
         productName: freeProduct?.productName,
         price: freeProduct?.price,
         quantity: freeProduct?.freeQuantity,
         totalPrice: freeProduct?.price,
     };
-    console.log(freeProductPrint);
     const foodPrint = groupedCombos?.map((combo) => ({
         productName: combo.name,
         price: combo.price,
@@ -374,6 +386,10 @@ const Seat = () => {
     }));
 
     const combinedPrint = [freeProductPrint, ...foodPrint].filter((item) => item.quantity > 0);
+
+    if (isLoadingAddressCinema) return <Loading />;
+
+    if (errorAddressCinema) return <div>Error loading data: {errorAddressCinema.message}</div>;
 
     return (
         <div className="max-h-screen">
@@ -658,7 +674,7 @@ const Seat = () => {
                         <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClosePay} />
                         <ButtonComponent
                             text="Xác nhận"
-                            className=" bg-blue-500 "
+                            className={` bg-blue-500 ${cashGiven === 0 ? 'pointer-events-none opacity-50' : ''}`}
                             onClick={() => {
                                 mutationPay.mutate();
                             }}
@@ -762,7 +778,7 @@ const Seat = () => {
                         {groupedCombos?.length > 0 && (
                             <div className="p-4 border border-gray-300 rounded-lg ticket-bg mb-4 shadow-md space-y-2 pb-5 ">
                                 {/* Tiêu đề vé */}
-                                <p className="text-center font-bold text-2xl pb-5">Bắp Nước</p>
+                                <p className="text-center font-bold text-2xl pb-5">Đồ Ăn & Nước</p>
                                 {/* Thông tin rạp */}
                                 <p className="text-left font-semibold">{salesInvoiceFoodPrint.cinemaName}</p>
                                 <p className="text-left font-normal ">{salesInvoiceFoodPrint.cinemaAddress}</p>

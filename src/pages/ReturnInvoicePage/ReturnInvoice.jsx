@@ -25,12 +25,7 @@ const SaleInvoice = () => {
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
 
     const height = HeightInVoiceComponent();
-    const optionStatus = [
-        { value: 3, name: 'Tất cả' },
-        { value: 1, name: 'Hoàn tất' },
-    ];
 
-    const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
     const handleOpen = () => {
         setOpen(true);
     };
@@ -86,6 +81,17 @@ const SaleInvoice = () => {
         }
     };
 
+    const fetchPromotionResult = async (promotionResultCode) => {
+        try {
+            const response = await axios.get('api/promotion-results/' + promotionResultCode);
+            const data = response.data;
+
+            return data;
+        } catch (error) {
+            console.log('error', error);
+        }
+    };
+
     const {
         data: { invoices = [] } = {},
         isLoading,
@@ -134,13 +140,33 @@ const SaleInvoice = () => {
         refetchInterval: 1000 * 60 * 7,
     });
 
-    if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff) return <Loading />;
+    const {
+        data: promotionResult = '',
+        isLoading: isLoadingPromotionResult,
+        error: errorPromotionResult,
+    } = useQuery(
+        ['fetchPromotionResult', selectedInvoice?.salesInvoiceCode],
+        () => fetchPromotionResult(selectedInvoice?.salesInvoiceCode),
+        {
+            staleTime: 1000 * 60 * 7, // Thời gian dữ liệu được xem là "cũ"
+            cacheTime: 1000 * 60 * 10, // Thời gian dữ liệu được lưu trong bộ nhớ cache
+            refetchInterval: 1000 * 60 * 7, // Tần suất làm mới dữ liệu
+            enabled: !!selectedInvoice?.salesInvoiceCode, // Chỉ thực hiện truy vấn khi có mã hóa đơn
+        },
+    );
+
+    if (isLoading || isLoadingMovies || isLoadingCinemas || isLoadingStaff || isLoadingPromotionResult)
+        return <Loading />;
     if (!isFetched || !isFetchedMovies || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
-    if (isError || isErrorMovies || CinemaError || isErrorStaff)
+    if (isError || isErrorMovies || CinemaError || isErrorStaff || errorPromotionResult)
         return (
             <div>
                 Error loading data:{' '}
-                {isError.message || isErrorMovies.message || CinemaError.message || isErrorStaff.message}
+                {isError.message ||
+                    isErrorMovies.message ||
+                    CinemaError.message ||
+                    isErrorStaff.message ||
+                    errorPromotionResult.message}
             </div>
         );
 
@@ -164,7 +190,6 @@ const SaleInvoice = () => {
             toast.info('Không tìm thấy phim nào!');
             setInvoiceFilter(invoices);
             setInputSearch('');
-            setSelectedStatus(optionStatus[0]);
             setSearchSDT('');
             setSearchCodeHD('');
             setSelectedOptionFilterCinema('');
@@ -174,39 +199,10 @@ const SaleInvoice = () => {
 
         setInvoiceFilter(filterDate);
         setInputSearch('');
-        setSelectedStatus(optionStatus[0]);
         setSearchSDT('');
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
         setStaffFilter('');
-    };
-
-    const sortedStatus = (option) => {
-        if (!option) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        setSelectedStatus(option);
-        let sortedStatus = [];
-        if (option.value === 1) {
-            sortedStatus = invoices.filter((item) => item.status === 1);
-            setInvoiceFilter(sortedStatus);
-        } else if (option.value === 2) {
-            sortedStatus = invoices.filter((item) => item.status === 0);
-            setInvoiceFilter(sortedStatus);
-        } else if (option.value === 3) {
-            sortedStatus = invoices;
-        }
-        if (sortedStatus.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        }
-        setInvoiceFilter(sortedStatus);
-        setSearchSDT('');
-        setSearchCodeHD('');
-        setSelectedOptionFilterCinema('');
-        setInputSearch('');
-        setStaffFilter('');
-        setRangePickerValue(['', '']);
     };
 
     const handleSearch = (value) => {
@@ -228,7 +224,6 @@ const SaleInvoice = () => {
         setSearchSDT('');
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
-        setSelectedStatus(optionStatus[0]);
         setStaffFilter('');
         setRangePickerValue(['', '']);
     };
@@ -249,7 +244,6 @@ const SaleInvoice = () => {
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
         setInputSearch('');
-        setSelectedStatus(optionStatus[0]);
         setRangePickerValue(['', '']);
     };
 
@@ -272,7 +266,6 @@ const SaleInvoice = () => {
         setSearchCodeHD('');
         setSelectedOptionFilterCinema('');
         setRangePickerValue(['', '']);
-        setSelectedStatus(optionStatus[0]);
     };
 
     const handleSearchCodeHD = (value) => {
@@ -292,7 +285,6 @@ const SaleInvoice = () => {
         setInputSearch('');
         setSearchSDT('');
         setSelectedOptionFilterCinema('');
-        setSelectedStatus(optionStatus[0]);
         setRangePickerValue(['', '']);
     };
 
@@ -321,7 +313,6 @@ const SaleInvoice = () => {
         setInputSearch('');
         setSearchSDT('');
         setSearchCodeHD('');
-        setSelectedStatus(optionStatus[0]);
     };
 
     const calculateTotal = (details) => {
@@ -375,13 +366,7 @@ const SaleInvoice = () => {
                     <h1 className="grid justify-center col-span-3 items-center ">
                         {formatCurrency(calculateTotal(item.details))}
                     </h1>
-                    <button
-                        className={`border col-span-3 text-white text-[14px] py-[3px]  rounded-[40px] ${
-                            item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
-                        }`}
-                    >
-                        {item.status === 1 ? 'Hoàn tất' : 'Đã hủy'}
-                    </button>
+                    <h1 className="grid justify-center col-span-3 items-center ">{item.salesInvoiceCode}</h1>
                     <div className="grid col-span-2 justify-center">
                         <button
                             className="ml-2"
@@ -408,7 +393,7 @@ const SaleInvoice = () => {
                         <AutoInputComponent
                             value={searchCodeHD}
                             onChange={(newValue) => handleSearchCodeHD(newValue)}
-                            title="Mã hóa đơn"
+                            title="Mã hóa đơn trả"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập ..."
@@ -436,7 +421,7 @@ const SaleInvoice = () => {
                             />
 
                             <div className="col-span-4">
-                                <h1 className="text-[16px] truncate mb-1">Ngày lập</h1>
+                                <h1 className="text-[16px] truncate mb-1">Ngày trả</h1>
                                 <RangePicker
                                     value={rangePickerValue}
                                     onChange={onChangeRanger}
@@ -448,7 +433,7 @@ const SaleInvoice = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-10 items-center w-full h-16 px-3">
+                    <div className="grid grid-cols-3 gap-10 items-center w-full h-16 px-3">
                         <AutoInputComponent
                             options={optionStaff.map((item) => item.name)}
                             value={staffFilter}
@@ -486,21 +471,6 @@ const SaleInvoice = () => {
                                 }
                             }}
                         />
-                        <div className="relative w-full ">
-                            <AutoInputComponent
-                                value={selectedStatus.name}
-                                onChange={(newValue) => sortedStatus(newValue)}
-                                options={optionStatus}
-                                title="Trạng thái"
-                                freeSolo={true}
-                                disableClearable={true}
-                                heightSelect={200}
-                                borderRadius="10px"
-                                onBlur={(event) => {
-                                    event.preventDefault();
-                                }}
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -509,16 +479,16 @@ const SaleInvoice = () => {
                     <div className="border-b py-2 gap-2 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] pr-2">
                         <div className="grid grid-cols-3">
                             <h1 className="grid justify-center items-center ">STT</h1>
-                            <h1 className="grid justify-center items-center col-span-2  ">Mã HĐ</h1>
+                            <h1 className="grid justify-center items-center col-span-2  ">Mã HĐ Trả</h1>
                         </div>
                         <h1 className="grid justify-center items-center">Nhân viên lập</h1>
                         <h1 className="grid col-span-1 justify-center items-center">Khách hàng</h1>
                         <h1 className="grid justify-center items-center">Rạp</h1>
                         <h1 className="grid justify-center items-center">Tên phim</h1>
-                        <h1 className="grid justify-center items-center">Ngày lập</h1>
+                        <h1 className="grid justify-center items-center">Ngày Trả</h1>
                         <div className=" grid col-span-2 grid-cols-8 ">
                             <h1 className="grid justify-center items-center col-span-3 ">Tổng tiền</h1>
-                            <h1 className="grid justify-center items-center col-span-3">Trạng thái</h1>
+                            <h1 className="grid justify-center items-center col-span-3">Mã HĐ bán</h1>
                             <h1 className="grid justify-center items-center col-span-2">{''}</h1>
                         </div>
                     </div>
@@ -545,7 +515,7 @@ const SaleInvoice = () => {
                 width="60%"
                 height="80%"
                 smallScreenWidth="80%"
-                smallScreenHeight="60%"
+                smallScreenHeight="80%"
                 mediumScreenWidth="80%"
                 mediumScreenHeight="50%"
                 largeScreenHeight="45%"
@@ -555,17 +525,17 @@ const SaleInvoice = () => {
                 heightScreen="75%"
                 title="Chi tiết hóa đơn"
             >
-                <div className="h-90p grid grid-rows-11 gap-2 ">
-                    <div className="grid row-span-5">
+                <div className="h-90p grid grid-rows-12 gap-2  px-2">
+                    <div className="grid row-span-4 pb-2  ">
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="grid  grid-cols-2 gap-2">
-                                    <h1 className=" font-bold">Mã hóa đơn:</h1>
+                                    <h1 className=" font-bold">Mã hóa đơn trả:</h1>
                                     <h1 className=" font-normal">{selectedInvoice?.code}</h1>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Ngày lập:</h1>
-                                    <h1 className="grid col-span-2 font-normal">
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Ngày trả</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center">
                                         {FormatSchedule(selectedInvoice?.createdAt)}
                                     </h1>
                                 </div>
@@ -581,9 +551,9 @@ const SaleInvoice = () => {
                                             : selectedInvoice?.staffCode.name}
                                     </h1>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Khách hàng:</h1>
-                                    <h1 className="grid col-span-2 font-normal">
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Khách hàng:</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center">
                                         {' '}
                                         {selectedInvoice?.customerCode === null
                                             ? 'App'
@@ -600,23 +570,24 @@ const SaleInvoice = () => {
                                         {selectedInvoice?.scheduleCode?.roomCode?.cinemaCode?.name}
                                     </h1>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Tên phim:</h1>
-                                    <h1 className="grid col-span-2 font-normal">
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Tên phim:</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center">
                                         {selectedInvoice?.scheduleCode?.movieCode?.name}
                                     </h1>
                                 </div>
                             </div>
                         </div>
+
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="grid grid-cols-2 gap-2">
                                     <h1 className="font-bold">Phòng:</h1>
                                     <h1 className="font-normal">{selectedInvoice?.scheduleCode?.roomCode?.name}</h1>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Suất chiếu:</h1>
-                                    <h1 className="grid col-span-2 font-normal">
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Suất chiếu:</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center">
                                         {FormatSchedule(selectedInvoice?.scheduleCode?.startTime)}
                                         {' - '}
                                         {selectedInvoice?.scheduleCode?.screeningFormatCode.name}
@@ -628,43 +599,58 @@ const SaleInvoice = () => {
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="grid grid-cols-2 gap-2">
                                     <h1 className="font-bold">Phương thức thanh toán:</h1>
-                                    <h1 className="font-normal">
+                                    <h1 className="font-normal items-center">
                                         {selectedInvoice?.paymentMethod === 0 ? 'Tiền mặt' : 'VNPay'}
                                     </h1>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Tổng tiền:</h1>
-                                    <h1 className="grid col-span-2 font-normal">
-                                        {formatCurrency(calculateTotal(selectedInvoice?.details))}
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Mã CT khuyến mãi:</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center">
+                                        {promotionResult?.code || 'Không áp dụng'}
                                     </h1>
                                 </div>
                             </div>
                         </div>
-                        <div className="grid text-[15px] items-center px-3">
-                            <div className="grid gap-2">
-                                <div className="flex">
-                                    <h1 className="font-bold">Lý do hủy:</h1>
-                                    <h1 className="font-normal ml-2">{selectedInvoice?.returnReason}</h1>
-                                </div>
+                    </div>
+
+                    <div className="grid row-span-5 ">
+                        <div className="grid items-center border-b py-1 ">
+                            <div className="grid grid-cols-6 gap-2 text-sm  uppercase font-bold text-slate-700  px-3">
+                                <h1 className="  grid justify-center items-center col-span-2 ">Tên sản phẩm</h1>
+                                <h1 className=" grid justify-center items-center ">Mô tả</h1>
+                                <h1 className=" grid justify-center items-center ">Số lượng</h1>
+                                <h1 className=" justify-center grid items-center ">Đơn giá</h1>
+                                <h1 className=" justify-end grid items-center ">Thành tiền</h1>
                             </div>
                         </div>
-                    </div>
-                    <div className="grid items-center border-b ">
-                        <div className="grid grid-cols-6 gap-2 text-sm  uppercase font-bold text-slate-700  px-3">
-                            <h1 className="  grid justify-center items-center col-span-2 ">Tên sản phẩm</h1>
-                            <h1 className=" grid justify-center items-center ">Mô tả</h1>
-                            <h1 className=" grid justify-center items-center ">Số lượng</h1>
-                            <h1 className=" justify-center grid items-center ">Đơn giá</h1>
-                            <h1 className=" justify-center grid items-center ">Thành tiền</h1>
-                        </div>
-                    </div>
-                    <div className="grid row-span-4">
-                        <div className="h-[100%] overflow-auto">
+                        <div className="h-[100%] overflow-auto ">
+                            {promotionResult?.freeProductCode?.name && (
+                                <div className="grid grid-cols-6 gap-2 text-[15px] border-b mb-2 font-normal py-2 px-3">
+                                    <h1 className="grid items-center col-span-2 grid-rows-1 ">
+                                        <span>
+                                            {promotionResult?.freeProductCode?.name}{' '}
+                                            <span className="text-red-500">(Quà tặng)</span>
+                                        </span>
+                                    </h1>
+
+                                    <h1 className="grid items-center">
+                                        {promotionResult?.freeProductCode?.description}
+                                    </h1>
+                                    <h1 className="grid justify-center items-center">
+                                        {promotionResult?.freeQuantity}
+                                    </h1>
+                                    <h1 className="justify-center grid items-center">0đ</h1>
+                                    <h1 className="justify-end grid items-center">0đ</h1>
+                                </div>
+                            )}
+
                             {Object.entries(groupedDetails).map(([productName, items]) => {
                                 const firstItem = items[0];
+                                console.log('groupedDetails', groupedDetails);
+                                console.log('items', firstItem);
                                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                                 const totalAmount = items.reduce((sum, item) => sum + item.totalAmount, 0);
-                                console.log('items', items);
+
                                 return (
                                     <div
                                         key={firstItem.code}
@@ -679,16 +665,46 @@ const SaleInvoice = () => {
                                         <h1 className="justify-center grid items-center">
                                             {formatCurrency(totalAmount / totalQuantity)}
                                         </h1>
-                                        <h1 className="justify-center grid items-center">
-                                            {totalAmount.toLocaleString()} đ
-                                        </h1>
+                                        <h1 className="justify-end grid items-center">{formatCurrency(totalAmount)}</h1>
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-                    <div className="justify-end flex space-x-3 mt-1  border-t pr-4">
-                        <div className="space-x-3 mt-[6px]">
+
+                    <div className=" grid grid-rows-10  row-span-3  mt-1  border-t   px-2 pt-1">
+                        <div className="grid row-span-7 ">
+                            <div className="grid grid-cols-2 gap-5 text-base">
+                                <span className="grid   uppercase font-bold text-slate-700">Tổng tiền:</span>
+                                <span className="grid justify-end ">
+                                    {' '}
+                                    {formatCurrency(calculateTotal(selectedInvoice?.details))}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-base">
+                                <span className="grid  uppercase font-bold text-slate-700">Giảm giá:</span>
+                                <span className="grid justify-end ">
+                                    {formatCurrency(
+                                        calculateTotal(selectedInvoice?.details) -
+                                            (promotionResult?.discountAmount || 0) -
+                                            calculateTotal(selectedInvoice?.details),
+                                    ) || formatCurrency(0)}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-base">
+                                <span className="grid  uppercase font-bold text-slate-700">Tổng thanh toán:</span>
+                                <span className="grid justify-end ">
+                                    {formatCurrency(
+                                        calculateTotal(selectedInvoice?.details) -
+                                            (promotionResult?.discountAmount || 0),
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="grid   justify-end row-span-3 py-3 border-t">
                             <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleClose} />
                         </div>
                     </div>

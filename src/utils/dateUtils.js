@@ -12,6 +12,7 @@ function getFormattedDate(isoString) {
 }
 
 function getFormatteNgay(isoString) {
+    if (!isoString) return '';
     const date = new Date(isoString);
 
     const year = date.getFullYear();
@@ -43,4 +44,32 @@ function FormatSchedule(isoString) {
     return `${hours}:${minutes}, ${day}/${month}/${year}`;
 }
 
-module.exports = { getFormattedDate, getFormatteNgay, FormatDate, FormatSchedule };
+function getFormattedDateTime(isoString) {
+    const date = new Date(isoString);
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${hours}:${minutes}`;
+}
+
+function handleChangAge(age) {
+    if (age === 13) {
+        return 'C13';
+    } else if (age === 16) {
+        return 'C16';
+    } else if (age === 18) {
+        return 'C18';
+    } else {
+        return 'P';
+    }
+}
+
+module.exports = {
+    getFormattedDate,
+    getFormatteNgay,
+    FormatDate,
+    FormatSchedule,
+    getFormattedDateTime,
+    handleChangAge,
+};

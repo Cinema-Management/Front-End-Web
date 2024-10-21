@@ -212,14 +212,12 @@ const Schedule = () => {
         }
     }, [optionNameCinema, selectedOptionFilterCinema]);
 
-    const fetchAllScheduleInRoomByCinemaCode = async (selectedOptionFilterCinema) => {
+    const fetchAllScheduleInRoomByCinemaCode = async (selectedOptionFilterCinema, date) => {
         if (!selectedOptionFilterCinema) return;
         const cinemaCode = optionNameCinema.find((option) => option.name === selectedOptionFilterCinema)?.code;
 
         try {
-            const response = await axios.get(
-                `api/schedules/getAllRoomsWithSchedules/${cinemaCode}?date=${formattedDate}`,
-            );
+            const response = await axios.get(`api/schedules/getAllRoomsWithSchedules/${cinemaCode}?date=${date}`);
             const room = response.data;
 
             return groupAndSortSchedules(room);
@@ -235,7 +233,7 @@ const Schedule = () => {
         refetch: refetchRoom,
     } = useQuery(
         ['fetchAllScheduleInRoomByCinemaCode', selectedOptionFilterCinema, formattedDate],
-        () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema),
+        () => fetchAllScheduleInRoomByCinemaCode(selectedOptionFilterCinema, formattedDate),
         {
             staleTime: 1000 * 60 * 7,
             cacheTime: 1000 * 60 * 10,
@@ -785,8 +783,6 @@ const Schedule = () => {
         return true;
     };
 
-
-
     const checkAddAndUpdate = () => {
         let rooms = [];
         if (isUpdate) {
@@ -1124,11 +1120,12 @@ const Schedule = () => {
                                     }`}
                                 >
                                     <button
-                                        className={`gradient-button text-white text-sm px-2  py-1 rounded-[40px]    flex grid-cols-2${
+                                        className={`gradient-button text-white text-sm px-2  py-1 rounded-[40px]    flex grid-cols-2
+                                        ${
                                             item.schedules.some((item) => item.status === 0)
                                                 ? ''
                                                 : 'pointer-events-none opacity-50'
-                                        } `}
+                                        }`}
                                         onClick={() => {
                                             const schedulesToUpdate = item.schedules.filter(
                                                 (item) => item.status === 0,
