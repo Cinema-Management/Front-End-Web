@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
-import { get, set } from 'lodash';
 
 const Seat = lazy(() => import('~/pages/SeatPage/Seat'));
 
@@ -295,13 +294,17 @@ const Order = () => {
             const filteredMovie = room.find((roomItem) => roomItem.movieCode === selectedMovieSchedule?.movieCode);
             if (!filteredMovie) {
                 setCheckSchedule(true);
+                console.log('checkScheduleaaaaaaaaaa');
             } else {
                 setCheckSchedule(false);
                 getMovieSchedule(dispatch, filteredMovie);
+                console.log('checkScheduleaaaaaaaaaavvvvvvvvvv');
             }
         }
     }, [room, selectedMovieSchedule, dispatch]);
 
+    console.log('selectedMovieSchedule', selectedMovieSchedule);
+    console.log('checkSchedule', checkSchedule);
     if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
     if (errorRoom || CinemaError || optionCinemaNameError)
         return (
@@ -329,15 +332,15 @@ const Order = () => {
                 </div>
             ));
     };
-    console.log('selectedMovieSchedule', selectedMovieSchedule);
-    console.log('startdate', selectedMovieSchedule?.schedules[0].schedules[0]?.startTime);
+    // console.log('selectedMovieSchedule', selectedMovieSchedule);
+    // console.log('startdate', selectedMovieSchedule?.schedules[0].schedules[0]?.startTime);
     return (
-        <div className="max-h-screen">
+        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             {!selectedIsSchedule ? (
                 <>
-                    <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+                    <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                         <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Bán vé</h1>
-                        <div className="grid grid-cols-3 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                        <div className="grid grid-cols-3  gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                             <AutoInputComponent
                                 options={optionNameCinema.map((option) => option.name)}
                                 value={selectedOptionFilterCinema}
@@ -360,6 +363,7 @@ const Order = () => {
                                 placeholder="Nhập ..."
                                 heightSelect={200}
                                 borderRadius="10px"
+                                disabled={selectedCinema}
                             />
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày chiếu</h1>
@@ -422,7 +426,7 @@ const Order = () => {
                                         Quay lại
                                     </Button>
                                 </div>
-                                {checkSchedule && selectedMovieSchedule === null ? (
+                                {checkSchedule ? (
                                     <div className="text-center">
                                         <h1 className="text-[16px] ">
                                             Xin lỗi, không có suất chiếu vào ngày này, hãy chọn một ngày khác.

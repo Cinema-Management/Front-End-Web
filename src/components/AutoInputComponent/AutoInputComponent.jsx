@@ -11,6 +11,7 @@ const AutoInputComponent = ({
     placeholder,
     className1,
     title,
+    type,
     heightSelect,
     borderRadius,
     color,
@@ -21,6 +22,15 @@ const AutoInputComponent = ({
         setInputValue(value || '');
     }, [value]);
 
+    const handleInputChange = (newInputValue) => {
+        if (type === 'number') {
+            const numericValue = parseFloat(newInputValue);
+            if (numericValue <= 0) {
+                return;
+            }
+        }
+        setInputValue(newInputValue);
+    };
     return (
         <Stack spacing={2} sx={{ width: 'auto' }} className={`${className1}`}>
             <div>
@@ -32,7 +42,7 @@ const AutoInputComponent = ({
                     getOptionLabel={(option) => option.name || option}
                     value={inputValue} // Giá trị được điều khiển (controlled)
                     inputValue={inputValue} // Giá trị input được điều khiển (controlled)
-                    onInputChange={(event, newInputValue) => setInputValue(newInputValue)} // Cập nhật inputValue tạm thời
+                    onInputChange={(event, newInputValue) => handleInputChange(newInputValue)}
                     // Chỉ cập nhật giá trị khi người dùng chọn hoặc nhấn Enter
                     onChange={(event, newValue) => onChange(newValue)}
                     // Cập nhật giá trị khi người dùng rời khỏi input (blur)
@@ -42,6 +52,7 @@ const AutoInputComponent = ({
                             {...params}
                             label={label}
                             placeholder={placeholder}
+                            type={type}
                             variant="outlined"
                             sx={{
                                 '& .MuiInputBase-root': {

@@ -512,9 +512,9 @@ const Food = () => {
                 key={item.code}
                 style={style}
             >
-                <div className="grid col-span-2 gap-2 grid-cols-9 justify-center items-center">
+                <div className="grid col-span-2 gap-2 grid-cols-9  justify-center items-center">
                     <h1 className="grid pl-3 col-span-2">{index + 1}</h1>
-                    <h1 className="grid pl-3 col-span-2">{item.code}</h1>
+                    <h1 className="grid col-span-2">{item.code}</h1>
                     <h1 className="grid pl-3 col-span-5">{item.name}</h1>
                 </div>
                 <div className="justify-center items-center grid">
@@ -590,7 +590,7 @@ const Food = () => {
             <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Đồ ăn & nước</h1>
 
-                <div className="grid grid-cols-4 gap-10 items-center w-full h-16 px-3 min-w-[900px] ">
+                <div className="grid grid-cols-4 gap-8 items-center w-full h-16 px-3 min-w-[900px] ">
                     <AutoInputComponent
                         options={optionFood.map((item) => item.name)}
                         value={inputSearch}
@@ -645,7 +645,7 @@ const Food = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
                     <div className="bg-white border-b py-1 justify-center items-center uppercase text-[13px] font-bold  text-slate-500 grid grid-cols-8 gap-6 min-w-[1200px] pr-4">
                         <div className="grid col-span-2 grid-cols-9 gap-2 justify-center items-center">

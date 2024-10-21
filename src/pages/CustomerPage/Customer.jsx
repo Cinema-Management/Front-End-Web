@@ -234,7 +234,7 @@ const Customer = () => {
                     />
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border py-4 h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-hubmax custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
                     <div className="border-b py-1 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center gap-2 min-w-[1200px]">
                         <div className="grid grid-cols-3">

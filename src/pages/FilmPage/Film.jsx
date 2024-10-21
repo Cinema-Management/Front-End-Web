@@ -349,53 +349,53 @@ const Film = React.memo(() => {
     const validate = () => {
         if (isUpdate) return true;
         if (!name) {
-            toast.error('Vui lòng nhập tên.');
+            toast.warn('Vui lòng nhập tên.');
             return false;
         }
         if (!duration) {
-            toast.error('Vui lòng nhập thời lượng.');
+            toast.warn('Vui lòng nhập thời lượng.');
             return false;
         }
         if (!selectedGenre) {
-            toast.error('Vui lòng chọn thể loại.');
+            toast.warn('Vui lòng chọn thể loại.');
             return false;
         }
         if (!country) {
-            toast.error('Vui lòng chọn quốc gia.');
+            toast.warn('Vui lòng chọn quốc gia.');
             return false;
         }
         if (!director) {
-            toast.error('Vui lòng nhập đạo diễn.');
+            toast.warn('Vui lòng nhập đạo diễn.');
             return false;
         }
 
         if (!startDate) {
-            toast.error('Vui lòng chọn ngày phát hành.');
+            toast.warn('Vui lòng chọn ngày phát hành.');
             return false;
         }
         if (!endDate) {
-            toast.error('Vui lòng chọn ngày kết thúc.');
+            toast.warn('Vui lòng chọn ngày kết thúc.');
             return false;
         }
         if (!ageRestriction) {
-            toast.error('Vui lòng chọn độ tuổi.');
+            toast.warn('Vui lòng chọn độ tuổi.');
             return false;
         }
         if (!cast) {
-            toast.error('Vui lòng nhập dàn diễn viên.');
+            toast.warn('Vui lòng nhập dàn diễn viên.');
             return false;
         }
 
         if (!trailer) {
-            toast.error('Vui lòng nhập trailer.');
+            toast.warn('Vui lòng nhập trailer.');
             return false;
         }
         if (!selectedImage) {
-            toast.error('Vui lòng chọn hình ảnh.');
+            toast.warn('Vui lòng chọn hình ảnh.');
             return false;
         }
         if (!descriptionRef.current) {
-            toast.error('Vui lòng thêm hình ảnh.');
+            toast.warn('Vui lòng thêm hình ảnh.');
             return false;
         }
 
@@ -438,11 +438,11 @@ const Film = React.memo(() => {
             dayjs(selectedFilm?.startDate).isSame(startDate, 'day') &&
             dayjs(selectedFilm?.endDate).isSame(endDate, 'day')
         ) {
-            toast.error('Vui lòng nhập thông tin cần cập nhật!');
+            toast.warn('Vui lòng nhập thông tin cần cập nhật!');
             return;
         }
         if (endDate === null) {
-            toast.error('Vui lòng chọn ngày kết thúc!');
+            toast.warn('Vui lòng chọn ngày kết thúc!');
             return;
         }
         const formData = handleFormData();
