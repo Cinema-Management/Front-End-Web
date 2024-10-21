@@ -3,18 +3,17 @@ import React, { useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaChevronDown, FaChevronUp, FaRegEye } from 'react-icons/fa6';
-import { IoIosAddCircleOutline } from 'react-icons/io';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa6';
+import { IoIosAddCircleOutline, IoIosInformationCircleOutline } from 'react-icons/io';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
-import InputComponent from '~/components/InputComponent/InputComponent';
 import Loading from '~/components/LoadingComponent/Loading';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
-import SelectComponent from '~/components/SelectComponent/SelectComponent';
-import { DatePicker, Select } from 'antd';
+import { DatePicker, Select, Tooltip } from 'antd';
 import dayjs from 'dayjs';
+import { set } from 'lodash';
 
 const { Option } = Select;
 const { getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
@@ -25,7 +24,6 @@ const fetchPrice = async () => {
 
         return { prices: response.data };
     } catch (error) {
-        console.error(error.message);
         throw new Error('Failed to fetch data');
     }
 };
@@ -51,10 +49,7 @@ const Price = () => {
     const [open, setOpen] = useState(false);
     const [type, setType] = useState('');
     const [openLoaiKM, setOpenLoaiKM] = useState(false);
-    const [openDetail, setOpenDetail] = useState(false);
-    const [selectedValue, setSelectedValue] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState({});
-    const [selectedMovie, setSelectedMovie] = useState('');
     const [visibleRooms, setVisibleRooms] = useState({});
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -80,8 +75,11 @@ const Price = () => {
     const [priceFilter, setPriceFilter] = useState([]);
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
     const { RangePicker } = DatePicker;
-    // const queryClient = useQueryClient();
-
+    const [showAllPrice, setShowAllPrice] = useState(false);
+    const [disableOtherDays, setDisableOtherDays] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [visible, setVisible] = useState(false);
+    const queryClient = useQueryClient();
     const optionsSort = [
         { value: 3, name: 'Tất cả' },
         { value: 1, name: 'Ghế' },
@@ -89,7 +87,7 @@ const Price = () => {
     ];
     const optionsStatus = [
         { value: 3, name: 'Tất cả' },
-        { value: 0, name: 'Mới tạo' },
+        { value: 0, name: 'Chưa hoạt động' },
         { value: 1, name: 'Hoạt động' },
         { value: 2, name: 'Ngừng hoạt động' },
     ];
@@ -143,7 +141,7 @@ const Price = () => {
         },
     });
     const {
-        data: { products = [], optionFood = [] } = {},
+        data: { optionFood = [] } = {},
         isLoading: isLoadingProduct,
         isFetched: isFetchedProduct,
         isError: isErrorProduct,
@@ -156,7 +154,6 @@ const Price = () => {
         // },
     });
 
-    console.log('priceFilter', priceFilter);
     const handleOpen = (isUpdate, type) => {
         setOpen(true);
         setTypePrice(type);
@@ -174,6 +171,7 @@ const Price = () => {
         setSelectedTimeSlotCode('');
         setStatusPrice('');
         setStatusPriceCode('');
+        setShowAllPrice(false);
     };
 
     const handleOpenLoaiKM = (isUpdate, type) => {
@@ -181,21 +179,6 @@ const Price = () => {
         setIsUpdate(isUpdate);
         setType(type);
         setSelectedPrice(null);
-    };
-
-    const handleCloseDetail = () => {
-        setOpenDetail(false);
-        setSelectedPrice(null);
-        setProductCode('');
-        setSelectedProduct('');
-        setSelectedProductType('');
-        setType('');
-        setSelectedProductTypeCode('');
-    };
-
-    const handleOpenDetail = (type) => {
-        setOpenDetail(true);
-        setType(type);
     };
 
     const handleOpenDelete = (item, type) => {
@@ -212,7 +195,17 @@ const Price = () => {
     };
 
     const handleChangeDay = (value) => {
-        setSelectedDayOfWeek(value);
+        if (value.includes(2)) {
+            // Nếu chọn ngày 2, xóa tất cả các lựa chọn khác
+            setSelectedDayOfWeek([2]);
+            setDisableOtherDays(true);
+        } else {
+            // Nếu không chọn ngày 2, cho phép lựa chọn tự do
+            setSelectedDayOfWeek(value);
+            setDisableOtherDays(false);
+        }
+        setSelectedTimeSlot('');
+        setSelectedTimeSlotCode('');
     };
 
     const handleTimeSlotChang = (value) => {
@@ -285,9 +278,6 @@ const Price = () => {
         setSelectDetail(null);
         setType('');
     };
-    const handleChange = (event) => {
-        setSelectedValue(event.target.value);
-    };
 
     const toggleVisibility = (roomId) => {
         setVisibleRooms((prevState) => ({
@@ -334,7 +324,7 @@ const Price = () => {
 
             let nextPriceStartDate = null;
 
-            for (let i = 0; i < prices.length; i++) {
+            for (let i = 0; i < prices?.length; i++) {
                 const priceStartDate = dayjs(prices[i].startDate);
 
                 // Tìm ngày bắt đầu khuyến mãi tiếp theo lớn hơn ngày bắt đầu đã chọn
@@ -354,29 +344,52 @@ const Price = () => {
             return false; // Ngày không bị vô hiệu hóa
         };
     }
-
+    const handleTooltipClick = () => {
+        setVisible(!visible);
+    };
     const changStatus = (value) => {
         if (value === 2) {
             return 'Ngừng hoạt động';
         } else if (value === 1) {
             return 'Hoạt động';
         } else {
-            return 'Mới tạo';
+            return 'Chưa hoạt động';
         }
     };
 
     const checkExitsPrice = () => {
         const price = prices.find((item) => {
             const dayExists = selectedDayOfWeek.some((day) => item.dayOfWeek.includes(day));
-            const descriptionMatch = item.description === description;
-            const timeSlotMatch = item.timeSlot === Number(selectedTimeSlotCode);
+
+            let timeSlotMatch = false;
+            timeSlotMatch = item.timeSlot === Number(selectedTimeSlotCode);
 
             const inputStartDate = new Date(startDate);
+            const itemEndDate = new Date(item.endDate);
+            const isDateValid = inputStartDate <= itemEndDate;
+            const isDifferentPriceCode = item.code !== selectedPrice?.code;
+            return dayExists && timeSlotMatch && isDateValid && isDifferentPriceCode;
+        });
+
+        return !price;
+    };
+
+    const checkExitsPriceAll = (priceAll) => {
+        const price = prices.find((item) => {
+            if (item.type !== '0') {
+                return false;
+            }
+
+            const dayExists = priceAll.dayOfWeek.some((day) => item.dayOfWeek.includes(day));
+            const timeSlotMatch = item.timeSlot === priceAll.timeSlot;
+
+            const inputStartDate = new Date(priceAll.startDate);
+
             const itemEndDate = new Date(item.endDate);
 
             const isDateValid = inputStartDate <= itemEndDate;
 
-            return descriptionMatch && dayExists && timeSlotMatch && isDateValid;
+            return dayExists && timeSlotMatch && isDateValid;
         });
 
         return !price;
@@ -384,40 +397,42 @@ const Price = () => {
 
     const checkExitsPriceFood = () => {
         const price = prices.find((item) => {
-            const descriptionMatch = item.description === description;
-
+            if (item.type !== '1') {
+                return false;
+            }
             const inputStartDate = new Date(startDate);
             const itemEndDate = new Date(item.endDate);
 
             const isDateValid = inputStartDate <= itemEndDate;
 
-            return descriptionMatch && isDateValid;
+            return isDateValid;
         });
 
         return !price;
     };
 
-    if (isLoading || isLoadingPrice || isLoadingProduct) return <Loading />;
-    if (!isFetched || !isFetchedPrice || !isFetchedProduct) return <div>Fetching...</div>;
-    if (error || isErrorPrice || isErrorProduct)
-        return <div>Error loading data: {error.message || isErrorPrice.message || isErrorProduct}</div>;
-
     const checkPriceFoodNull = () => {
-        if (description !== '' && startDate !== '' && endDate !== '') {
+        if (description !== '' && startDate !== '' && endDate !== null) {
             return true;
         }
         return false;
     };
 
     const checkPriceNull = () => {
-        if (
-            description !== '' &&
-            startDate !== '' &&
-            endDate !== '' &&
-            selectedDayOfWeek.length > 0 &&
-            selectedTimeSlotCode !== ''
-        ) {
-            return true;
+        if (showAllPrice) {
+            if (startDate !== '' && endDate !== null) {
+                return true;
+            }
+        } else {
+            if (
+                description !== '' &&
+                startDate !== '' &&
+                endDate !== null &&
+                selectedDayOfWeek.length > 0 &&
+                selectedTimeSlotCode !== ''
+            ) {
+                return true;
+            }
         }
         return false;
     };
@@ -425,11 +440,11 @@ const Price = () => {
     const handleAddPriceFood = async () => {
         try {
             if (!checkPriceFoodNull()) {
-                toast.error('Vui lòng nhập đầy đủ thông tin');
+                toast.warn('Vui lòng nhập đầy đủ thông tin');
                 return;
             }
             if (!checkExitsPriceFood()) {
-                toast.error('Bảng giá đã tồn tại');
+                toast.warn('Bảng giá đã tồn tại');
                 return;
             }
             await axios.post('api/prices', {
@@ -449,29 +464,105 @@ const Price = () => {
     };
 
     const handleAdd = async () => {
-        try {
-            if (!checkPriceNull()) {
-                toast.error('Vui lòng nhập đầy đủ thông tin');
-                return;
-            }
-            if (!checkExitsPrice()) {
-                toast.error('Bảng giá đã được tạo trong khoảng thời gian này!');
-                return;
-            }
-            await axios.post('api/prices', {
-                description: description,
-                startDate: startDate,
-                endDate: endDate,
-                dayOfWeek: selectedDayOfWeek,
-                timeSlot: selectedTimeSlotCode,
-                type: String(typePrice),
-            });
+        let loadingToastId;
 
-            toast.success('Thêm bảng giá thành công!');
-            clearText();
-            setOpen(false);
-            refetchPrice();
+        try {
+            if (showAllPrice) {
+                if (!checkPriceNull()) {
+                    toast.warn('Vui lòng nhập đầy đủ thông tin');
+                    return;
+                }
+                const arrayPrice = [
+                    {
+                        description: 'Bảng giá thứ 3',
+                        dayOfWeek: [2],
+                        timeSlot: 1,
+                    },
+                    {
+                        description: 'Bảng giá trong tuần (T2-6)',
+                        dayOfWeek: [1, 3, 4, 5],
+                        timeSlot: 2,
+                    },
+                    {
+                        description: 'Bảng giá trong tuần (T2-6)',
+                        dayOfWeek: [1, 3, 4, 5],
+                        timeSlot: 3,
+                    },
+                    {
+                        description: 'Bảng giá cuối tuần (T7,CN)',
+                        dayOfWeek: [6, 0],
+                        timeSlot: 3,
+                    },
+                    {
+                        description: 'Bảng giá cuối tuần (T7,CN)',
+                        dayOfWeek: [6, 0],
+                        timeSlot: 2,
+                    },
+                ];
+
+                for (const price of arrayPrice) {
+                    price.startDate = startDate;
+                    price.endDate = endDate;
+                    price.type = String(typePrice);
+
+                    const exists = checkExitsPriceAll(price);
+                    // console.log(exists);
+                    if (!exists) {
+                        toast.warn(
+                            `${price.description} ${
+                                price.timeSlot === 1 ? 'cả ngày' : price.timeSlot === 2 ? 'trước 17h' : 'sau 17h'
+                            } đã tồn tại trong khoảng thời gian này!`,
+                        );
+                        return;
+                    }
+                }
+                loadingToastId = toast.loading('Đang tạo bảng giá!');
+                setLoading(true);
+                for (const price of arrayPrice) {
+                    await axios.post('api/prices', {
+                        description: price.description,
+                        startDate: price.startDate,
+                        endDate: price.endDate,
+                        dayOfWeek: price.dayOfWeek,
+                        timeSlot: price.timeSlot,
+                        type: price.type,
+                    });
+                }
+                toast.dismiss(loadingToastId);
+                toast.success('Thêm bảng giá thành công!');
+                setLoading(false);
+                clearText();
+                setOpen(false);
+                refetchPrice();
+                setShowAllPrice(false);
+            } else {
+                if (!checkPriceNull()) {
+                    toast.warn('Vui lòng nhập đầy đủ thông tin');
+                    return;
+                }
+
+                if (!checkExitsPrice()) {
+                    toast.warn('Bảng giá đã được tạo trong khoảng thời gian này!');
+                    return;
+                }
+
+                await axios.post('api/prices', {
+                    description: description,
+                    startDate: startDate,
+                    endDate: endDate,
+                    dayOfWeek: selectedDayOfWeek,
+                    timeSlot: selectedTimeSlotCode,
+                    type: String(typePrice),
+                });
+
+                toast.success('Thêm bảng giá thành công!');
+                clearText();
+                setOpen(false);
+                refetchPrice();
+            }
         } catch (error) {
+            toast.dismiss(loadingToastId);
+            setLoading(false);
             toast.error('Thêm bảng giá thất bại!');
         }
     };
@@ -479,7 +570,7 @@ const Price = () => {
     const handleUpdate = async () => {
         try {
             if (!dayjs(selectedPrice?.startDate).isSame(startDate, 'day') && endDate === '') {
-                toast.error('Vui lòng chọn ngày kết thúc');
+                toast.warn('Vui lòng chọn ngày kết thúc');
                 return;
             }
             if (
@@ -490,19 +581,19 @@ const Price = () => {
                 !selectedTimeSlotCode &&
                 !statusPrice
             ) {
-                toast.error('Vui lòng nhập thông tin cần cập nhật');
+                toast.warn('Vui lòng nhập thông tin cần cập nhật');
                 return;
             }
 
             if (!checkExitsPrice()) {
-                toast.error('Bảng giá đã được tạo trong khoảng thời gian này!');
+                toast.warn('Bảng giá đã được tạo trong khoảng thời gian này!');
                 return;
             }
 
             if (selectedPrice.type === '1') {
                 if (statusPriceCode) {
                     if (selectedPrice.status === 1) {
-                        toast.info('Bảng giá đã hoạt động!');
+                        toast.warn('Bảng giá đã hoạt động!');
                         return;
                     }
                     const startDateToCheck = selectedPrice.startDate;
@@ -516,7 +607,7 @@ const Price = () => {
                     });
 
                     if (isDateConflict) {
-                        toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                        toast.warn('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
                         return;
                     }
                 }
@@ -532,7 +623,7 @@ const Price = () => {
                 );
 
                 if (descriptionExists) {
-                    toast.error('Bảng giá đã tồn tại!');
+                    toast.warn('Bảng giá đã tồn tại!');
                     return;
                 }
                 await axios.post(`api/prices/${selectedPrice.code}`, {
@@ -544,7 +635,7 @@ const Price = () => {
             } else {
                 if (statusPriceCode) {
                     if (selectedPrice.status === 1) {
-                        toast.error('Bảng giá đang hoạt động không thể cập nhật trạng thái!');
+                        toast.warn('Bảng giá đang hoạt động không thể cập nhật trạng thái!');
                         return;
                     }
 
@@ -562,7 +653,7 @@ const Price = () => {
                     });
 
                     if (isDateConflict) {
-                        toast.error('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
+                        toast.warn('Ngày bắt đầu trùng với bảng giá đang hoạt động!');
                         return;
                     }
                 }
@@ -584,7 +675,7 @@ const Price = () => {
                 });
 
                 if (isDateConflict) {
-                    toast.error('Bảng giá đã được tạo!');
+                    toast.warn('Bảng giá đã được tạo!');
                     return;
                 }
 
@@ -601,12 +692,19 @@ const Price = () => {
             toast.success('Cập nhật bảng giá thành công');
             setOpen(false);
             clearText();
+            setSelectedPrice(null);
             refetchPrice();
         } catch (error) {
             toast.error('Cập nhật bảng giá thất bại');
         }
     };
 
+    const mutation = useMutation(handleUpdate, {
+        onSuccess: () => {
+            queryClient.refetchQueries('fetchSeatByRoomCode');
+            queryClient.refetchQueries('productNotSeat1');
+        },
+    });
     const handleDeletePrice = async () => {
         try {
             await axios.delete(`api/prices/deletePrice/${selectedPrice.code}`);
@@ -641,7 +739,7 @@ const Price = () => {
             };
 
             if (checkExitsPriceDetail()) {
-                toast.error('Sản phẩm đã có bảng giá!');
+                toast.warn('Sản phẩm đã có bảng giá!');
                 return;
             }
             try {
@@ -662,7 +760,7 @@ const Price = () => {
 
                 refetchPrice();
             } catch (error) {
-                toast.error('Sản phẩm đã có bảng giá!');
+                toast.warn('Sản phẩm đã có bảng giá!');
             }
         }
     };
@@ -704,32 +802,37 @@ const Price = () => {
             setDetailDescription('');
             refetchPrice();
         } catch (error) {
-            toast.error('Ghế đã có bảng giá!');
+            toast.warn('Ghế đã có bảng giá!');
         }
     };
-
+    console.log('selectDetail', selectDetail);
+    console.log('detailPrice', detailPrice);
     const handleUpdateDetail = async () => {
         try {
             if (type === 1) {
                 if (!detailDescription && !detailPrice && !selectedProductTypeCode && !selectedRoomTypeCode) {
-                    toast.error('Vui lòng nhập đầy đủ thông tin');
+                    toast.warn('Vui lòng nhập đầy đủ thông tin');
                     return;
                 }
+
                 const price = prices.find((item) => item.code === selectDetail.priceCode.code);
                 const productTypeCode = !selectedProductTypeCode
                     ? selectDetail.productTypeCode.code
                     : selectedProductTypeCode;
                 const roomTypeCode = !selectedRoomTypeCode ? selectDetail.roomTypeCode.code : selectedRoomTypeCode;
+
                 const checkExitsPriceDetail = () => {
                     return price.priceDetails.some((detail) => {
                         return (
-                            detail.productTypeCode.code === productTypeCode && detail.roomTypeCode.code === roomTypeCode
+                            detail.productTypeCode.code === productTypeCode &&
+                            detail.roomTypeCode.code === roomTypeCode &&
+                            detail.code !== selectDetail.code
                         );
                     });
                 };
 
                 if (checkExitsPriceDetail()) {
-                    toast.error('Ghế đã có bảng giá!');
+                    toast.warn('Ghế đã có bảng giá!');
                     return;
                 }
 
@@ -742,7 +845,7 @@ const Price = () => {
                 });
             } else {
                 if (!selectedProduct && !detailDescription && !detailPrice) {
-                    toast.error('Vui lòng nhập thông tin cần cập nhật');
+                    toast.warn('Vui lòng nhập thông tin cần cập nhật');
                     return;
                 }
 
@@ -786,7 +889,7 @@ const Price = () => {
 
     const onChangeStart = (dateString) => {
         setStartDate(dateString);
-        setEndDate('');
+        setEndDate(null);
     };
 
     const onChangeEnd = (dateString) => {
@@ -811,12 +914,11 @@ const Price = () => {
         { value: 2, label: 'Trước 17h' },
         { value: 3, label: 'Sau 17h' },
     ];
-    const optionsLoc = [
-        { value: '0', label: 'Lọc thể loại' },
-        { value: 'KD', label: 'Kinh dị' },
-        { value: 'HH', label: 'Hài hước' },
-        { value: 'TC', label: 'Tình cảm' },
-    ];
+
+    const handleCheckboxChange = (event) => {
+        const checked = event.target.checked;
+        setShowAllPrice(checked);
+    };
 
     const getTimeSlotLabel = (timeSlot) => {
         const found = optionTimeSlot.find((item) => item.value === timeSlot);
@@ -899,6 +1001,11 @@ const Price = () => {
         setSelectedStatus(optionsStatus[0]);
         setPriceFilter(filterDate);
     };
+
+    if (isLoading || isLoadingPrice || isLoadingProduct) return <Loading />;
+    if (!isFetched || !isFetchedPrice || !isFetchedProduct) return <div>Fetching...</div>;
+    if (error || isErrorPrice || isErrorProduct)
+        return <div>Error loading data: {error.message || isErrorPrice.message || isErrorProduct.message}</div>;
 
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
@@ -1043,7 +1150,7 @@ const Price = () => {
                                                     }`}
                                                 >
                                                     {item.status === 0
-                                                        ? 'Mới tạo'
+                                                        ? 'Chưa hoạt động'
                                                         : item.status === 1
                                                         ? 'Hoạt động'
                                                         : 'Ngừng hoạt động'}
@@ -1097,11 +1204,14 @@ const Price = () => {
 
                                                 <div className="grid justify-center col-span-2">
                                                     <button
-                                                        className="border px-4 py-1 mb-1 rounded-[40px] gradient-button"
+                                                        className={`border px-4 py-1 mb-1 rounded-[40px] gradient-button ${
+                                                            item.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                        } `}
                                                         onClick={() => {
                                                             handleOpenLoaiKM(false, 1);
                                                             setSelectedPrice(item);
                                                         }}
+                                                        disabled={item.status !== 0 ? true : false}
                                                     >
                                                         <IoIosAddCircleOutline color="white" size={20} />
                                                     </button>
@@ -1144,20 +1254,14 @@ const Price = () => {
                                                                         ),
                                                                     );
                                                                 }}
-                                                                disabled={item?.priceCode?.status === 1}
+                                                                disabled={item?.priceCode?.status !== 0}
                                                             >
                                                                 <FaRegEdit
                                                                     color={`${
-                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                        item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     size={20}
                                                                 />
-                                                            </button>
-                                                            <button
-                                                                className=""
-                                                                onClick={() => handleOpenDetail(item.type)}
-                                                            >
-                                                                <FaRegEye color="black" fontSize={20} />
                                                             </button>
 
                                                             <button
@@ -1165,11 +1269,11 @@ const Price = () => {
                                                                 onClick={() => {
                                                                     handleOpenDelete(item, 2);
                                                                 }}
-                                                                disabled={item?.priceCode?.status === 1}
+                                                                disabled={item?.priceCode?.status !== 0}
                                                             >
                                                                 <MdOutlineDeleteOutline
                                                                     color={`${
-                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                        item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     fontSize={22}
                                                                 />
@@ -1246,7 +1350,7 @@ const Price = () => {
                                                 }`}
                                             >
                                                 {item.status === 0
-                                                    ? 'Mới tạo'
+                                                    ? 'Chưa hoạt động'
                                                     : item.status === 1
                                                     ? 'Hoạt động'
                                                     : 'Ngừng hoạt động'}
@@ -1261,8 +1365,12 @@ const Price = () => {
                                                     setStartDate(dayjs(item.startDate));
                                                     setEndDate(dayjs(item.endDate));
                                                 }}
+                                                disabled={item.status === 2 ? true : false}
                                             >
-                                                <FaRegEdit color="black" size={22} />
+                                                <FaRegEdit
+                                                    color={`${item.status === 2 ? 'gray' : 'black'}`}
+                                                    size={22}
+                                                />
                                             </button>
 
                                             <button
@@ -1271,10 +1379,10 @@ const Price = () => {
                                                     handleOpenDelete(item, 1);
                                                     setSelectedPrice(item);
                                                 }}
-                                                disabled={item.status === 1}
+                                                disabled={item.status !== 0}
                                             >
                                                 <MdOutlineDeleteOutline
-                                                    color={`${item.status === 1 ? 'gray' : 'black'}`}
+                                                    color={`${item.status !== 0 ? 'gray' : 'black'}`}
                                                     fontSize={23}
                                                 />
                                             </button>
@@ -1291,11 +1399,14 @@ const Price = () => {
 
                                                 <div className="grid justify-center col-span-2">
                                                     <button
-                                                        className="border px-4 py-1 rounded-[40px] gradient-button"
+                                                        className={`border px-4 py-1 rounded-[40px] gradient-button ${
+                                                            item.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                        } `}
                                                         onClick={() => {
                                                             handleOpenLoaiKM(false, 2);
                                                             setSelectedPrice(item);
                                                         }}
+                                                        disabled={item.status !== 0 ? true : false}
                                                     >
                                                         <IoIosAddCircleOutline color="white" size={20} />
                                                     </button>
@@ -1335,31 +1446,25 @@ const Price = () => {
                                                                         ),
                                                                     );
                                                                 }}
-                                                                disabled={item?.priceCode?.status === 1}
+                                                                disabled={item?.priceCode?.status !== 0}
                                                             >
                                                                 <FaRegEdit
                                                                     color={`${
-                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                        item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     size={20}
                                                                 />
-                                                            </button>
-                                                            <button
-                                                                className=""
-                                                                onClick={() => handleOpenDetail(item.type)}
-                                                            >
-                                                                <FaRegEye color="black" fontSize={20} />
                                                             </button>
                                                             <button
                                                                 className=" grid justify-center items-center"
                                                                 onClick={() => {
                                                                     handleOpenDelete(item, 2);
                                                                 }}
-                                                                disabled={item?.priceCode?.status === 1}
+                                                                disabled={item?.priceCode?.status !== 0}
                                                             >
                                                                 <MdOutlineDeleteOutline
                                                                     color={`${
-                                                                        item?.priceCode?.status === 1 ? 'gray' : 'black'
+                                                                        item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     fontSize={22}
                                                                 />
@@ -1381,22 +1486,22 @@ const Price = () => {
                 open={open}
                 handleClose={handleClose}
                 width="40%"
-                height={typePrice === 0 ? '49%' : '36%'}
-                top="30%"
+                height={typePrice === 0 ? '50%' : '38%'}
+                top="35%"
                 left="55%"
-                smallScreenWidth="65%"
-                smallScreenHeight={typePrice === 0 ? '33%' : '26%'}
-                mediumScreenWidth="65%"
-                mediumScreenHeight={typePrice === 0 ? '30%' : '23%'}
-                largeScreenHeight={typePrice === 0 ? '25%' : '20%'}
+                smallScreenWidth="68%"
+                smallScreenHeight={typePrice === 0 ? '36%' : '27%'}
+                mediumScreenWidth="68%"
+                mediumScreenHeight={typePrice === 0 ? '32%' : '24%'}
+                largeScreenHeight={typePrice === 0 ? '28%' : '21%'}
                 largeScreenWidth="50%"
-                maxHeightScreenHeight={typePrice === 0 ? '55%' : '44%'}
+                maxHeightScreenHeight={typePrice === 0 ? '63%' : '48%'}
                 maxHeightScreenWidth="45%"
-                heightScreen={typePrice === 0 ? '45%' : '33%'}
-                widthScreen="40%"
+                heightScreen={typePrice === 0 ? '46%' : '35%'}
+                widthScreen="45%"
                 title={isUpdate ? 'Chỉnh sửa bảng giá' : 'Thêm bảng giá'}
             >
-                <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-3`}>
+                <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-2`}>
                     <div className="grid">
                         <div className="grid grid-cols-2 gap-8 p-3 ">
                             <AutoInputComponent
@@ -1407,26 +1512,87 @@ const Price = () => {
                                 disableClearable={false}
                                 placeholder="Nhập ..."
                                 heightSelect={200}
-                                disabled={selectedPrice?.status === 1 ? true : false}
+                                disabled={showAllPrice || selectedPrice?.status === 1 ? true : false}
                             />
                             <AutoInputComponent
                                 value={isUpdate ? changStatus(selectedPrice?.status) : changStatus(statusPrice)}
                                 onChange={handleStatusChang}
                                 options={
                                     selectedPrice?.status === 0
-                                        ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
-                                        : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
+                                        ? optionsStatus
+                                              .filter((item) => item.value !== 2 && item.value !== 3)
+                                              .map((item) => item.name)
+                                        : optionsStatus
+                                              .filter((item) => item.value !== 0 && item.value !== 3)
+                                              .map((item) => item.name)
                                 }
                                 freeSolo={false}
                                 disableClearable={true}
                                 title="Trạng thái"
-                                placeholder="Mới tạo"
+                                placeholder="Chưa hoạt động"
                                 heightSelect={150}
-                                disabled={!isUpdate || selectedPrice?.status === 1 ? true : false}
+                                disabled={!isUpdate || showAllPrice || selectedPrice?.status === 1 ? true : false}
                             />
                         </div>
                     </div>
-                    <div className="grid items-center gap-2 ">
+
+                    {typePrice === 0 && (
+                        <div className="grid grid-cols-2 gap-8 p-3 z-50">
+                            <div className="">
+                                <h1 className="text-[16px] truncate mb-1 ">Thứ</h1>
+
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    placeholder="Chọn tùy chọn"
+                                    value={
+                                        isUpdate
+                                            ? selectedDayOfWeek.length > 0
+                                                ? selectedDayOfWeek
+                                                : selectedPrice?.dayOfWeek
+                                            : selectedDayOfWeek
+                                    }
+                                    onChange={handleChangeDay}
+                                    className="h-[36px] w-full border border-black rounded-[5px]"
+                                    dropdownStyle={{ maxHeight: '200px', overflow: 'auto' }}
+                                    getPopupContainer={(trigger) => trigger.parentNode}
+                                    maxTagCount={3}
+                                    disabled={showAllPrice || selectedPrice?.status === 1 ? true : false}
+                                >
+                                    {optionDayOfWeek.map((option) => (
+                                        <Option
+                                            key={option.value}
+                                            value={option.value}
+                                            disabled={disableOtherDays && option.value !== 2}
+                                        >
+                                            {option.label}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <AutoInputComponent
+                                value={isUpdate ? getTimeSlotLabel(selectedPrice?.timeSlot) : selectedTimeSlot}
+                                onChange={handleTimeSlotChang}
+                                options={
+                                    selectedDayOfWeek.includes(2)
+                                        ? optionTimeSlot.filter((item) => item.value === 1).map((item) => item.label)
+                                        : optionTimeSlot.filter((item) => item.value !== 1).map((item) => item.label)
+                                }
+                                title="Khung giờ"
+                                freeSolo={true}
+                                disableClearable={false}
+                                placeholder="Nhập ..."
+                                heightSelect={200}
+                                height={40}
+                                disabled={
+                                    showAllPrice || selectedDayOfWeek.length <= 0 || selectedPrice?.status === 1
+                                        ? true
+                                        : false
+                                }
+                            />
+                        </div>
+                    )}
+                    <div className="grid items-center gap-2">
                         <div className="grid grid-cols-2 gap-8 p-3 ">
                             <div>
                                 <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
@@ -1438,7 +1604,7 @@ const Price = () => {
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
                                     disabled={selectedPrice?.status === 1 ? true : false}
-                                    className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    className="border  py-[6px]  px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                 />
                             </div>
                             <div>
@@ -1456,59 +1622,85 @@ const Price = () => {
                             </div>
                         </div>
                     </div>
-
-                    <div className={`grid items-center ${typePrice === 0 ? 'row-span-2' : 'row-span-1'}  gap-2 `}>
-                        {typePrice === 0 && (
-                            <div className="grid grid-cols-2 gap-8 p-3 z-50">
-                                <div className="">
-                                    <h1 className="text-[16px] truncate mb-1 ">Thứ</h1>
-
-                                    <Select
-                                        mode="multiple"
-                                        allowClear
-                                        placeholder="Chọn tùy chọn"
-                                        value={
-                                            isUpdate
-                                                ? selectedDayOfWeek.length > 0
-                                                    ? selectedDayOfWeek
-                                                    : selectedPrice?.dayOfWeek
-                                                : selectedDayOfWeek
-                                        }
-                                        onChange={handleChangeDay}
-                                        className="h-[36px] w-full border border-black rounded-[5px]"
-                                        dropdownStyle={{ maxHeight: '200px', overflow: 'auto' }}
-                                        getPopupContainer={(trigger) => trigger.parentNode}
-                                        maxTagCount={3}
-                                        disabled={selectedPrice?.status === 1 ? true : false}
-                                    >
-                                        {optionDayOfWeek.map((option) => (
-                                            <Option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </Option>
-                                        ))}
-                                    </Select>
-                                </div>
-                                <AutoInputComponent
-                                    value={isUpdate ? getTimeSlotLabel(selectedPrice?.timeSlot) : selectedTimeSlot}
-                                    onChange={handleTimeSlotChang}
-                                    options={optionTimeSlot.map((item) => item.label)}
-                                    title="Khung giờ"
-                                    freeSolo={true}
-                                    disableClearable={false}
-                                    placeholder="Nhập ..."
-                                    heightSelect={200}
-                                    height={40}
-                                    disabled={selectedPrice?.status === 1 ? true : false}
+                    <div
+                        className={`grid items-center ${typePrice === 0 ? 'row-span-2' : 'row-span-1'} 
+                        ${typePrice === 1 ? 'pt-6' : isUpdate && typePrice === 0 ? 'pt-10' : null} gap-2`}
+                    >
+                        {typePrice === 0 && !isUpdate && (
+                            <div className="flex px-3 py-2">
+                                <input
+                                    type="checkbox"
+                                    id="online"
+                                    name="status"
+                                    value="Online"
+                                    className="p-20 h-10"
+                                    style={{ width: '20px', height: '20px' }}
+                                    checked={showAllPrice}
+                                    onChange={handleCheckboxChange}
                                 />
+
+                                <label htmlFor="online" className="text-[16px] ml-3 ">
+                                    Tạo tất cả bảng giá tự động
+                                </label>
+
+                                <Tooltip
+                                    title={
+                                        <div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Mô tả</h1>
+                                                <h1 className="grid">Thứ</h1>
+                                                <h1 className="grid">Khung giờ</h1>
+                                            </div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Bảng giá thứ 3</h1>
+                                                <h1 className="grid">3</h1>
+                                                <h1 className="grid">Cả ngày</h1>
+                                            </div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Bảng giá trong tuần (T2-6)</h1>
+                                                <h1 className="grid">2, 4, 5, 6</h1>
+                                                <h1 className="grid">Trước 17h</h1>
+                                            </div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Bảng giá trong tuần (T2-6)</h1>
+                                                <h1 className="grid">2, 4, 5, 6</h1>
+                                                <h1 className="grid">Sau 17h</h1>
+                                            </div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Bảng giá cuối tuần (T7,CN)</h1>
+                                                <h1 className="grid">7, CN</h1>
+                                                <h1 className="grid">Trước 17h</h1>
+                                            </div>
+                                            <div className="grid grid-cols-4 ">
+                                                <h1 className="grid col-span-2">Bảng giá cuối tuần (T7,CN)</h1>
+                                                <h1 className="grid">7, CN</h1>
+                                                <h1 className="grid">Sau 17h</h1>
+                                            </div>
+                                        </div>
+                                    }
+                                    overlayInnerStyle={{ width: '350px', fontSize: '12px' }}
+                                    getPopupContainer={(trigger) => trigger.parentNode}
+                                    open={visible}
+                                    onClick={() => setVisible(!visible)}
+                                    onMouseLeave={() => setVisible(false)}
+                                    placement="topRight"
+                                >
+                                    <div
+                                        className="flex items-center ml-1 mt-[2px] cursor-pointer"
+                                        onClick={handleTooltipClick}
+                                    >
+                                        <IoIosInformationCircleOutline size={20} />
+                                    </div>
+                                </Tooltip>
                             </div>
                         )}
-                        <div className="justify-end flex space-x-3 border-t py-[6px] px-4 mt-3 pt-3 ">
+                        <div className="justify-end flex space-x-3 border-t py-[6px] px-4  pt-3 ">
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClose} />
                             <ButtonComponent
                                 text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
-                                className=" bg-blue-500 "
+                                className={` bg-blue-500 ${loading ? 'pointer-events-none opacity-50' : ''} `}
                                 onClick={() => {
-                                    isUpdate ? handleUpdate() : typePrice === 0 ? handleAdd() : handleAddPriceFood();
+                                    isUpdate ? mutation.mutate() : typePrice === 0 ? handleAdd() : handleAddPriceFood();
                                 }}
                             />
                         </div>
@@ -1596,9 +1788,10 @@ const Price = () => {
                             title="Giá"
                             freeSolo={true}
                             disableClearable={false}
-                            placeholder="Nhập ..."
+                            placeholder="Nhập giá > 0"
                             heightSelect={200}
                             className1="p-3"
+                            type="number"
                             disabled={isUpdate && selectDetail?.priceCode?.status === 1 ? true : false}
                         />
 
@@ -1619,91 +1812,6 @@ const Price = () => {
                     </div>
                 </div>
             </ModalComponent>
-
-            <ModalComponent
-                open={openDetail}
-                handleClose={handleCloseDetail}
-                width="35%"
-                height={type === 1 ? '72%' : '66%'}
-                smallScreenWidth="45%"
-                smallScreenHeight={type === 1 ? '53%' : '48%'}
-                mediumScreenWidth="45%"
-                mediumScreenHeight={type === 1 ? '46%' : '43%'}
-                largeScreenHeight={type === 1 ? '40%' : '37%'}
-                largeScreenWidth="40%"
-                maxHeightScreenHeight={type === 1 ? '90%' : '83%'}
-                maxHeightScreenWidth="45%"
-                heightScreen={type === 1 ? '68%' : '62%'}
-                title="Chi tiết bảng giá"
-            >
-                <div className={`h-[80%] grid ${type === 1 ? 'grid-rows-7' : 'grid-rows-6'} gap-10`}>
-                    {type === 1 && (
-                        <SelectComponent
-                            value={selectedValue}
-                            onChange={handleChange}
-                            options={optionsLoc}
-                            className="border border-[gray]"
-                            className1="p-3"
-                            title="Loại phòng chiếu"
-                        />
-                    )}
-
-                    <AutoInputComponent
-                        value={selectedProduct} // Hiển thị tên
-                        onChange={(newValue) => setSelectedProduct(newValue)}
-                        options={products.map((item) => item.name)}
-                        title="Tên"
-                        freeSolo={false}
-                        disableClearable={true}
-                        placeholder="Nhập ..."
-                        className1="p-3"
-                        heightSelect={130}
-                    />
-                    <AutoInputComponent
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Mô tả"
-                        freeSolo={true}
-                        disableClearable={false}
-                        placeholder="Nhập ..."
-                        heightSelect={200}
-                        className1="p-3"
-                    />
-
-                    <AutoInputComponent
-                        value={selectedMovie}
-                        onChange={setSelectedMovie}
-                        title="Giá"
-                        freeSolo={true}
-                        disableClearable={false}
-                        placeholder="Nhập ..."
-                        heightSelect={200}
-                        className1="p-3"
-                    />
-                    <InputComponent
-                        placeholder="Ngày tạo"
-                        title="Ngày tạo"
-                        className="rounded-[5px]"
-                        className1="p-3"
-                        disabled={true}
-                    />
-                    <div className="grid items-center row-span-2  gap-2 ">
-                        <InputComponent
-                            placeholder="Ngày cập nhật"
-                            title="Ngày cập nhật"
-                            className="rounded-[5px]"
-                            className1="p-3"
-                            disabled={true}
-                        />
-
-                        <div className="justify-end flex space-x-3 border-t py-4 px-4 ">
-                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseLoaiKM} />
-                            <ButtonComponent text="Xác nhận" className=" bg-blue-500 " />
-                        </div>
-                    </div>
-                </div>
-            </ModalComponent>
-
             <ModalComponent
                 open={openDelete}
                 handleClose={handleCloseDelete}
