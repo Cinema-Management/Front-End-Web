@@ -373,3 +373,8 @@ code {
 .custom-modal .ant-modal-title {
     color: white; /* Đặt màu tiêu đề thành màu trắng */
 }
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
