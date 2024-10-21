@@ -81,6 +81,8 @@ const FoodComponent = () => {
     function formatCurrency(amount) {
         return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
+    if (products.length === 0) return <div className="p-5 ">Chưa có sản phẩm nào được bán! </div>;
+
     return (
         <div className="flex flex-wrap h-[530px] overflow-auto custom-height-lg2 custom-height-md2 p-5 custom-height-sm15 justify-between">
             {products.map((product, index) => {

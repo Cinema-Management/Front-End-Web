@@ -51,6 +51,12 @@ const authSlice = createSlice({
         logOutStart: (state) => {
             state.login.isFetching = true;
         },
+        updateUser(state, action) {
+            state.login.currentUser = {
+                ...state.login.currentUser, // Giữ nguyên các trường hiện tại
+                ...action.payload, // Cập nhật các trường mới
+            };
+        },
     },
 });
 
@@ -64,6 +70,7 @@ export const {
     logOutStart,
     logOutSuccess,
     logOutFailed,
+    updateUser,
 } = authSlice.actions;
 
 export default authSlice.reducer;

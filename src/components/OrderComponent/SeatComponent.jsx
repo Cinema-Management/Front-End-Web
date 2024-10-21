@@ -115,7 +115,7 @@ const SeatComponent = memo(({ setSetGhe }) => {
     const totalSeat = seat1.length; // Kích thước phòng có thể là nhỏ, vừa, lớn
 
     const gridColumns = totalSeat === 48 ? 'grid-cols-8' : totalSeat === 75 ? 'grid-cols-10' : 'grid-cols-12'; // Số cột tuỳ vào kích thước phòng
-
+    if (seat1.length === 0) return <div className="p-5 ">Bảng giá ghế không có trong ngày này! </div>;
     return (
         <div className="grid grid-rows-5 max-lg:grid-rows-7 h-[550px] custom-height-md2 custom-height-sm15 ">
             <div className=" grid max-lg:row-span-2  ">

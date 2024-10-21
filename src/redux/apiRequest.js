@@ -22,9 +22,9 @@ import {
     logOutFailed,
     logOutStart,
     logOutSuccess,
-    registerFailed,
-    registerStart,
-    registerSuccess,
+    // registerFailed,
+    // registerStart,
+    // registerSuccess,
 } from './authSlice';
 
 import { customerFailed, customerStart, customerSuccess } from './customerSlice';
@@ -92,14 +92,14 @@ export const loginUser = async (user, dispatch, navigate) => {
     }
 };
 export const registerUser = async (user, dispatch, navigate) => {
-    dispatch(registerStart());
+    dispatch(loginStart());
     try {
         const res = await axios.post('/api/auth/register', user);
-        dispatch(registerSuccess(res.data));
+        dispatch(loginSuccess(res.data));
         navigate('/');
         return;
     } catch (err) {
-        dispatch(registerFailed());
+        dispatch(loginFailed());
         return err;
     }
 };
