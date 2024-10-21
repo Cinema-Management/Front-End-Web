@@ -213,6 +213,9 @@ const Promotion = () => {
     const handleFilterPromotion = (searchValue) => {
         if (!searchValue) {
             setPromotionFilter([]);
+            setSelectedFilterPromotion('');
+
+            setSelectedFilterPromotionLine('');
 
             return;
         }
@@ -224,7 +227,7 @@ const Promotion = () => {
             const filterPromotion = promotions.filter(
                 (promotion) => promotion.description.toLowerCase() === searchValue.toLowerCase(),
             );
-            if (filterPromotion.length > 0) {
+            if (filterPromotion?.length > 0) {
                 setPromotionFilter(filterPromotion);
             }
             return;
@@ -248,7 +251,7 @@ const Promotion = () => {
                 (promotion) => promotion.description.toLowerCase() === selectedFilterPromotion.toLowerCase(),
             );
 
-            if (filterPromotion.length > 0) {
+            if (filterPromotion?.length > 0) {
                 // Tìm giá trị type từ searchValue
                 const type = optionKMLines.find((item) => item.name === searchValue)?.value;
 
@@ -485,13 +488,13 @@ const Promotion = () => {
         return true;
     };
 
-    const validateKMDetail = (type) => {
+    const validateKMDetail = () => {
         if (!salesProduct && type === 0) {
             toast.warning('Vui lòng chọn sản phẩm bán');
             return false;
         }
         if (!minQuantity && type === 0) {
-            toast.warning('Số lượng phải > 0');
+            toast.warning('Số lượng phải bán > 0');
             return false;
         }
         if (!freeProduct && type === 0) {
@@ -499,32 +502,32 @@ const Promotion = () => {
             return false;
         }
         if (!freeQuantity && type === 0) {
-            toast.warning('Số lượng phải > 0');
+            toast.warning('Số lượng phải tặng > 0');
             return false;
         }
         // type = 1
-        if (!minPurchaseAmount && (type === 1 || type === 2) && minPurchaseAmount < 1000) {
-            toast.warning('Số tiền bán > 1000');
+        if ((type === 1 || type === 2) && minPurchaseAmount < 1000) {
+            toast.warning('Số tiền bán >= 1000');
 
             return false;
         }
 
-        if (!discountAmount && type === 1 && discountAmount < 1000) {
-            toast.warning('Số tiền tặng > 1000');
+        if (type === 1 && discountAmount < 1000) {
+            toast.warning('Số tiền tặng >=  1000');
 
             return false;
         }
 
         //type 2
 
-        if (!discountPercentage && type === 2 && (discountPercentage < 0 || discountPercentage > 100)) {
-            toast.warning('% từ 1-100');
+        if (type === 2 && (discountPercentage <= 0 || discountPercentage > 100)) {
+            toast.warning('% chiết khấu từ 1-100');
 
             return false;
         }
 
-        if (!maxDiscountAmount && type === 2 && maxDiscountAmount < 1000) {
-            toast.warning('Số tiền tối đa > 1000');
+        if (type === 2 && maxDiscountAmount < 1000) {
+            toast.warning('Số tiền giảm tối đa > 1000');
 
             return false;
         }
@@ -753,7 +756,7 @@ const Promotion = () => {
     });
 
     const handleAddKMDetail = async () => {
-        if (!validateKMDetail(selectedKMLine?.type)) return;
+        if (!validateKMDetail()) return;
         if (!selectedKMLine) return;
 
         const salesProductCode = optionProduct.find((item) => item.name === salesProduct)?.code;
@@ -1562,6 +1565,8 @@ const Promotion = () => {
                                     ? optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
                                     : selectedKMLine?.status === 1 && isDisabled(selectedEndDateKMLine)
                                     ? optionStatusKMLine.filter((item) => item.value !== 0).map((item) => item.name)
+                                    : selectedKMLine?.status === 1 && !isDisabled(selectedEndDateKMLine)
+                                    ? optionStatusKMLine.filter((item) => item.value === 1).map((item) => item.name)
                                     : optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
                             }
                             value={selectedStatusKMLine}
@@ -1670,9 +1675,11 @@ const Promotion = () => {
                         <div className="flex justify-center">
                             <button
                                 className={`border px-4 py-1 rounded-[40px] bg-orange-400 ${
-                                    selectedKMLine?.status === 2 ? 'pointer-events-none opacity-50' : ''
+                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
                                 }`}
-                                onClick={() => handleOpenKMDetailAction(false)}
+                                onClick={() => {
+                                    handleOpenKMDetailAction(false);
+                                }}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
                             </button>
@@ -1882,8 +1889,8 @@ const Promotion = () => {
                             value={salesProduct}
                             onChange={setSalesProduct}
                             title="Sản phẩm bán"
-                            freeSolo={true}
-                            disableClearable={false}
+                            freeSolo={false}
+                            disableClearable={true}
                             placeholder="Chọn"
                             heightSelect={200}
                             className1="p-3"
@@ -1906,8 +1913,8 @@ const Promotion = () => {
                             value={freeProduct}
                             onChange={setFreeProduct}
                             title="Sản phẩm tặng"
-                            freeSolo={true}
-                            disableClearable={false}
+                            freeSolo={false}
+                            disableClearable={true}
                             placeholder="Chọn"
                             heightSelect={200}
                             className1="p-3"

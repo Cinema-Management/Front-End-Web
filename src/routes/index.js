@@ -1,4 +1,6 @@
 import { lazy } from 'react';
+import withAdminCheck from '~/utils/withAdminCheck'; // Đường dẫn import middleware
+
 const Home = lazy(() => import('~/pages/HomePage/Home'));
 const Cinema = lazy(() => import('~/pages/CinemaPage/Cinema'));
 const Food = lazy(() => import('~/pages/FoodPage/Food'));
@@ -25,67 +27,67 @@ export const routes = [
     },
     {
         path: '/cinema',
-        page: Cinema,
+        page: withAdminCheck(Cinema), // Áp dụng middleware kiểm tra quyền admin
         isShowSidebar: true,
     },
     {
         path: '/food',
-        page: Food,
+        page: withAdminCheck(Food),
         isShowSidebar: true,
     },
     {
         path: '/film',
-        page: Film,
+        page: withAdminCheck(Film),
         isShowSidebar: true,
     },
     {
         path: '/staff',
-        page: Staff,
+        page: withAdminCheck(Staff),
         isShowSidebar: true,
     },
     {
         path: '/customer',
-        page: Customer,
+        page: withAdminCheck(Customer),
         isShowSidebar: true,
     },
     {
         path: '/schedule',
-        page: Schedule,
+        page: withAdminCheck(Schedule),
         isShowSidebar: true,
     },
     {
         path: '/promotion',
-        page: Promotion,
+        page: withAdminCheck(Promotion),
         isShowSidebar: true,
     },
     {
         path: '/price',
-        page: Price,
+        page: withAdminCheck(Price),
         isShowSidebar: true,
     },
     {
         path: '/seat',
-        page: Seat,
+        page: withAdminCheck(Seat),
         isShowSidebar: true,
     },
     {
         path: '/order',
-        page: Order,
+        page: withAdminCheck(Order),
         isShowSidebar: true,
     },
     {
         path: '/room',
-        page: Room,
+        page: withAdminCheck(Room),
         isShowSidebar: true,
     },
     {
         path: '/sale-invoice',
-        page: SaleInvoice,
+        page: withAdminCheck(SaleInvoice),
         isShowSidebar: true,
     },
     {
         path: '/return-invoice',
-        page: ReturnInvoice,
+        page: withAdminCheck(ReturnInvoice),
         isShowSidebar: true,
     },
     {
@@ -93,7 +95,6 @@ export const routes = [
         page: Login,
         isShowSidebar: false,
     },
-
     {
         path: '/register',
         page: Register,

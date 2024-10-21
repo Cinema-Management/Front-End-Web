@@ -148,7 +148,6 @@ const Register = () => {
     const onFinisRegister = async (object) => {
         try {
             const response = await axios.get('api/users/staff');
-            toast.success('Email:' + object.email);
 
             if (response.data) {
                 const arrayUser = response.data;

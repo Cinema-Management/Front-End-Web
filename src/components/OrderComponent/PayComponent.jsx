@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AutoInputComponent from '../AutoInputComponent/AutoInputComponent';
-import dayjs from 'dayjs';
 import axios from 'axios';
 import Loading from '../LoadingComponent/Loading';
 import { useQuery } from 'react-query';
@@ -11,7 +10,7 @@ import ModalComponent from '../ModalComponent/ModalComponent';
 import vouCher from '~/assets/voucher.png';
 import { FaCheck } from 'react-icons/fa'; // Import icon dấu tích
 import { Button } from 'antd';
-import { setCalculatedPrice, setFreeProduct } from '~/redux/productSlice';
+import { setCalculatedPrice, setFreeProduct, setPromotionDetailCode } from '~/redux/productSlice';
 import { getCustomer } from '~/redux/apiRequest';
 
 const isPromotionApplicable = (promotion, groupedCombos, totalPriceBefore) => {
@@ -97,7 +96,7 @@ const PayComponent = () => {
         availableProducts,
     ) => {
         let discountAmount = 0;
-        let productsForInvoice = [...groupedCombos]; // Lưu sản phẩm để xuất hóa đơn
+        let freeProductAdd = ''; // Lưu sản phẩm để xuất hóa đơn
         let freeProductTitle = '';
 
         // Tìm khuyến mãi dựa trên mã đã chọn
@@ -121,13 +120,14 @@ const PayComponent = () => {
                             const freeProductOriginalPrice = freeProduct.price;
 
                             // Ghi chú lại sản phẩm tặng với giá 0 đồng, và lưu giá gốc
-                            productsForInvoice.push({
-                                ...freeProduct,
+                            freeProductAdd = {
                                 originalPrice: freeProductOriginalPrice, // Giá trị gốc của sản phẩm tặng
+                                freeProductCode: promotion.freeProductCode, // Mã sản phẩm tặng
+                                productName: freeProduct.productName, // Tên sản phẩm tặng
                                 freeQuantity: promotion.freeQuantity, // Số lượng sản phẩm tặng
                                 price: 0, // Gán giá trị sản phẩm tặng bằng 0
                                 isGift: true, // Đánh dấu sản phẩm là quà tặng
-                            });
+                            };
                         }
                     }
                     break;
@@ -158,8 +158,9 @@ const PayComponent = () => {
         const newTotalPrice = Math.max(totalPriceMain - discountAmount, 0);
 
         dispatch(setCalculatedPrice(newTotalPrice));
+        dispatch(setPromotionDetailCode(promotion?.code));
 
-        return { newTotalPrice, productsForInvoice, freeProductTitle }; // Trả về tổng tiền và sản phẩm đã thêm giá trị gốc
+        return { newTotalPrice, freeProductAdd, freeProductTitle }; // Trả về tổng tiền và sản phẩm đã thêm giá trị gốc
     };
 
     const groupedCombos = groupProductsByCode(combos); // Nhóm sản phẩm
@@ -191,12 +192,9 @@ const PayComponent = () => {
 
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
 
-    const fetchKMDetail = async (date) => {
+    const fetchKMDetail = async (code) => {
         try {
-            const formattedDate = dayjs(date).format('YYYY-MM-DD');
-            const response = await axios.get(
-                `api/promotion-details/getPromotionDetailsByDateAndStatus?date=${formattedDate}`,
-            );
+            const response = await axios.get(`api/promotion-details/getPromotionDetailsByDateAndStatus?date=${code}`);
             const data = response.data || [];
 
             // Sắp xếp dữ liệu theo type tăng dần
@@ -240,7 +238,27 @@ const PayComponent = () => {
                 // Nếu có khuyến mãi tặng sản phẩm, chọn nó trước
                 setSelectedPromotion(freeProductPromotion.code);
                 setSelectedPromotionDetail(freeProductPromotion.code);
+                const { freeProductAdd } = calculateTotalWithPromotion(
+                    totalPriceBefore,
+                    selectedPromotion, // Sử dụng giá trị mới
+                    groupedCombos,
+                    promotionDetails,
+                    products,
+                );
+
+                dispatch(setFreeProduct(freeProductAdd));
+                console.log('11', freeProductAdd);
             } else {
+                const { freeProductAdd } = calculateTotalWithPromotion(
+                    totalPriceBefore,
+                    selectedPromotion, // Sử dụng giá trị mới
+                    groupedCombos,
+                    promotionDetails,
+                    products,
+                );
+                dispatch(setFreeProduct([]));
+                console.log('tt', freeProductAdd);
+
                 // Nếu không có khuyến mãi tặng sản phẩm, tìm khuyến mãi type = 1 hoặc type = 2 có mức giảm nhiều nhất
                 const bestDiscountPromotion = promotionDetails
                     .filter((promotion) => promotion.type === 1 || promotion.type === 2)
@@ -256,8 +274,9 @@ const PayComponent = () => {
                 }
             }
         }
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [promotionDetails, totalPriceBefore]);
+    }, [promotionDetails, selectedPromotion, totalPriceBefore]);
 
     const handleEnterPress = (newValue) => {
         handleSearchPhone(newValue);
@@ -617,7 +636,7 @@ const PayComponent = () => {
                             onClick={() => {
                                 setSelectedPromotionDetail(selectedPromotion);
 
-                                const { productsForInvoice } = calculateTotalWithPromotion(
+                                const { freeProductAdd } = calculateTotalWithPromotion(
                                     totalPriceBefore,
                                     selectedPromotion, // Sử dụng giá trị mới
                                     groupedCombos,
@@ -625,8 +644,8 @@ const PayComponent = () => {
                                     products,
                                 );
 
-                                // Gửi productsForInvoice đến Redux
-                                dispatch(setFreeProduct(productsForInvoice));
+                                // Gửi freeProductAdd đến Redux
+                                dispatch(setFreeProduct(freeProductAdd));
                                 handleClose();
                             }}
                         />

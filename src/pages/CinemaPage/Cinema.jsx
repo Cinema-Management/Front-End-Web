@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaRegEdit, FaRegEye } from 'react-icons/fa';
 
 import { IoIosAddCircleOutline } from 'react-icons/io';
@@ -23,9 +23,7 @@ const Cinema = () => {
     const [open, setOpen] = useState(false);
     const [openDetail, setOpenDetail] = useState(false);
     const [openRoom, setOpenRoom] = useState(false);
-    const BASE_API_URL = 'https://provinces.open-api.vn/api';
-    const [districts, setDistricts] = useState([]);
-    const [wards, setWards] = useState([]);
+
     const [selectedProvince, setSelectedProvince] = useState('');
     const [selectedDistrict, setSelectedDistrict] = useState('');
     const [selectedWard, setSelectedWard] = useState('');
@@ -47,15 +45,21 @@ const Cinema = () => {
     const [selectedStatusCinema, setSelectedStatusCinema] = useState('');
     const [selectedStatusRoom, setSelectedStatusRoom] = useState('');
     const queryClient = useQueryClient();
+    const [addCinema, setAddCinema] = useState(0);
+    const [addRoom, setAddRoom] = useState(0);
+
+    const [openDelete, setOpenDelete] = useState(false);
+    const [isDeleteCinema, setIsDeleteCinema] = useState(false);
+    const [wardData, setWardData] = useState([]);
 
     const optionStatusCinema = [
-        { value: 0, name: 'Mới tạo' },
+        { value: 0, name: 'Chưa hoạt động' },
         { value: 1, name: 'Hoạt động' },
         { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const optionStatusRoom = [
-        { value: 0, name: 'Mới tạo' },
+        { value: 0, name: 'Chưa hoạt động' },
         { value: 1, name: 'Hoạt động' },
         { value: 2, name: 'Ngừng hoạt động' },
     ];
@@ -244,6 +248,8 @@ const Cinema = () => {
         let loadingToastId;
         try {
             if (!validateRoom()) return;
+            loadingToastId = toast.loading('Đang tạo phòng!');
+            setAddRoom(1);
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
 
             const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
@@ -263,7 +269,6 @@ const Cinema = () => {
                 roomCode: responseRoom.data?.code,
                 roomSizeCode: roomSizeCode,
             };
-            loadingToastId = toast.loading('Đang tạo phòng!');
 
             const responseSeat = await axios.post('api/products/generateSeat', seatData);
 
@@ -294,6 +299,9 @@ const Cinema = () => {
             }
 
             if (!validateRoom()) return;
+            setAddRoom(1);
+            loadingToastId = toast.loading('Đang cập nhật!');
+
             const arrayValueRoomType = selectedOptionRoomType.map((item) => item.value);
             // Dữ liệu gửi đi
             const roomData = {
@@ -316,7 +324,6 @@ const Cinema = () => {
                         roomCode: selectedRoom?.code,
                         roomSizeCode: roomSizeCode,
                     };
-                    loadingToastId = toast.loading('Đang cập nhật!');
 
                     await axios.post('api/products/generateSeat', seatData);
                 }
@@ -326,6 +333,10 @@ const Cinema = () => {
                 toast.success('Cập nhật phòng thành công!');
                 handleCloseRoom();
                 getRoomByCinemaCode(selectedCinema?.code);
+            } else {
+                toast.dismiss(loadingToastId);
+
+                toast.warning('Thêm thất bại!');
             }
         } catch (err) {
             toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
@@ -367,13 +378,16 @@ const Cinema = () => {
 
     const handleAddCinema = async () => {
         try {
+            let loadingId;
             if (!validateCinema()) return;
+            loadingId = toast.loading('Đang tạo rạp');
             const hierarchyValues = [
                 { name: selectedProvince, level: 0 },
                 { name: selectedDistrict, parentCode: '', level: 1 },
                 { name: selectedWard, parentCode: '', level: 2 },
                 { name: addressDetail, parentCode: '', level: 3 },
             ];
+            setAddCinema(1);
 
             let parentCode = '';
 
@@ -400,12 +414,18 @@ const Cinema = () => {
                 hierarchyValueCode: parentCode,
             };
 
-            await axios.post('api/cinemas', cinema);
+            const responseCinema = await axios.post('api/cinemas', cinema);
+            if (responseCinema.data) {
+                toast.dismiss(loadingId);
+                toast.success('Thêm rạp thành công!');
+                refetch();
+                handleCloseCinema();
+            } else {
+                toast.dismiss(loadingId);
 
-            toast.success('Thêm rạp thành công!');
-            refetch();
-            clearTextModalCinema();
-            handleCloseCinema();
+                toast.warning('Thêm thất bại!');
+                setAddCinema(0);
+            }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
         }
@@ -413,6 +433,8 @@ const Cinema = () => {
 
     const handleUpdateCinema = async () => {
         try {
+            let loadingId;
+
             const status = optionStatusCinema.find((option) => option.name === selectedStatusCinema).value;
             if (rooms.some((room) => room.status === 1) && status === 2) {
                 toast.warning('Các phòng đang hoạt động không thể ngùng hoạt động !');
@@ -428,6 +450,8 @@ const Cinema = () => {
             ];
 
             let parentCode = '';
+            setAddCinema(1);
+            loadingId = toast.loading('Đang cập nhật');
 
             for (let i = 0; i < hierarchyValues.length; i++) {
                 const { name, level } = hierarchyValues[i];
@@ -456,10 +480,15 @@ const Cinema = () => {
             const result = await axios.put('api/cinemas', cinema);
 
             if (result.data) {
+                toast.dismiss(loadingId);
                 toast.success('Cập nhật rạp thành công!');
+
                 clearTextModalCinema();
                 refetch();
                 handleCloseCinema();
+            } else {
+                toast.dismiss(loadingId);
+                toast.warning('Cập nhật thất bại!');
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
@@ -468,8 +497,10 @@ const Cinema = () => {
 
     const handleDeleteCinema = async (code) => {
         try {
+            handleCloseDelete();
             await axios.delete(`api/cinemas/${code}`);
             toast.success('Xóa thành công!');
+
             refetch();
         } catch (error) {
             toast.error('Xóa thất bại!');
@@ -478,6 +509,8 @@ const Cinema = () => {
 
     const handleDeleteRoom = async (code) => {
         try {
+            handleCloseDelete();
+
             await axios.delete(`api/rooms/${code}`);
             await axios.delete(`api/products/deleteSeatByRoomCode/${code}`);
             toast.success('Xóa thành công!');
@@ -491,7 +524,6 @@ const Cinema = () => {
         try {
             const response = await axios.get(`api/hierarchy-values/${code}`);
             if (response.data) {
-                setSelectedProvince(response.data.province);
                 setSelectedProvince(response.data.province);
                 setSelectedDistrict(response.data.district);
                 setSelectedWard(response.data.ward);
@@ -591,66 +623,6 @@ const Cinema = () => {
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 3,
     });
-
-    const {
-        data: provinces = [],
-        isLoading: isLoadingProvinces,
-        error: provincesError,
-    } = useQuery(
-        'provinces',
-        async () => {
-            const response = await ky.get(`${BASE_API_URL}/p/`);
-            return response.json();
-        },
-        {
-            staleTime: 1000 * 60 * 10,
-            cacheTime: 1000 * 60 * 10,
-            refetchInterval: 1000 * 60 * 10,
-        },
-    );
-
-    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType) {
-        return <Loading />;
-    }
-
-    // Kiểm tra lỗi khi tải rạp chiếu phim
-    if (CinemaError) {
-        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
-    }
-
-    // Kiểm tra lỗi khi tải tỉnh
-    if (provincesError) {
-        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
-    }
-    if (errorRoomType) {
-        return <div>Lỗi khi tải loại phòng: {errorRoomType.message}</div>;
-    }
-    if (errorRoomSize) {
-        return <div>Lỗi khi tải kích cỡ phòng: {errorRoomSize.message}</div>;
-    }
-
-    const fetchDistricts = async (provinceCode) => {
-        try {
-            const data = await ky.get(`${BASE_API_URL}/p/${provinceCode}`, { searchParams: { depth: 2 } }).json();
-            setDistricts(data.districts); // Lưu trữ danh sách quận
-            setWards([]); // Reset wards when province changes
-            setSelectedDistrict(''); // Reset selected district
-            setSelectedWard(''); // Reset selected ward when province changes
-        } catch (error) {
-            console.error('Error fetching districts:', error);
-        }
-    };
-
-    // Fetch wards based on selected district
-    const fetchWards = async (districtCode) => {
-        try {
-            const data = await ky.get(`${BASE_API_URL}/d/${districtCode}`, { searchParams: { depth: 2 } }).json();
-            setWards(data.wards); // Lưu trữ danh sách phường
-        } catch (error) {
-            console.error('Error fetching wards:', error);
-        }
-    };
-
     const removeVietnameseTones = (str) => {
         return str
             .normalize('NFD')
@@ -665,30 +637,144 @@ const Cinema = () => {
     };
     const getProvinceCodeByName = (name) => {
         const normalizedInput = normalizeString(name);
-        const province = provinces.find((province) => normalizeString(province.name) === normalizedInput);
-        return province ? province.code : null;
+        const province = provinces.find((province) => normalizeString(province.province_name) === normalizedInput);
+        return province ? province._id : null;
     };
 
     const getDistrictsCodeByName = (name) => {
         const normalizedInput = normalizeString(name);
-        const district = districts.find((districts) => normalizeString(districts.name) === normalizedInput);
-        return district ? district.code : null;
+        const district = districts.find((districts) => normalizeString(districts.district_name) === normalizedInput);
+        return district ? district._id : null;
     };
+
+    const fetchProvinces = async () => {
+        const response = await ky.get('api/locations/provinces');
+        return response.json();
+    };
+
+    // Hàm fetch districts theo province code
+    const fetchDistricts = async (provinceCode) => {
+        const response = await ky.get(`api/locations/districts/${provinceCode}`);
+        return response.json();
+    };
+
+    // Hàm fetch wards theo district code
+
+    const {
+        data: provinces = [],
+        isLoading: isLoadingProvinces,
+        error: provincesError,
+    } = useQuery('provinces', fetchProvinces, {
+        staleTime: 1000 * 60 * 10,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 10,
+    });
+
+    const {
+        data: districts = [],
+        isLoading: isLoadingDistricts,
+        error: districtsError,
+    } = useQuery(
+        ['districts', selectedProvince],
+        () => fetchDistricts(getProvinceCodeByName(selectedProvince)), // Sử dụng hàm fetchDistricts
+        {
+            enabled: !!selectedProvince,
+            staleTime: 1000 * 60 * 10,
+            cacheTime: 1000 * 60 * 10,
+            refetchInterval: 1000 * 60 * 10,
+        },
+    );
+
+    // const {
+    //     data: wards = [],
+    //     isLoading: isLoadingWards,
+    //     error: wardsError,
+    // } = useQuery(
+    //     ['wards', selectedDistrict],
+    //     () => fetchWards(getDistrictsCodeByName(selectedDistrict)), // Sử dụng hàm fetchWards
+    //     {
+    //         enabled: !!selectedDistrict,
+    //         staleTime: 1000 * 60 * 10,
+    //         cacheTime: 1000 * 60 * 10,
+    //         refetchInterval: 1000 * 60 * 10,
+    //     },
+    // );
+    useEffect(() => {
+        const fetchWards = async () => {
+            if (selectedDistrict) {
+                try {
+                    const districtCode = getDistrictsCodeByName(selectedDistrict); // Đảm bảo hàm này tồn tại
+                    const response = await ky.get(`api/locations/wards/${districtCode}`).json();
+                    setWardData(response);
+                } catch (error) {
+                    console.error('Error fetching wards:', error);
+                }
+            }
+        };
+
+        fetchWards();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDistrict]);
+
+    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType || isLoadingDistricts) {
+        return <Loading />;
+    }
+
+    // Kiểm tra lỗi khi tải rạp chiếu phim
+    if (CinemaError) {
+        return <div>Lỗi khi tải rạp: {CinemaError.message}</div>;
+    }
+
+    // Kiểm tra lỗi khi tải tỉnh
+    if (provincesError) {
+        return <div>Lỗi khi tải tỉnh: {provincesError.message}</div>;
+    }
+    if (districtsError) {
+        return <div>Lỗi khi tải quận/huyện: {districtsError.message}</div>;
+    }
+
+    if (errorRoomType) {
+        return <div>Lỗi khi tải loại phòng: {errorRoomType.message}</div>;
+    }
+    if (errorRoomSize) {
+        return <div>Lỗi khi tải kích cỡ phòng: {errorRoomSize.message}</div>;
+    }
 
     const handleProvinceChange = (value) => {
         setSelectedProvince(value);
 
-        fetchDistricts(getProvinceCodeByName(value)); // Gọi hàm fetchDistricts khi province thay đổi
+        if (value !== selectedProvince) {
+            setSelectedDistrict('');
+            setSelectedWard('');
+            setAddressDetail('');
+        }
     };
 
     const handleDistrictChange = (value) => {
         setSelectedDistrict(value);
-        setSelectedWard(''); // Reset selected ward when district changes
-        fetchWards(getDistrictsCodeByName(value)); // Gọi hàm fetchWards khi district thay đổi
+
+        if (value !== selectedDistrict) {
+            setSelectedWard('');
+            setAddressDetail('');
+        }
     };
+
+    // const fetchWards = async () => {
+    //     if(selectedDistrict){
+    //         const districtCode = getDistrictsCodeByName(selectedDistrict);
+    //         const response = await ky.get(`api/locations/wards/${districtCode}`).json();
+    //         setWardData(response);
+    //     }
+    //     return;
+
+    // };
 
     const handleWardChange = (value) => {
         setSelectedWard(value);
+
+        if (value !== addressDetail) {
+            setAddressDetail('');
+        }
     };
 
     const handleOpenRoom = (isUpdateRoom) => {
@@ -697,6 +783,8 @@ const Cinema = () => {
         setOpenDetail(false);
     };
     const handleCloseRoom = () => {
+        setAddRoom(0);
+
         setOpenRoom(false);
         clearTextModalRoom();
 
@@ -709,6 +797,7 @@ const Cinema = () => {
     };
     const handleCloseCinema = () => {
         clearTextModalCinema();
+        setAddCinema(0);
         setOpen(false);
     };
 
@@ -716,6 +805,20 @@ const Cinema = () => {
     const handleCloseDetail = () => {
         setOpenDetail(false);
         refetch();
+    };
+
+    const handleOpenDelete = (value) => {
+        setOpenDelete(true);
+        setIsDeleteCinema(value);
+    };
+
+    const handleCloseDelete = () => {
+        if (isDeleteCinema) {
+            setSelectedCinema('');
+        }
+        setSelectedRoom('');
+        setOpenDelete(false);
+        setIsDeleteCinema(false);
     };
 
     const renderCinemas = (cinemaList) => {
@@ -753,7 +856,7 @@ const Cinema = () => {
                                 item.status === 0 ? 'bg-gray-400' : item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                             }`}
                         >
-                            {item.status === 0 ? 'Mới tạo' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
+                            {item.status === 0 ? 'Chưa hoạt động' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
                         </button>
                     </div>
                     <div className={` grid justify-center col-span-3 grid-cols-2 items-center `}>
@@ -766,7 +869,11 @@ const Cinema = () => {
                                 getAddress(item.code);
                                 setNameCinema(item.name);
                                 setSelectedStatusCinema(
-                                    item.status === 1 ? 'Hoạt động' : item.status === 2 ? 'Ngừng hoạt động' : 'Mới tạo',
+                                    item.status === 1
+                                        ? 'Hoạt động'
+                                        : item.status === 2
+                                        ? 'Ngừng hoạt động'
+                                        : 'Chưa hoạt động',
                                 );
                             }}
                         >
@@ -775,7 +882,10 @@ const Cinema = () => {
 
                         <button
                             className={`grid  ${item.status !== 0 ? 'pointer-events-none opacity-50' : ''}`}
-                            onClick={() => handleDeleteCinema(item.code)}
+                            onClick={() => {
+                                handleOpenDelete(true);
+                                setSelectedCinema(item);
+                            }}
                         >
                             <MdOutlineDeleteOutline color="black" fontSize={20} />
                         </button>
@@ -850,7 +960,7 @@ const Cinema = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border  shadow-md rounded-[10px] box-border px-1 py-2 h-[515px] max-h-screen custom-height-sm custom-height-md custom-hubmax custom-height-lg custom-height-xl">
+            <div className="bg-white border  shadow-md rounded-[10px] box-border  py-2 h-[515px] max-h-screen custom-height-sm custom-height-md custom-hubmax custom-height-lg custom-height-xl">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
                     <div className="border-b text-sm font-bold text-slate-500 grid grid-cols-12 items-center gap-2 min-w-[1200px] ">
                         <div className="uppercase grid justify-center grid-cols-10 col-span-2 gap-2 items-center">
@@ -870,7 +980,7 @@ const Cinema = () => {
                                 className="flex justify-center col-span-3   "
                                 onClick={() => {
                                     handleOpenCinema(false);
-                                    setSelectedStatusCinema('Mới tạo');
+                                    setSelectedStatusCinema('Chưa hoạt động');
                                 }}
                             >
                                 <button className="border px-4 py-1 rounded-[40px] gradient-button">
@@ -921,7 +1031,7 @@ const Cinema = () => {
 
                     <div className="grid ">
                         <AutoInputComponent
-                            options={provinces.map((province) => province.name)} // Lấy danh sách tỉnh
+                            options={provinces.map((province) => province.province_name)} // Lấy danh sách tỉnh
                             value={selectedProvince}
                             onChange={handleProvinceChange} // Thay đổi hàm xử lý cho tỉnh
                             title="Tỉnh/thành phố"
@@ -934,7 +1044,7 @@ const Cinema = () => {
 
                     <div className="grid ">
                         <AutoInputComponent
-                            options={districts.map((district) => district.name)} // Lấy danh sách quận
+                            options={districts.map((district) => district.district_name)} // Lấy danh sách quận
                             value={selectedDistrict}
                             onChange={handleDistrictChange} // Thay đổi hàm xử lý cho quận
                             title="Quận/huyện"
@@ -947,7 +1057,7 @@ const Cinema = () => {
                     </div>
                     <div className="grid ">
                         <AutoInputComponent
-                            options={wards.map((ward) => ward.name)} // Lấy danh sách phường
+                            options={wardData.map((ward) => ward.ward_name)} // Lấy danh sách phường
                             value={selectedWard}
                             onChange={handleWardChange} // Thay đổi hàm xử lý cho phường
                             title="Phường/xã"
@@ -993,7 +1103,7 @@ const Cinema = () => {
                         <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseCinema} />
                         <ButtonComponent
                             text={isUpdate ? 'Cập nhật' : 'Thêm mới'}
-                            className=" bg-blue-500"
+                            className={` bg-blue-500 ${addCinema === 1 ? 'pointer-events-none opacity-50' : ''}`}
                             onClick={isUpdate ? () => mutationUpdateCinema.mutate() : () => mutationAddCinema.mutate()}
                         />
                     </div>
@@ -1037,7 +1147,7 @@ const Cinema = () => {
                                     onClick={() => {
                                         clearTextModalRoom();
                                         handleOpenRoom(false);
-                                        setSelectedStatusRoom('Mới tạo');
+                                        setSelectedStatusRoom('Chưa hoạt động');
                                     }}
                                 >
                                     <IoIosAddCircleOutline color="white" size={20} />
@@ -1090,7 +1200,7 @@ const Cinema = () => {
                                             }`}
                                         >
                                             {item.status === 0
-                                                ? 'Mới tạo'
+                                                ? 'Chưa hoạt động'
                                                 : item.status === 1
                                                 ? 'Hoạt động'
                                                 : 'Ngừng hoạt động'}
@@ -1108,7 +1218,7 @@ const Cinema = () => {
 
                                                 setSelectedStatusRoom(
                                                     item?.status === 0
-                                                        ? 'Mới tạo'
+                                                        ? 'Chưa hoạt động'
                                                         : item?.status === 1
                                                         ? 'Hoạt động'
                                                         : 'Ngừng hoạt động',
@@ -1129,7 +1239,10 @@ const Cinema = () => {
                                             className={`grid  ${
                                                 item.status !== 0 ? 'pointer-events-none opacity-50' : ''
                                             }`}
-                                            onClick={() => handleDeleteRoom(item.code)}
+                                            onClick={() => {
+                                                handleOpenDelete(false);
+                                                setSelectedRoom(item);
+                                            }}
                                         >
                                             <MdOutlineDeleteOutline color="black" fontSize={20} />
                                         </button>
@@ -1234,9 +1347,43 @@ const Cinema = () => {
                             <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseRoom} />
                             <ButtonComponent
                                 text={isUpdateRoom ? 'Cập nhật' : 'Thêm mới'}
-                                className=" bg-blue-500 "
+                                className={`bg-blue-500 ${addRoom === 1 ? 'pointer-events-none opacity-50' : ''}`}
                                 onClick={
                                     isUpdateRoom ? () => mutationUpdateRoom.mutate() : () => mutationAddRoom.mutate()
+                                }
+                            />
+                        </div>
+                    </div>
+                </div>
+            </ModalComponent>
+
+            <ModalComponent
+                open={openDelete}
+                handleClose={handleCloseDelete}
+                width="25%"
+                height="auto"
+                smallScreenWidth="40%"
+                smallScreenHeight="auto"
+                mediumScreenWidth="40%"
+                mediumScreenHeight="auto"
+                largeScreenHeight="auto"
+                largeScreenWidth="40%"
+                maxHeightScreenHeight="auto"
+                maxHeightScreenWidth="auto"
+                title={isDeleteCinema ? 'Xóa Rạp' : 'Xóa Phòng'}
+            >
+                <div className=" grid grid-rows-2 ">
+                    <h1 className="grid row-span-1 p-3 ">Bạn có chắc chắn muốn xóa không?</h1>
+                    <div className="grid items-center ">
+                        <div className="justify-end flex space-x-3 border-t p-3 pr-4  ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseDelete} />
+                            <ButtonComponent
+                                text="Xóa"
+                                className="bg-blue-500"
+                                onClick={() =>
+                                    isDeleteCinema
+                                        ? handleDeleteCinema(selectedCinema?.code)
+                                        : handleDeleteRoom(selectedRoom?.code)
                                 }
                             />
                         </div>

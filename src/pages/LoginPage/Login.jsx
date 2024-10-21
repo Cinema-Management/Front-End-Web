@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { loginUser } from '~/redux/apiRequest';
 import { useDispatch } from 'react-redux';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 
 const Login = () => {
     const dispatch = useDispatch();
@@ -25,15 +26,29 @@ const Login = () => {
                 type: 1,
             };
 
+            const response = await axios.post('api/users/checkUserStatusByPhone', newUser);
+            const status = response.data;
+            if (status) {
+                if (status === 2) {
+                    toast.warning('Tài khoản đã ngừng hoạt động, vui lòng liên hệ quản lý để biết thêm chi tiết!');
+                    return;
+                }
+            } else {
+                toast.warning('Số điện thoại hoặc mật khẩu không chính xác!');
+                return;
+            }
+
             const error = await loginUser(newUser, dispatch, navigate);
 
             if (error) {
-                toast.error('Tài khoản hoặc mật khẩu không chính xác!');
+                toast.warning('Số điện thoại hoặc mật khẩu không chính xác!');
                 return;
             } else {
                 toast.success('Đăng nhập thành công!');
             }
-        } catch (e) {}
+        } catch (e) {
+            toast.error('Tài khoản hoặc mật khẩu không chính xác!');
+        }
     };
     const validatePhone = (rule, value) => {
         if (!value) {
@@ -66,7 +81,7 @@ const Login = () => {
                         >
                             <Input
                                 prefix={<UserOutlined className="mr-2" />}
-                                placeholder="Số điện thoại hoặc email"
+                                placeholder="Số điện thoại"
                                 className="h-11 text-[16px] font-semibold"
                             />
                         </Form.Item>
