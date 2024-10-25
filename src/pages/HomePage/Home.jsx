@@ -3,7 +3,7 @@ import axios from 'axios';
 import ky from 'ky';
 import React, { useEffect, useState } from 'react';
 import { FaRegEdit, FaShieldAlt } from 'react-icons/fa';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import Loading from '~/components/LoadingComponent/Loading';
 import { updateUser } from '~/redux/authSlice';
+import { update } from 'lodash';
 
 const Home = () => {
     const user = useSelector((state) => state.auth.login?.currentUser);
@@ -22,13 +23,14 @@ const Home = () => {
     const [selectedWard, setSelectedWard] = useState('');
     const [wardData, setWardData] = useState([]);
     const [addressDetail, setAddressDetail] = useState('');
-    const [selectedOptionCinema, setSelectedOptionCinema] = useState('');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [birthDate, setBirthDate] = useState('');
     const [gender, setGender] = useState('');
     const [open, setOpen] = useState(false);
     const dispatch = useDispatch();
+    const queryClient = useQueryClient();
+
     const optionGender = [
         { value: 0, name: 'Nam' },
         { value: 1, name: 'Nữ' },
@@ -46,7 +48,6 @@ const Home = () => {
         setSelectedDistrict('');
         setSelectedWard('');
         setAddressDetail('');
-        setSelectedOptionCinema('');
     };
     const handleClose = () => {
         setOpen(false);
@@ -128,6 +129,12 @@ const Home = () => {
     const fetchDistricts = async (provinceCode) => {
         const response = await ky.get(`api/locations/districts/${provinceCode}`);
         return response.json();
+    };
+
+    const disabledDate = (current) => {
+        // Tính toán ngày 14 năm trước từ hôm nay
+        const fourteenYearsAgo = dayjs().subtract(16, 'year');
+        return current && current > fourteenYearsAgo; // Disable tất cả các ngày sau ngày 14 năm trước
     };
 
     const fetchCinemasFullAddress = async () => {
@@ -293,13 +300,36 @@ const Home = () => {
             return false;
         }
 
-        if (!selectedOptionCinema && !user?.isAdmin) {
-            toast.warning('Vui lòng chọn rạp!');
-            return false;
-        }
-
         return true;
     };
+    const handleRequest = async () => {
+        try {
+            if (!user?.gender || !user?.address || !user?.birthDate) {
+                toast.warning('Vui lòng cập nhật đầy đủ thông tin trước khi yêu cầu cấp quyền!');
+                return;
+            }
+            if (user?.permissionRequest.status === 1) {
+                toast.warning('Yêu cầu đã được gửi vui lòng chờ kết quả!');
+                return;
+            }
+            await axios.put('api/users/updatePermissionRequest/' + user?.code, {
+                status: 1,
+            });
+
+            dispatch(updateUser({ ...user, permissionRequest: { status: 1, date: new Date() } }));
+
+            toast.success('Đã gửi yêu cầu!');
+            refetch();
+        } catch (error) {}
+    };
+
+    const mutation = useMutation(handleRequest, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('getAllStaffPermissionRequest');
+        },
+    });
+
     const handleUpdate = async () => {
         try {
             let loadingId;
@@ -332,14 +362,12 @@ const Home = () => {
                     throw new Error('Không thể thêm giá trị cấp bậc.');
                 }
             }
-            const cinemaCode = optionNameCinema.find((item) => item.name === selectedOptionCinema)?.code;
             const staff = {
                 name: name,
                 birthDate: birthDate,
                 gender: gender,
                 email: email,
                 address: parentCode,
-                cinemaCode: cinemaCode,
                 type: 1,
             };
 
@@ -378,86 +406,127 @@ const Home = () => {
         );
 
     return (
-        <div className="bg-white  min-h-[97%] rounded-[10px] p-3 ">
+        <div className="bg-white  min-h-[60%] rounded-[10px] p-3 mt-2">
             <div className="text-[16px]">
                 <h1 className="text-[20px] font-bold">Thông tin cá nhân</h1>
                 <div className="mt-3 flex custom-ipad">
                     <div className="">
                         <img src={user?.avatar} alt="avatar" className="object-contain w-[250px] h-[250px] " />
                     </div>
-                    <div className="ml-5 w-[60%] custom-ipad1 flex flex-wrap">
-                        <div className="w-1/3 p-2">
-                            <div className=" ">
-                                <h1 className="font-bold">Mã nhân viên: </h1>
-                                <h1 className="font-medium">{user?.code}</h1>
+                    <div className="ml-5 w-[75%] custom-ipad1    grid grid-cols-2   ">
+                        <div className="grid   grid-rows-5 ">
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Mã nhân viên: </h1>
+                                </div>
+
+                                <div className=" grid col-span-6">
+                                    <h1 className="font-medium">{user?.code}</h1>
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-2/3 p-2">
-                            <div className=" ">
-                                <h1 className="font-bold">Họ và tên:</h1>
-                                <h1 className="font-medium">{user?.name}</h1>
+
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Họ tên: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">{user?.name}</h1>
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-1/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Năm sinh: </h1>
-                                <h1 className="font-medium">{getFormatteNgay(user?.birthDate) || 'Chưa cập nhật'}</h1>
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Năm sinh: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    {getFormatteNgay(user?.birthDate) || 'Chưa cập nhật'}
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-2/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Giới tính: </h1>
-                                <h1 className="font-medium">{user?.gender || 'Chưa cật nhật'} </h1>
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Giới tính: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">{user?.gender || 'Chưa cật nhật'} </h1>
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-1/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Số điện thoại: </h1>
-                                <h1 className="font-medium">{user?.phone}</h1>
-                            </div>
-                        </div>
-                        <div className="w-2/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Email: </h1>
-                                <h1 className="font-medium">{user?.email}</h1>
-                            </div>
-                        </div>
-                        <div className="w-1/3 p-2">
-                            <h1 className="font-bold">Rạp: </h1>
-                            <h1 className="font-medium">
-                                {user?.isAdmin
-                                    ? 'Tất cả rạp'
-                                    : optionNameCinema.find((item) => item.code === user?.cinemaCode)?.name ||
-                                      'Chưa cật nhật'}
-                            </h1>
-                        </div>
-                        <div className="w-2/3 p-2">
-                            <h1 className="font-bold">Địa chỉ: </h1>
-                            <h1 className="font-medium">{fullAddressStaff || 'Chưa cật nhật'}</h1>
-                        </div>
-                        <div className="w-1/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Vai trò: </h1>
-                                <h1 className="font-medium">
-                                    {user?.isAdmin === false
-                                        ? 'Nhân viên'
-                                        : user?.isAdmin === true
-                                        ? 'Quản lý'
-                                        : 'Chưa cấp quyền'}
-                                </h1>
+
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Địa chỉ: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">{fullAddressStaff || 'Chưa cật nhật'}</h1>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="w-2/3 p-2">
-                            <div className="">
-                                <h1 className="font-bold">Trạng thái: </h1>
-                                <h1 className="font-medium">
-                                    {user?.status === 0 ? 'Ngưng hoạt động' : 'Đang hoạt động'}
-                                </h1>
+                        <div className="grid  grid-rows-5 ml-10">
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Số điện thoại: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">{user?.phone}</h1>
+                                </div>
+                            </div>
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Email: </h1>
+                                </div>
+
+                                <div className=" grid col-span-6">
+                                    <h1 className="font-medium break-all">{user?.email}</h1>
+                                </div>
+                            </div>
+
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Vai trò: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">
+                                        {user?.isAdmin === false
+                                            ? 'Nhân viên'
+                                            : user?.isAdmin === true
+                                            ? 'Quản lý'
+                                            : 'Chưa cấp quyền'}
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Rạp: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">
+                                        {user?.isAdmin
+                                            ? 'Tất cả rạp'
+                                            : optionNameCinema.find((item) => item.code === user?.cinemaCode)?.name ||
+                                              'Chưa cật nhật'}
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className=" grid grid-cols-10">
+                                <div className="grid col-span-4">
+                                    <h1 className="font-bold">Trạng thái: </h1>
+                                </div>
+
+                                <div className="grid col-span-6">
+                                    <h1 className="font-medium">
+                                        {user?.status === 0 ? 'Ngưng hoạt động' : 'Đang hoạt động'}
+                                    </h1>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="w-1/2 p-2 ">
+                        <div className="w-3/4 py-3  ">
                             <Button
                                 type="primary"
                                 style={{ width: '100%', color: 'black', fontWeight: 500, fontSize: '16px' }}
@@ -468,9 +537,7 @@ const Home = () => {
                                     setEmail(user?.email);
                                     setGender(user?.gender);
                                     setBirthDate(dayjs(user?.birthDate).format('YYYY-MM-DD'));
-                                    setSelectedOptionCinema(
-                                        optionNameCinema.find((option) => option.code === user?.cinemaCode)?.name,
-                                    );
+
                                     getAddress(user.address);
                                 }}
                             >
@@ -478,14 +545,30 @@ const Home = () => {
                             </Button>
                         </div>
                         {user?.isAdmin === null && (
-                            <div className="w-1/2 p-2">
-                                <Button
-                                    type="primary"
-                                    danger
-                                    style={{ width: '100%', color: 'white', fontWeight: 500, fontSize: '15px' }}
-                                >
-                                    <FaShieldAlt color="white" size={22} /> Yêu cầu cấp quyền
-                                </Button>
+                            <div className="w-3/4 py-3 ml-12 ">
+                                <div>
+                                    <Button
+                                        type="primary"
+                                        danger
+                                        style={{ width: '100%', color: 'white', fontWeight: 500, fontSize: '15px' }}
+                                        onClick={() => mutation.mutate()}
+                                    >
+                                        <FaShieldAlt color="white" size={22} />
+                                        {user?.permissionRequest?.status === 3
+                                            ? 'Gửi lại yêu cầu cấp quyền'
+                                            : 'Gửi yêu cầu cấp quyền'}
+                                    </Button>
+                                </div>
+                                <div className="mt-2 ml-3">
+                                    <span>
+                                        Yêu cầu:{' '}
+                                        {user?.permissionRequest?.status === 1
+                                            ? 'Đã được gửi'
+                                            : user?.permissionRequest?.status === 3
+                                            ? 'Bị từ chối'
+                                            : 'Chưa được gửi'}
+                                    </span>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -496,7 +579,7 @@ const Home = () => {
                 open={open}
                 handleClose={handleClose}
                 width="40%"
-                height={`${user?.isAdmin ? '60%' : '68%'}`}
+                height="60%"
                 smallScreenWidth="65%"
                 smallScreenHeight="50%"
                 mediumScreenWidth="60%"
@@ -508,7 +591,7 @@ const Home = () => {
                 heightScreen="62%"
                 title="Cập nhật thông tin "
             >
-                <div className={`h-90p grid  gap-2  ${user?.isAdmin ? 'grid-rows-5' : 'grid-rows-6'}`}>
+                <div className={`h-90p grid  gap-2 grid-rows-5`}>
                     <div className="grid p-3">
                         <div className="grid grid-cols-2 gap-5">
                             <AutoInputComponent
@@ -540,6 +623,7 @@ const Home = () => {
                                     value={birthDate ? dayjs(birthDate) : null}
                                     allowClear={false} // Không cho phép xóa
                                     getPopupContainer={(trigger) => trigger.parentNode}
+                                    disabledDate={disabledDate}
                                     placeholder="Chọn ngày"
                                     format="DD/MM/YYYY"
                                     className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none  hover:border-[black] "

@@ -15,6 +15,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FormatSchedule, getFormatteNgay } from '~/utils/dateUtils';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import Loading from '../LoadingComponent/Loading';
 const Avatar = React.memo(() => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -24,8 +26,9 @@ const Avatar = React.memo(() => {
     const [openDelete, setOpenDelete] = useState(false);
     const [openModal, setOpenModal] = useState(false);
     const [form] = Form.useForm();
-    const [isChecked, setIsChecked] = useState(false);
     const [open, setOpen] = useState(false);
+    const [selectedStaff, setSelectedStaff] = useState('');
+    const queryClient = useQueryClient();
 
     const handleCloseDelete = () => {
         setOpenDelete(false);
@@ -40,12 +43,13 @@ const Avatar = React.memo(() => {
     };
 
     const handleBellClick = () => {
-        setOpenModal(true);
+        permissionRequest.length > 0 ? setOpenModal(true) : toast.info('Không có thông báo nào!');
     };
 
     const handleClose = () => {
         setOpenModal(true);
         setOpen(false);
+        setSelectedStaff('');
     };
     const handleOpen = () => {
         setOpen(true);
@@ -54,15 +58,6 @@ const Avatar = React.memo(() => {
 
     const handleCloseModal = () => {
         setOpenModal(false);
-        setIsChecked(false);
-    };
-
-    const handleConfirm = () => {
-        if (isChecked) {
-            // Thực hiện hành động xác nhận ở đây
-            console.log('Đã xác nhận');
-        }
-        handleCloseModal();
     };
 
     useEffect(() => {
@@ -162,18 +157,143 @@ const Avatar = React.memo(() => {
         </div>
     );
 
-    const notificationCount = 11;
+    const getAllStaffPermissionRequest = async () => {
+        try {
+            const response = await axios.get('/api/users/getAllStaffPermissionRequest');
+
+            const data = response.data;
+
+            return data;
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    const fetchCinemasFullAddress = async () => {
+        try {
+            const response = await axios.get('/api/cinemas/getAllFullAddress');
+
+            const data = response.data;
+
+            const arrayNameCinema = data.map((cinema) => ({
+                name: cinema.name,
+                code: cinema.code,
+            }));
+            return { optionNameCinema: arrayNameCinema };
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+    const {
+        data: { optionNameCinema = [] } = {},
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
+        staleTime: 1000 * 60 * 7,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
+    });
+
+    const {
+        data: permissionRequest = [],
+        isLoading,
+        error,
+        refetch,
+    } = useQuery('getAllStaffPermissionRequest', getAllStaffPermissionRequest, {
+        staleTime: 1000 * 60 * 10,
+        cacheTime: 1000 * 60 * 10,
+        refetchOnWindowFocus: true,
+        refetchInterval: 1000 * 60 * 10,
+    });
+
+    const handleConfirm = async (request) => {
+        try {
+            await axios.put('api/users/updatePermissionRequest/' + request?.code, {
+                status: 2,
+            });
+            await axios.put('api/users/' + request?.code, {
+                type: 1,
+                isAdmin: false,
+            });
+            toast.success('Phê duyệt thành công!');
+            if (permissionRequest.length === 1) {
+                setOpenModal(false);
+            }
+
+            refetch();
+        } catch (error) {
+            toast.error('Phê duyệt thất bại!');
+        }
+    };
+
+    const mutation = useMutation(handleConfirm, {
+        onSuccess: () => {
+            // Refetch dữ liệu cần thiết
+            queryClient.refetchQueries('fetchStaff');
+        },
+    });
+
+    function formatDate(timeRequest) {
+        const currentDate = new Date();
+        const requestDate = new Date(timeRequest);
+
+        const diffInMillis = currentDate - requestDate;
+        const diffInSeconds = Math.floor(diffInMillis / 1000); // Chênh lệch thời gian tính bằng giây
+        const diffInHours = Math.floor(diffInSeconds / 3600); // Chênh lệch thời gian tính bằng giờ
+
+        if (diffInHours < 24) {
+            return 'Hôm nay';
+        } else if (diffInHours >= 24 && diffInHours < 48) {
+            return 'Hôm qua';
+        } else {
+            const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
+            return requestDate.toLocaleDateString('vi-VN', options);
+        }
+    }
+
+    const handleReject = async (request) => {
+        try {
+            await axios.put('api/users/updatePermissionRequest/' + request?.code, {
+                status: 3,
+            });
+
+            toast.warning('Bạn đã từ chối!');
+
+            refetch();
+            if (permissionRequest.length === 1) {
+                setOpenModal(false);
+            }
+        } catch (error) {
+            toast.error('Từ chối thất bại!');
+        }
+    };
+    if (isLoading || isLoadingCinemas) return;
+    if (error || CinemaError) return <p>error: {error.message || CinemaError.message}</p>;
 
     return (
-        <div className="flex  justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[90px]">
+        <div className="flex  justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[90px] ">
             <div
-                className="flex justify-center items-center relative h-[40px] w-[40px] mr-3 bg-gray-300 rounded-[50%]"
+                className={`flex justify-center items-center relative h-[40px] w-[40px] mr-3 bg-gray-300 rounded-[50%] ${
+                    user?.isAdmin ? '' : 'hidden'
+                }`}
                 onClick={handleBellClick}
             >
                 <GoBell className="text-center m-auto" size={22} />
-                {notificationCount > 0 && (
+                {permissionRequest.length > 0 && (
                     <span className="absolute top-[-5px] right-[-5px] bg-red-500 text-white text-[12px] font-bold rounded-full w-[20px] h-[20px] flex items-center justify-center">
-                        {notificationCount}
+                        {permissionRequest.length}
                     </span>
                 )}
             </div>
@@ -301,47 +421,56 @@ const Avatar = React.memo(() => {
             <ModalComponent
                 open={openModal}
                 handleClose={handleCloseModal}
-                width="40%"
-                height="60%"
-                smallScreenWidth="40%"
-                smallScreenHeight="25%"
-                mediumScreenWidth="40%"
-                mediumScreenHeight="20%"
-                largeScreenHeight="20%"
-                largeScreenWidth="40%"
-                maxHeightScreenHeight="40%"
-                maxHeightScreenWidth="40%"
+                width="auto"
+                height="auto"
                 title="Thông báo"
             >
-                <div className="h-full">
-                    <div className="h-[75%] overflow-auto ">
-                        <div className="flex justify-between h-auto mb-[6px] px-3 bg-gray-200 ">
-                            <div className="flex items-center w-full h-auto py-2 cursor-pointer" onClick={handleOpen}>
-                                <img
-                                    src={user?.avatar || 'https://www.w3schools.com/w3images/avatar6.png'}
-                                    alt={user.name}
-                                    className="rounded-full mr-3 w-12 h-12"
-                                />
-                                <div>
-                                    <h1 className="text-base font-bold">NV01</h1>
-                                    <h1 className="text-base font-bold">
-                                        {user.name} <span className="font-medium">đã yêu cầu cấp quyền </span>
-                                    </h1>
+                <div className=" overflow-auto grid  ">
+                    {permissionRequest.map((request, index) => (
+                        <div key={index} className="grid justify-between h-auto  px-2 bg-gray-200   grid-cols-4 gap-3">
+                            <div className="  grid col-span-3  ">
+                                <div
+                                    className="flex items-center w-full h-auto py-2 cursor-pointer "
+                                    onClick={() => {
+                                        handleOpen(request);
+                                        setSelectedStaff(request);
+                                    }}
+                                >
+                                    <img
+                                        src={request?.avatar || 'https://www.w3schools.com/w3images/avatar6.png'}
+                                        alt={request?.name}
+                                        className="rounded-full mr-3 w-12 h-12"
+                                    />
+                                    <div>
+                                        <div className="flex  justify-between  ">
+                                            <span className="text-xs text-gray-800">
+                                                {formatDate(request?.permissionRequest?.date)}
+                                            </span>
+                                        </div>
+                                        <h1 className="text-base font-bold">
+                                            {request?.name}{' '}
+                                            <span className="font-medium">yêu cầu cấp quyền nhân viên.</span>
+                                        </h1>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex justify-center   h-auto items-center space-x-3">
-                                <Button text="Từ chối" className="bg-[#a6a6a7] text-black " onClick={handleCloseModal}>
+                            <div className="grid grid-cols-2 items-center justify-center space-x-2 col-span-1  ">
+                                <Button
+                                    text="Từ chối"
+                                    className="bg-[#a6a6a7] text-black"
+                                    onClick={() => handleReject(request)}
+                                >
                                     Từ chối
                                 </Button>
-                                <Button type="primary" className="bg-blue-500" onClick={handleConfirm}>
-                                    Đồng ý
+                                <Button type="primary" className="bg-blue-500" onClick={() => mutation.mutate(request)}>
+                                    Phê duyệt
                                 </Button>
                             </div>
                         </div>
-                    </div>
-                    <div className="flex justify-end border-t pt-2 space-x-3 mt-4 pr-2">
-                        <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleCloseModal} />
-                    </div>
+                    ))}
+                </div>
+                <div className="flex justify-end border-t space-x-3 mt-4 pr-2 py-2">
+                    <ButtonComponent text="Đóng" className="bg-[#a6a6a7]" onClick={handleCloseModal} />
                 </div>
             </ModalComponent>
 
@@ -349,7 +478,7 @@ const Avatar = React.memo(() => {
                 open={open}
                 handleClose={handleClose}
                 width="55%"
-                height="55%"
+                height="58%"
                 smallScreenWidth="80%"
                 smallScreenHeight="60%"
                 mediumScreenWidth="80%"
@@ -361,83 +490,93 @@ const Avatar = React.memo(() => {
                 heightScreen="75%"
                 title="Chi tiết nhân viên"
             >
-                <div className="h-90p grid grid-rows-6 gap-2 ">
+                <div className="h-90p grid grid-rows-6 gap-2  ">
                     <div className="grid row-span-5">
-                        <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                        <div className="grid text-[15px] items-center px-3 ">
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2 grid-cols-2 gap-2">
                                     <h1 className=" font-bold">Mã nhân viên:</h1>
-                                    <h1 className=" font-normal grid col-span-2">{user?.code}</h1>
+                                    <h1 className=" font-normal">{selectedStaff?.code}</h1>
                                 </div>
-                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                <div className="grid col-span-3 grid-cols-3 gap-2">
                                     <h1 className="font-bold">Họ và tên:</h1>
-                                    <h1 className="grid col-span-2 font-normal">{user?.name}</h1>
+                                    <h1 className="grid col-span-2 font-normal">{selectedStaff?.name}</h1>
                                 </div>
                             </div>
                         </div>
                         <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="grid col-span-2  grid-cols-3 gap-2">
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
                                     <h1 className="font-bold">Giới tính:</h1>
-                                    <h1 className=" font-normal grid col-span-2">{user?.gender}</h1>
+                                    <h1 className="grid  font-normal">{selectedStaff?.gender}</h1>
                                 </div>
-                                <div className="grid col-span-2  grid-cols-3 gap-2">
+                                <div className="grid col-span-3  grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Email:</h1>
+                                    <h1 className="font-normal grid col-span-2">{selectedStaff?.email}</h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Ngày sinh:</h1>
+                                    <h1 className="font-normal">{getFormatteNgay(selectedStaff?.birthDate)}</h1>
+                                </div>
+                                <div className="grid col-span-3 grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Số điện thoại:</h1>
+                                    <h1 className="grid col-span-2 font-normal">{selectedStaff?.phone}</h1>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Trạng thái:</h1>
+                                    <h1 className="grid  font-normal">
+                                        {selectedStaff?.status === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                                    </h1>
+                                </div>
+                                <div className="grid col-span-3 grid-cols-3 gap-2">
                                     <h1 className="font-bold">Vai trò:</h1>
-                                    <h1 className="font-normal grid col-span-2">
-                                        {user?.isAdmin === null
+                                    <h1 className="font-normal col-span-2">
+                                        {selectedStaff?.isAdmin === null
                                             ? 'Chưa cấp quyền'
-                                            : user?.isAdmin === false
+                                            : selectedStaff?.isAdmin === false
                                             ? 'Nhân viên'
                                             : 'Quản lý'}
                                     </h1>
                                 </div>
                             </div>
                         </div>
+
                         <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="grid col-span-2  grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Ngày sinh:</h1>
-                                    <h1 className=" font-normal grid col-span-2">{getFormatteNgay(user?.birthDate)}</h1>
-                                </div>
-                                <div className="grid col-span-2 grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Số điện thoại:</h1>
-                                    <h1 className="grid col-span-2 font-normal">{user?.phone}</h1>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="grid col-span-2  grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Trạng thái:</h1>
-                                    <h1 className=" font-normal grid col-span-2">
-                                        {user?.status === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Rạp:</h1>
+                                    <h1 className="grid  font-normal">
+                                        {selectedStaff?.isAdmin
+                                            ? 'Tất cả rạp'
+                                            : selectedStaff?.cinemaCode
+                                            ? optionNameCinema.find((item) => item.code === selectedStaff?.cinemaCode)
+                                                  ?.name
+                                            : 'Chưa cập nhật'}
                                     </h1>
                                 </div>
-                                <div className="grid col-span-2 grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Email:</h1>
-                                    <h1 className="font-normal col-span-2">{user?.email}</h1>
+                                <div className="grid col-span-3  grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Địa chỉ:</h1>
+                                    <h1 className="font-normal grid col-span-2">{selectedStaff?.fullAddress}</h1>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="grid text-[15px] grid-cols-4 items-center px-3">
-                            <div className="grid col-span-2  grid-cols-3 gap-2">
-                                <h1 className="font-bold">Rạp:</h1>
-                                <h1 className="font-normal col-span-2">{user?.email}</h1>
-                            </div>
-                            <div className="grid grid-cols-5 col-span-2 gap-2">
-                                <h1 className="font-bold">Địa chỉ:</h1>
-                                <h1 className="font-normal ml-1 col-span-4">{user?.address}</h1>
                             </div>
                         </div>
                         <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="grid col-span-2  grid-cols-3 gap-2">
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
                                     <h1 className="font-bold">Ngày tạo:</h1>
-                                    <h1 className="font-normal grid col-span-2">{FormatSchedule(user?.createdAt)}</h1>
+                                    <h1 className="font-normal">{FormatSchedule(selectedStaff?.createdAt)}</h1>
                                 </div>
-                                <div className="grid col-span-2 grid-cols-3 gap-2">
+                                <div className="grid col-span-3 grid-cols-3 gap-2">
                                     <h1 className="font-bold">Ngày cập nhật:</h1>
-                                    <h1 className="font-normal">{FormatSchedule(user?.updatedAt)}</h1>
+                                    <h1 className="font-normal">{FormatSchedule(selectedStaff?.updatedAt)}</h1>
                                 </div>
                             </div>
                         </div>

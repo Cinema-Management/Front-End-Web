@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, Checkbox } from 'antd';
+import { Form, Input, Select } from 'antd';
 import Logo from '~/assets/Logo.png';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '~/redux/apiRequest';
@@ -10,6 +10,8 @@ import { IoIosArrowBack } from 'react-icons/io';
 import { auth } from '~/configs/firebaseConfig';
 import { RecaptchaVerifier, signInWithPhoneNumber } from '@firebase/auth';
 import axios from 'axios';
+import { useQuery } from 'react-query';
+import Loading from '~/components/LoadingComponent/Loading';
 
 const Register = () => {
     const [form] = Form.useForm();
@@ -155,11 +157,11 @@ const Register = () => {
 
                 const checkEmail = arrayUser.find((user) => user.email === object.email);
                 if (checkPhone) {
-                    toast.error('SĐT đã tồn tại!');
+                    toast.warning('Số điện thoại đã tồn tại!');
                     return;
                 }
                 if (checkEmail) {
-                    toast.error('Email đã tồn tại!');
+                    toast.warning('Email đã tồn tại!');
                     return;
                 }
                 const user = {
@@ -182,7 +184,7 @@ const Register = () => {
                 toast.error('Thất bại!');
                 return;
             } else {
-                toast.success('Đăng nhập thành công!');
+                toast.success('Đăng ký thành công!');
             }
         } catch (e) {}
     };
@@ -213,16 +215,62 @@ const Register = () => {
         const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
         return passRegex.test(value)
             ? Promise.resolve()
-            : Promise.reject(new Error('ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số!'));
+            : Promise.reject(new Error('Ít nhất 8 ký tự, bao gồm chữ hoa, thường, số!'));
     };
 
+    const validateRegistrationCode = (_, value) => {
+        const code = process.env.REACT_APP_CODE;
+        if (!value) {
+            return Promise.reject(new Error('Nhập mã đăng ký!'));
+        }
+        if (value !== code) {
+            return Promise.reject(new Error('Mã đăng ký không hợp lệ!'));
+        }
+        return Promise.resolve();
+    };
+
+    const fetchCinemasFullAddress = async () => {
+        try {
+            const response = await axios.get('/api/cinemas/getAllFullAddress');
+
+            const data = response.data;
+
+            const arrayNameCinema = data
+                .filter((item) => item.status === 1)
+                .map((cinema) => ({
+                    name: cinema.name,
+                    code: cinema.code,
+                }));
+            return arrayNameCinema;
+        } catch (error) {
+            if (error.response) {
+                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
+            } else if (error.request) {
+                throw new Error('Error: No response received from server');
+            } else {
+                throw new Error('Error: ' + error.message);
+            }
+        }
+    };
+
+    const {
+        data: optionNameCinema = [],
+        isLoading: isLoadingCinemas,
+        error: CinemaError,
+    } = useQuery('cinemasFullAddress4', fetchCinemasFullAddress, {
+        staleTime: 1000 * 60 * 7,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
+    });
+    if (isLoadingCinemas) return <Loading />;
+    if (CinemaError) return <h1>{CinemaError.message}</h1>;
     return (
         <div className="min-h-screen grid grid-cols-2">
             <div className="bg-custom-bg bg-cover bg-no-repeat bg-left"></div>
 
             <div className="h-screen flex items-center justify-center">
                 <div className="grid login-container p-4 custom-air-mini rounded-lg max-w-[480px] w-full">
-                    <img src={Logo} alt="background" className="h-[120px] object-cover mx-auto mb-8" />
+                    <img src={Logo} alt="background" className="h-[80px] object-cover mx-auto mb-8" />
                     <div id="recaptcha-container" className="flex justify-center mt-3"></div>
 
                     {/* <button
@@ -241,61 +289,65 @@ const Register = () => {
                             name="register"
                             onFinish={onFinisRegister}
                             scrollToFirstError
-                            className="login-form bg-[#d0d0d0] px-5 rounded-[10px] custom-air-mini"
+                            className="login-form bg-[#d0d0d0] px-3 rounded-[10px] custom-air-mini"
                         >
-                            <h2 className="text-[22px] font-bold text-center pb-3 pt-2">ĐĂNG KÝ</h2>
-
+                            <h2 className="text-[20px] font-bold text-center pb-2 pt-2">ĐĂNG KÝ</h2>{' '}
+                            {/* Giảm kích thước font */}
+                            <Form.Item
+                                name="registrationCode"
+                                label="Mã đăng ký"
+                                labelCol={{ span: 8 }} // Giảm span cho label
+                                wrapperCol={{ span: 16 }} // Giảm span cho input
+                                rules={[{ required: true, validator: validateRegistrationCode }]}
+                            >
+                                <Input placeholder="Mã đăng ký" className="h-8 font-semibold" />
+                            </Form.Item>
                             <Form.Item
                                 name="name"
                                 label="Họ và tên"
-                                labelCol={{ span: 9 }}
-                                wrapperCol={{ span: 15 }}
-                                tooltip="Tên hiển thị của bạn trên hệ thống"
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
                                 rules={[{ required: true, message: 'Nhập họ và tên!', whitespace: true }]}
                             >
-                                <Input placeholder="Họ và tên" autoComplete="name" className="h-9 font-semibold" />
+                                <Input placeholder="Họ và tên" autoComplete="name" className="h-8 font-semibold" />
                             </Form.Item>
-
                             <Form.Item
                                 name="email"
                                 label="Email"
-                                labelCol={{ span: 9 }}
-                                wrapperCol={{ span: 15 }}
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
                                 rules={[{ validator: validateEmail, required: true }]}
                             >
-                                <Input placeholder="Email" autoComplete="email" className="h-9 font-semibold" />
+                                <Input placeholder="Email" autoComplete="email" className="h-8 font-semibold" />
                             </Form.Item>
-
                             <Form.Item
                                 name="phone"
                                 label="Số điện thoại"
-                                labelCol={{ span: 9 }}
-                                wrapperCol={{ span: 15 }}
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
                                 rules={[{ validator: validatePhone, required: true, message: 'Nhập số điện thoại!' }]}
                             >
-                                <Input placeholder="Số điện thoại" autoComplete="phone" className="h-9 font-semibold" />
+                                <Input placeholder="Số điện thoại" autoComplete="phone" className="h-8 font-semibold" />
                             </Form.Item>
-
                             <Form.Item
                                 name="password"
                                 label="Mật khẩu"
-                                labelCol={{ span: 9 }}
-                                wrapperCol={{ span: 15 }}
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
                                 rules={[{ validator: validatePassword, required: true }]}
                             >
                                 <Input.Password
                                     placeholder="Mật khẩu"
                                     autoComplete="new-password"
-                                    className="h-9 font-semibold"
+                                    className="h-8 font-semibold"
                                 />
                             </Form.Item>
-
                             <Form.Item
                                 name="confirm"
                                 label="Nhập lại mật khẩu"
                                 dependencies={['password']}
-                                labelCol={{ span: 9 }}
-                                wrapperCol={{ span: 15 }}
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
                                 hasFeedback
                                 rules={[
                                     { required: true, message: 'Nhập xác nhận mật khẩu!' },
@@ -311,11 +363,25 @@ const Register = () => {
                                 <Input.Password
                                     placeholder="Nhập lại mật khẩu"
                                     autoComplete="new-password"
-                                    className="h-9 font-semibold"
+                                    className="h-8 font-semibold"
                                 />
                             </Form.Item>
-
                             <Form.Item
+                                name="cinemaCode"
+                                label="Rạp"
+                                labelCol={{ span: 8 }}
+                                wrapperCol={{ span: 16 }}
+                                rules={[{ required: true, message: 'Vui lòng chọn rạp!' }]}
+                            >
+                                <Select placeholder="Chọn rạp" className="h-8 font-semibold">
+                                    {optionNameCinema.map((cinema) => (
+                                        <Select.Option key={cinema.code} value={cinema.code}>
+                                            {cinema.name}
+                                        </Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                            {/* <Form.Item
                                 name="agreement"
                                 valuePropName="checked"
                                 className="ml-9"
@@ -338,16 +404,17 @@ const Register = () => {
                                     </button>{' '}
                                     của TD Việt Nam
                                 </Checkbox>
-                            </Form.Item>
-
-                            <Form.Item className="pt-3">
+                            </Form.Item> */}
+                            <Form.Item>
                                 <button
                                     type="submit"
-                                    className="login-form-button rounded-[10px] w-full gradient-button h-[38px] text-[18px] font-bold text-black"
+                                    className="login-form-button rounded-[10px] w-full gradient-button h-[36px] text-[16px] font-bold text-black" // Giảm chiều cao và kích thước font
                                 >
                                     Đăng ký
                                 </button>
-                                <div className="text-[14px] text-center mt-4">
+                                <div className="text-[14px] text-center mt-3">
+                                    {' '}
+                                    {/* Giảm khoảng cách */}
                                     Bạn đã có tài khoản?{' '}
                                     <button
                                         type="button"

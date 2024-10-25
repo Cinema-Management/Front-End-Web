@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 
 import { LuArmchair } from 'react-icons/lu';
 import { IoIosArrowBack } from 'react-icons/io';
@@ -64,7 +64,6 @@ const Seat = () => {
     const handleOpenPay = () => setOpenPay(true);
     const handleClosePay = () => {
         setOpenPay(false);
-        setCashGiven(0);
         setChangeAmount(0);
     };
     const queryClient = useQueryClient();
@@ -191,7 +190,7 @@ const Seat = () => {
     const totalPriceMain = useMemo(() => totalPriceCombo + totalPrice, [totalPriceCombo, totalPrice]);
     const discountAmount = totalPriceMain - priceAfter;
 
-    const [cashGiven, setCashGiven] = useState(0);
+    const [cashGiven, setCashGiven] = useState(priceAfter);
     const [changeAmount, setChangeAmount] = useState(0);
     const [salesInvoiceCode, setSalesInvoiceCode] = useState('');
 
@@ -199,6 +198,9 @@ const Seat = () => {
         const change = cashGiven - totalAmount;
         return change >= 0 ? change : 0;
     };
+    useEffect(() => {
+        setCashGiven(priceAfter);
+    }, [priceAfter]);
 
     const handleCashGivenChange = (e) => {
         const value = e.target.value;
@@ -270,6 +272,7 @@ const Seat = () => {
                 }
                 let loadingToastId;
                 setCashGiven(0);
+
                 loadingToastId = toast.loading('Đang thanh toán!');
 
                 const salesInvoice = {
