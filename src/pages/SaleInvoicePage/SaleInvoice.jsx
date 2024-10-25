@@ -469,7 +469,7 @@ const SaleInvoice = () => {
                 if (productType === 0) {
                     // Thêm sản phẩm loại ghế vào mảng type0
                     acc.seat.push(item);
-                } else if (productType === 1) {
+                } else if (productType !== 0) {
                     // Thêm sản phẩm loại nước ngọt vào mảng type1
                     acc.food.push(item);
                 }
@@ -488,7 +488,7 @@ const SaleInvoice = () => {
         cinemaName: selectedInvoice?.scheduleCode?.roomCode?.cinemaCode?.name,
         cinemaAddress: addressCinema,
         createdAt: FormatSchedule(selectedInvoice?.createdAt),
-        staffName: selectedInvoice?.staffCode === null ? 'Tại quầy' : selectedInvoice?.staffCode.name,
+        staffName: selectedInvoice?.staffCode === null ? 'App' : selectedInvoice?.staffCode.name,
         movieName: selectedInvoice?.scheduleCode?.movieCode?.name,
         ageRestriction: handleChangAge(selectedInvoice?.scheduleCode?.movieCode?.ageRestriction),
         date: getFormatteNgay(selectedInvoice?.scheduleCode?.date),
@@ -535,7 +535,7 @@ const SaleInvoice = () => {
 
         return (
             <div
-                className="border-b py-3 text-[15px] font-normal gap-2 text-slate-500 grid grid-cols-8 items-center pr-2"
+                className="border-b  text-[15px] font-normal gap-2 text-slate-500 grid grid-cols-8 items-center px-2"
                 key={item.code}
                 style={style}
             >
@@ -550,22 +550,24 @@ const SaleInvoice = () => {
                 </h1>
                 <h1 className="grid items-center ">{item.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
                 <h1 className="grid items-center uppercase">{item.scheduleCode?.movieCode?.name}</h1>
-                <h1 className="grid items-center justify-center ">{FormatSchedule(item.createdAt)}</h1>
 
-                <div className=" grid grid-cols-8 col-span-2 gap-x-0">
-                    <h1 className="grid justify-center col-span-3 items-center ">
-                        {formatCurrency(calculateTotal(item.details))}
+                <div className=" grid grid-cols-12 col-span-3 gap-4 ml-2 ">
+                    <h1 className="flex items-center justify-center  col-span-4">{FormatSchedule(item.createdAt)}</h1>
+
+                    <h1 className="grid justify-center col-span-3 items-center  ">
+                        {formatCurrency(calculateTotal(item.details) - item.discountAmount)}
                     </h1>
-                    <button
-                        className={`border col-span-3 text-white text-[14px] py-[3px]  rounded-[40px] ${
-                            item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
-                        }`}
-                    >
-                        {item.status === 1 ? 'Đã thanh toán' : 'Đã trả'}
-                    </button>
-                    <div className="grid grid-cols-2 col-span-2">
+                    <div className="grid col-span-4  justify-center items-center    cursor-default">
+                        <h1
+                            className={`px-2 py-2 rounded-[40px]    justify-center items-center text-white uppercase text-sm 
+                         ${item.status === 1 ? 'bg-green-500' : 'bg-gray-400'} `}
+                        >
+                            {item.status === 1 ? 'Đã thanh toán' : 'Đã hoàn trả'}
+                        </h1>
+                    </div>
+                    <div className="grid grid-rows-1  gap-2">
                         <button
-                            className="col-span-1 ml-[10px] "
+                            className=" "
                             onClick={() => {
                                 handleOpenDelete();
                                 setSelectedInvoice(item);
@@ -575,7 +577,7 @@ const SaleInvoice = () => {
                             <RiRefund2Fill color={`${item.status === 0 ? 'gray' : 'black'}`} size={22} />
                         </button>
                         <button
-                            className="ml-2"
+                            className=""
                             onClick={() => {
                                 handleOpen();
                                 setSelectedInvoice(item);
@@ -719,7 +721,7 @@ const SaleInvoice = () => {
             </div>
             <div className="bg-white border shadow-md rounded-[10px] box-border  py-2 h-[455px] custom-height-xs2 max-h-screen custom-height-sm25 custom-height-md5 custom-height-lg4 custom-height-xl3 custom-hubmax3">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="border-b py-2 gap-2 text-sm uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] pr-2">
+                    <div className="border-b py-2 gap-2 text-xs uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] pr-2">
                         <div className="grid grid-cols-3">
                             <h1 className="grid justify-center items-center ">STT</h1>
                             <h1 className="grid justify-center items-center col-span-2  ">Mã HĐ bán</h1>
@@ -728,11 +730,12 @@ const SaleInvoice = () => {
                         <h1 className="grid col-span-1 justify-center items-center">Khách hàng</h1>
                         <h1 className="grid justify-center items-center">Rạp</h1>
                         <h1 className="grid justify-center items-center">Tên phim</h1>
-                        <h1 className="grid justify-center items-center">Ngày lập</h1>
-                        <div className=" grid col-span-2 grid-cols-8 ">
-                            <h1 className="grid justify-center items-center col-span-3 ">Tổng tiền</h1>
-                            <h1 className="grid justify-center items-center col-span-3">Trạng thái</h1>
-                            <h1 className="grid justify-center items-center col-span-2">{''}</h1>
+
+                        <div className=" grid col-span-3 grid-cols-12 gap-4 ">
+                            <h1 className="grid justify-center items-center col-span-4">Ngày lập</h1>
+                            <h1 className="grid justify-start items-center col-span-4 ">Tổng thanh toán</h1>
+                            <h1 className="grid justify-start items-center col-span-3">Trạng thái</h1>
+                            <h1 className="grid justify-center items-center ">{''}</h1>
                         </div>
                     </div>
 
@@ -766,7 +769,7 @@ const SaleInvoice = () => {
                 maxHeightScreenHeight="92%"
                 maxHeightScreenWidth="70%"
                 heightScreen="75%"
-                title="Chi tiết hóa đơn"
+                title="Chi tiết hóa đơn bán"
             >
                 <div className="h-90p grid grid-rows-12 gap-2  px-2">
                     <div className="grid row-span-4 pb-2  grid-cols-12">
@@ -791,7 +794,7 @@ const SaleInvoice = () => {
                                         <h1 className="font-bold">Nhân viên lập:</h1>
                                         <h1 className="font-normal">
                                             {selectedInvoice?.staffCode === null
-                                                ? 'Tại quầy'
+                                                ? 'App'
                                                 : selectedInvoice?.staffCode.name}
                                         </h1>
                                     </div>
@@ -800,7 +803,7 @@ const SaleInvoice = () => {
                                         <h1 className="grid col-span-5 font-normal  items-center">
                                             {' '}
                                             {selectedInvoice?.customerCode === null
-                                                ? 'App'
+                                                ? 'Tại quầy'
                                                 : selectedInvoice?.customerCode.name}
                                         </h1>
                                     </div>
@@ -856,13 +859,18 @@ const SaleInvoice = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className=" items-center  col-span-1 flex ">
+                        <div className=" items-center   flex   ">
                             <div
-                                className="font-semibold text-xl uppercase justify-center items-center grid-rows-2"
+                                className={`grid  font-semibold text-xl uppercase justify-center items-center grid-rows-2
+                                ${
+                                    selectedInvoice?.status !== 1 ? 'pointer-events-none opacity-50' : ' cursor-pointer'
+                                }`}
                                 onClick={handleOpenPrint}
                             >
-                                <span> In vé</span>
-                                <IoIosPrint color="black" size={35} />
+                                <span className="flex justify-center items-center">In vé</span>
+                                <div className=" flex justify-center items-center h-full">
+                                    <IoIosPrint color="black" size={35} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -900,8 +908,7 @@ const SaleInvoice = () => {
 
                             {Object.entries(groupedDetails).map(([productName, items]) => {
                                 const firstItem = items[0];
-                                console.log('groupedDetails', groupedDetails);
-                                console.log('items', firstItem);
+
                                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                                 const totalAmount = items.reduce((sum, item) => sum + item.totalAmount, 0);
 
