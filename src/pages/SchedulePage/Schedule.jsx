@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import { DatePicker, TimePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
+import { set } from 'lodash';
 
 const Schedule = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -813,6 +814,14 @@ const Schedule = () => {
             toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
             return false; // Ngày không hợp lệ
         }
+        const endDate = new Date(movieByCode?.endDate);
+
+        toast.success('Ngày hợp lệ!' + selectedDate);
+        toast.success('Ngày hợp lệ111!' + endDate);
+        if (selectedDate > endDate) {
+            toast.info('Ngày này đã phim đã ngừng phát hành!');
+            return false; // Ngày không hợp lệ
+        }
 
         const endTime = new Date(startTime.getTime() + duration * 60000 + 15 * 60000);
 
@@ -940,6 +949,8 @@ const Schedule = () => {
         if (option) {
             setSelectedMovieName(option);
             setShowAllSchedules(false);
+            setSelectedAudio('');
+            setSelectedSubtitle('');
             setAvailableSchedules([]);
         }
     };
@@ -1331,7 +1342,13 @@ const Schedule = () => {
                                 onChange={handleOnChangeOptionAudio}
                                 title="Âm thanh"
                                 placeholder="Chọn"
-                                options={optionAudio.map((option) => option.name)}
+                                options={
+                                    movieByCode?.country === 'Việt Nam'
+                                        ? optionAudio
+                                              .filter((item) => item.code !== 'AT02')
+                                              .map((option) => option.name)
+                                        : optionAudio.map((option) => option.name)
+                                }
                                 freeSolo={false}
                                 disableClearable={true}
                                 className="grid  "
@@ -1357,7 +1374,13 @@ const Schedule = () => {
                                         onChange={handleOnChangeOptionSubtitle}
                                         title="Phụ đề"
                                         placeholder="Chọn"
-                                        options={optionSubtitle.map((option) => option.name)}
+                                        options={
+                                            movieByCode?.country === 'Việt Nam'
+                                                ? optionSubtitle
+                                                      .filter((item) => item.code !== 'VS01')
+                                                      .map((option) => option.name)
+                                                : optionSubtitle.map((option) => option.name)
+                                        }
                                         freeSolo={false}
                                         disableClearable={true}
                                         className="grid "

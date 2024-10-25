@@ -364,7 +364,7 @@ const SaleInvoice = () => {
 
                 <div className=" grid grid-cols-8 col-span-2 gap-x-0">
                     <h1 className="grid justify-center col-span-3 items-center ">
-                        {formatCurrency(calculateTotal(item.details))}
+                        {formatCurrency(calculateTotal(item.details) - item.discountAmount)}
                     </h1>
                     <h1 className="grid justify-center col-span-3 items-center ">{item.salesInvoiceCode}</h1>
                     <div className="grid col-span-2 justify-center">
@@ -523,13 +523,13 @@ const SaleInvoice = () => {
                 maxHeightScreenHeight="92%"
                 maxHeightScreenWidth="70%"
                 heightScreen="75%"
-                title="Chi tiết hóa đơn"
+                title="Chi tiết hóa đơn trả"
             >
                 <div className="h-90p grid grid-rows-12 gap-2  px-2">
                     <div className="grid row-span-4 pb-2  ">
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
-                                <div className="grid  grid-cols-2 gap-2">
+                                <div className="grid  grid-cols-2 gap-2 ">
                                     <h1 className=" font-bold">Mã hóa đơn trả:</h1>
                                     <h1 className=" font-normal">{selectedInvoice?.code}</h1>
                                 </div>
@@ -546,9 +546,7 @@ const SaleInvoice = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <h1 className="font-bold">Nhân viên lập:</h1>
                                     <h1 className="font-normal">
-                                        {selectedInvoice?.staffCode === null
-                                            ? 'Tại quầy'
-                                            : selectedInvoice?.staffCode.name}
+                                        {selectedInvoice?.staffCode === null ? 'App' : selectedInvoice?.staffCode.name}
                                     </h1>
                                 </div>
                                 <div className="grid grid-cols-8 gap-2">
@@ -556,7 +554,7 @@ const SaleInvoice = () => {
                                     <h1 className="grid col-span-5 font-normal  items-center">
                                         {' '}
                                         {selectedInvoice?.customerCode === null
-                                            ? 'App'
+                                            ? 'Tại quầy'
                                             : selectedInvoice?.customerCode.name}
                                     </h1>
                                 </div>
@@ -607,6 +605,21 @@ const SaleInvoice = () => {
                                     <h1 className="font-bold  col-span-3 ">Mã CT khuyến mãi:</h1>
                                     <h1 className="grid col-span-5 font-normal  items-center">
                                         {promotionResult?.code || 'Không áp dụng'}
+                                    </h1>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid text-[15px] items-center px-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Mã hóa đơn bán:</h1>
+                                    <h1 className="font-normal items-center">{selectedInvoice?.salesInvoiceCode}</h1>
+                                </div>
+                                <div className="grid grid-cols-8 gap-2">
+                                    <h1 className="font-bold  col-span-3 ">Lý do trả:</h1>
+                                    <h1 className="grid col-span-5 font-normal  items-center text-red-500">
+                                        {selectedInvoice?.returnReason}
                                     </h1>
                                 </div>
                             </div>

@@ -364,17 +364,19 @@ const Staff = () => {
             return;
         }
         setSelectedStatus(option);
+        const value = optionStatus.find((item) => item.name === option)?.value;
+
         let sortedStatus = [];
-        if (option.value === 0) {
+        if (value === 0) {
             sortedStatus = staffs.filter((item) => item.status === 0);
             setStaffFilter(sortedStatus);
-        } else if (option.value === 1) {
+        } else if (value === 1) {
             sortedStatus = staffs.filter((item) => item.status === 1);
             setStaffFilter(sortedStatus);
-        } else if (option.value === 2) {
+        } else if (value === 2) {
             sortedStatus = staffs.filter((item) => item.status === 2);
             setStaffFilter(sortedStatus);
-        } else if (option.value === 3) {
+        } else if (value === 3) {
             sortedStatus = staffs;
         }
         if (sortedStatus.length === 0) {
@@ -579,6 +581,12 @@ const Staff = () => {
                 address: parentCode,
                 cinemaCode: cinemaCode,
                 status: optionStatusForm.find((item) => item.name === status)?.value,
+                isAdmin:
+                    optionRole.find((item) => item.name === selectedRole)?.value === 0
+                        ? null
+                        : optionRole.find((item) => item.name === selectedRole)?.value === 1
+                        ? true
+                        : false,
                 type: 1,
             };
 
@@ -651,17 +659,23 @@ const Staff = () => {
                             onClick={() => {
                                 setSelectedStaff(item);
                                 handleOpen(true);
-                                setName(item.name);
-                                setPhone(item.phone);
-                                setEmail(item.email);
-                                setGender(item.gender);
+                                setName(item?.name);
+                                setPhone(item?.phone);
+                                setEmail(item?.email);
+                                setGender(item?.gender);
                                 setBirthDate(dayjs(item.birthDate).format('YYYY-MM-DD'));
-                                setSelectedRole(item.isAdmin === false ? 'Nhân viên' : 'Quản lý');
-                                setStatus(optionStatusForm[item.status]);
+                                setSelectedRole(
+                                    item?.isAdmin === false
+                                        ? 'Nhân viên'
+                                        : item?.isAdmin === null
+                                        ? 'Chưa cấp quyền'
+                                        : 'Quản lý',
+                                );
+                                setStatus(optionStatusForm.find((option) => option.value === item.status)?.name);
                                 setSelectedOptionCinema(
                                     optionNameCinema.find((option) => option.code === item.cinemaCode)?.name,
                                 );
-                                getAddress(item.address);
+                                getAddress(item?.address);
                             }}
                         >
                             <FaRegEdit color="black" size={20} />
@@ -742,7 +756,7 @@ const Staff = () => {
                     />
                     <AutoInputComponent
                         value={selectedStatus.name}
-                        options={optionStatus}
+                        options={optionStatus.map((item) => item.name)}
                         onChange={(newValue) => sortedStatus(newValue)}
                         title="Trạng thái"
                         freeSolo={true}
@@ -938,14 +952,14 @@ const Staff = () => {
                             value={selectedRole}
                             onChange={setSelectedRole}
                             options={
-                                isUpdate
-                                    ? optionRole.map((item) => item.name)
-                                    : optionRole.filter((t) => t.value === 2).map((item) => item.name)
+                                isUpdate && (selectedStaff?.isAdmin === null || !selectedStaff?.isAdmin)
+                                    ? optionRole.filter((t) => t.value !== 1).map((item) => item.name)
+                                    : optionRole.filter((t) => t.value === 1).map((item) => item.name)
                             }
                             title="Vai trò"
                             freeSolo={false}
                             disableClearable={true}
-                            disabled={true}
+                            disabled={!isUpdate}
                             heightSelect={200}
                         />
 
@@ -1010,7 +1024,7 @@ const Staff = () => {
             <ModalComponent
                 open={openDetail}
                 handleClose={handleCloseDetail}
-                width="60%"
+                width="55%"
                 height="58%"
                 smallScreenWidth="80%"
                 smallScreenHeight="60%"
@@ -1023,12 +1037,12 @@ const Staff = () => {
                 heightScreen="75%"
                 title="Chi tiết nhân viên"
             >
-                <div className="h-90p grid grid-rows-6 gap-2 ">
+                <div className="h-90p grid grid-rows-6 gap-2  ">
                     <div className="grid row-span-5">
-                        <div className="grid text-[15px] items-center px-3">
+                        <div className="grid text-[15px] items-center px-3 ">
                             <div className="grid grid-cols-5 gap-2">
                                 <div className="grid col-span-2 grid-cols-2 gap-2">
-                                    <h1 className=" font-bold">Mã khách hàng:</h1>
+                                    <h1 className=" font-bold">Mã nhân viên:</h1>
                                     <h1 className=" font-normal">{selectedStaff?.code}</h1>
                                 </div>
                                 <div className="grid col-span-3 grid-cols-3 gap-2">
@@ -1044,14 +1058,8 @@ const Staff = () => {
                                     <h1 className="grid  font-normal">{selectedStaff?.gender}</h1>
                                 </div>
                                 <div className="grid col-span-3  grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Vai trò:</h1>
-                                    <h1 className="font-normal grid col-span-2">
-                                        {selectedStaff?.isAdmin === null
-                                            ? 'Chưa cấp quyền'
-                                            : selectedStaff?.isAdmin === false
-                                            ? 'Nhân viên'
-                                            : 'Quản lý'}
-                                    </h1>
+                                    <h1 className="font-bold">Email:</h1>
+                                    <h1 className="font-normal grid col-span-2">{selectedStaff?.email}</h1>
                                 </div>
                             </div>
                         </div>
@@ -1076,15 +1084,36 @@ const Staff = () => {
                                     </h1>
                                 </div>
                                 <div className="grid col-span-3 grid-cols-3 gap-2">
-                                    <h1 className="font-bold">Email:</h1>
-                                    <h1 className="font-normal col-span-2">{selectedStaff?.email}</h1>
+                                    <h1 className="font-bold">Vai trò:</h1>
+                                    <h1 className="font-normal col-span-2">
+                                        {selectedStaff?.isAdmin === null
+                                            ? 'Chưa cấp quyền'
+                                            : selectedStaff?.isAdmin === false
+                                            ? 'Nhân viên'
+                                            : 'Quản lý'}
+                                    </h1>
                                 </div>
                             </div>
                         </div>
+
                         <div className="grid text-[15px] items-center px-3">
-                            <div className="grid grid-cols-12 gap-2">
-                                <h1 className="font-bold">Địa chỉ:</h1>
-                                <h1 className="font-normal ml-2 col-span-11">{selectedStaff?.fullAddress}</h1>
+                            <div className="grid grid-cols-5 gap-2">
+                                <div className="grid col-span-2  grid-cols-2 gap-2">
+                                    <h1 className="font-bold">Rạp:</h1>
+                                    <h1 className="grid  font-normal">
+                                        {' '}
+                                        {selectedStaff?.isAdmin
+                                            ? 'Tất cả rạp'
+                                            : selectedStaff?.cinemaCode
+                                            ? optionNameCinema.find((item) => item.code === selectedStaff?.cinemaCode)
+                                                  ?.name
+                                            : 'Chưa cập nhật'}
+                                    </h1>
+                                </div>
+                                <div className="grid col-span-3  grid-cols-3 gap-2">
+                                    <h1 className="font-bold">Địa chỉ:</h1>
+                                    <h1 className="font-normal grid col-span-2">{selectedStaff?.fullAddress}</h1>
+                                </div>
                             </div>
                         </div>
                         <div className="grid text-[15px] items-center px-3">
