@@ -19,6 +19,8 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import Barcode from 'react-barcode';
 import { resetPromotionData } from '~/redux/productSlice';
 import Loading from '~/components/LoadingComponent/Loading';
+import { FaMoneyBills } from 'react-icons/fa6';
+import { useNavigate } from 'react-router-dom';
 
 const { FormatSchedule, getFormatteNgay } = require('~/utils/dateUtils');
 const SeatComponent = React.lazy(() => import('~/components/OrderComponent/SeatComponent'));
@@ -57,17 +59,75 @@ const Seat = () => {
     const value = useSelector((state) => state.value.value);
     const [openPay, setOpenPay] = useState(false);
     const customer = useSelector((state) => state.customers.customer.currentCustomer) || null;
-    const promotionDetailCode = useSelector((state) => state.products?.promotionDetailCode); // Lấy danh sách sản phẩm từ store
-    const freeProduct = useSelector((state) => state.products?.freeProduct); // Lấy danh sách sản phẩm từ store
+    const promotionDetailCode = useSelector((state) => state.products?.promotionDetailCode);
+    const freeProduct = useSelector((state) => state.products?.freeProduct);
     const [selectedCombos, setSelectedCombos] = useState([]);
+    const [openPaymentMethod, setOpenPaymentMethod] = useState(false);
     const dispatch = useDispatch();
+
+    const initialTimeLeft = 10 * 60;
+
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const savedTime = JSON.parse(localStorage.getItem('timeLeft'));
+        return savedTime !== null ? savedTime : initialTimeLeft;
+    });
+    const formatTime = (timeInSeconds) => {
+        const minutes = String(Math.floor(timeInSeconds / 60)).padStart(2, '0');
+        const seconds = String(timeInSeconds % 60).padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    };
+
+    useEffect(() => {
+        let timer;
+
+        // Nếu `value` khác 0 và `timeLeft` vẫn chưa hết thì tiếp tục đếm ngược
+        if (value !== 0 && timeLeft > 0) {
+            timer = setInterval(() => {
+                setTimeLeft((prevTime) => {
+                    if (prevTime <= 1) {
+                        clearInterval(timer);
+                        handleUpdateStatusSeat(1);
+                        dispatch(resetPromotionData());
+                        dispatch(resetCombo());
+                        dispatch(resetSeats());
+                        dispatch(resetValue());
+                        setOpenPaymentMethod(false);
+                        setOpenPay(false);
+                        setOpenPrint(false);
+                        toast.info('Hết thời gian giữ ghế vui lòng chọn lại!');
+                        localStorage.removeItem('timeLeft');
+                        return 0;
+                    }
+                    return prevTime - 1;
+                });
+            }, 1000);
+
+            localStorage.setItem('timeLeft', JSON.stringify(timeLeft));
+        }
+
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value, timeLeft]);
+
+    useEffect(() => {
+        if (value === 0) {
+            setTimeLeft(initialTimeLeft);
+            localStorage.removeItem('timeLeft');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
+
     const handleOpenPay = () => setOpenPay(true);
     const handleClosePay = () => {
         setOpenPay(false);
         setChangeAmount(0);
     };
+    const handleOpenPaymentMethod = () => setOpenPaymentMethod(true);
+    const handleClosePaymentMethod = () => setOpenPaymentMethod(false);
     const queryClient = useQueryClient();
-    const priceAfter = useSelector((state) => state.products?.calculatedPrice); // Lấy danh sách sản phẩm từ store
+    const priceAfter = useSelector((state) => state.products?.calculatedPrice);
 
     const [openPrint, setOpenPrint] = useState(false);
 
@@ -86,6 +146,7 @@ const Seat = () => {
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
     const arraySeat = useSelector((state) => state.seat.seat?.selectedSeats);
     const user = useSelector((state) => state.auth.login?.currentUser);
+    const navigate = useNavigate();
 
     const handleUpdateStatusSeat = async (status) => {
         try {
@@ -120,6 +181,7 @@ const Seat = () => {
 
         if (value === 1) {
             dispatch(increment());
+
             getCustomer(dispatch, null);
             return;
         }
@@ -246,28 +308,39 @@ const Seat = () => {
         enabled: !!schedule.cinemaCode,
     });
 
-    /// action
-    const handleAddSalesInvoice = async () => {
+    const handleCheckStatusSeat = async () => {
         try {
-            if (cashGiven < priceAfter) {
+            const arrayCode = arraySeat.map((item) => item.code);
+            const seatCheck = {
+                scheduleCode: schedule.scheduleCode,
+                arrayCode: arrayCode,
+            };
+
+            const responseCheck = await axios.post('api/seat-status-in-schedules/checkSelectedSeatsStatus', seatCheck);
+
+            if (responseCheck.data.available === true) {
+                toast.warning('Ghế đã được đặt, vui lòng chọn ghế khác!');
+
+                return false;
+            } else {
+                return true;
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+    /// action
+    const handleAddSalesInvoice = async (paymentMethod) => {
+        try {
+            navigate('/order');
+
+            if (cashGiven < priceAfter && paymentMethod === 0) {
                 // Nếu tiền không đủ
                 toast.warning('Không đủ tiền để thanh toán');
                 return;
             } else {
-                const arrayCode = arraySeat.map((item) => item.code);
-                const seatCheck = {
-                    scheduleCode: schedule.scheduleCode,
-                    arrayCode: arrayCode,
-                };
-
-                const responseCheck = await axios.post(
-                    'api/seat-status-in-schedules/checkSelectedSeatsStatus',
-                    seatCheck,
-                );
-
-                if (responseCheck.data.available === true) {
-                    toast.warning('Ghế đã được đặt, vui lòng chọn ghế khác!');
-
+                if (!(await handleCheckStatusSeat()) && paymentMethod === 0) {
                     return;
                 }
                 let loadingToastId;
@@ -279,7 +352,7 @@ const Seat = () => {
                     staffCode: user?.code,
                     customerCode: customer?.code,
                     scheduleCode: schedule?.scheduleCode,
-                    paymentMethod: 0,
+                    paymentMethod: paymentMethod,
                     type: 0,
                 };
                 const response = await axios.post('api/sales-invoices', salesInvoice);
@@ -327,9 +400,7 @@ const Seat = () => {
                     }
                     handleUpdateStatusSeat(3);
                     toast.dismiss(loadingToastId);
-
                     toast.success('Thanh toán thành công');
-
                     handleClosePay();
                     handleOpenPrint();
                 }
@@ -345,6 +416,71 @@ const Seat = () => {
             queryClient.refetchQueries('fetchSeatByRoomCode');
         },
     });
+    const handleZaloPay = async () => {
+        try {
+            if (!(await handleCheckStatusSeat())) {
+                return;
+            }
+
+            const response = await axios.post('/api/web/payment', { amount: priceAfter }); // Đảm bảo đường dẫn này đúng với API của bạn
+            if (response.data) {
+                if (response.data.return_code === 1) {
+                    const orderUrl = response.data.order_url;
+                    window.location.href = orderUrl; // Chuyển hướng tới order_url
+                } else {
+                    toast.error(' response.data.return_message');
+                }
+            }
+        } catch (error) {
+            toast.error('Error while opening ZaloPay:', error);
+        }
+    };
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const apptransid = params.get('apptransid');
+
+        const checkStatus = async () => {
+            if (apptransid) {
+                await checkOrderStatus(apptransid);
+            }
+        };
+
+        checkStatus(); // Gọi hàm kiểm tra trạng thái
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const checkOrderStatus = async (apptransid) => {
+        try {
+            const response = await axios.post(`/api/web/order-status/${apptransid}`);
+
+            // Kiểm tra dữ liệu trả về
+            if (response.data.return_code === 1) {
+                // Gọi mutationPay nếu cần
+                mutationPay.mutate(1);
+
+                dispatch(resetCombo());
+                dispatch(resetSeats());
+                dispatch(resetValue());
+                getIsSchedule(dispatch, false);
+            } else {
+                handleUpdateStatusSeat(1);
+                dispatch(resetPromotionData());
+                dispatch(resetCombo());
+                dispatch(resetSeats());
+                dispatch(resetValue());
+                setOpenPaymentMethod(false);
+                setOpenPay(false);
+                setOpenPrint(false);
+                toast.info('Thanh toán không thành công!');
+                navigate('/order');
+            }
+        } catch (error) {
+            toast.error('Lỗi: ' + error.message);
+        }
+    };
+
     function getFormattedDateTime(isoString) {
         const date = new Date(isoString);
 
@@ -417,6 +553,13 @@ const Seat = () => {
                         <IoIosArrowBack size={20} />
                         Bán vé
                     </Button>
+                    {value !== 0 && (
+                        <div className="ml-10 flex-1 justify-center items-center ">
+                            <h2 className="text-center text-[#334767]">
+                                Thời gian giữ ghế : <span className="font-bold">{formatTime(timeLeft)}</span>
+                            </h2>
+                        </div>
+                    )}
                 </div>
                 <div
                     className="grid grid-cols-4 max-lg:grid-rows-5 custom-height-sm13 custom-height-sm4 
@@ -596,7 +739,8 @@ const Seat = () => {
                                             textTransform: 'none',
                                             padding: '2px 4px 2px 8px',
                                         }}
-                                        onClick={handleOpenPay}
+                                        // onClick={handleOpenPay}
+                                        onClick={handleOpenPaymentMethod}
                                     >
                                         Thanh toán
                                         <GrFormNext size={22} />
@@ -679,9 +823,58 @@ const Seat = () => {
                             text="Xác nhận"
                             className={` bg-blue-500 ${cashGiven === 0 ? 'pointer-events-none opacity-50' : ''}`}
                             onClick={() => {
-                                mutationPay.mutate();
+                                mutationPay.mutate(0);
                             }}
                         />
+                    </div>
+                </div>
+            </ModalComponent>
+            <ModalComponent
+                open={openPaymentMethod}
+                handleClose={handleClosePaymentMethod}
+                height="auto"
+                width="auto"
+                title="Phương thức thanh toán"
+            >
+                <div className="max-w-screen-md max-h-[80vh] overflow-y-auto  shadow-lg  ">
+                    <div className="grid grid-cols-1 gap-3 text-white font-black text-lg  p-4 border-b-2">
+                        <div
+                            className="flex flex-row px-4 py-3 items-center border rounded-[10px] bg-gray-300 border-[#8e8d8d] cursor-pointer
+                         hover:border-[#ff0000] hover:border-1.5"
+                            onClick={handleOpenPay}
+                        >
+                            <div className="text-base text-white h-full font-bold justify-center px-4">
+                                <div className="flex flex-col justify-center items-center bg-white rounded-lg py-1 px-2">
+                                    <FaMoneyBills className=" grid col-span-3" size={30} color="green" />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-row items-center ">
+                                <span className=" grid col-span-7 ">Thanh toán bằng tiền mặt</span>
+                            </div>
+                        </div>
+                        <div
+                            className="flex flex-row px-4 py-3 items-center border rounded-[10px] bg-gray-300 border-[#8e8d8d] cursor-pointer
+                        hover:border-[#ff0000] hover:border-1.5"
+                            onClick={handleZaloPay}
+                        >
+                            <div className="text-base text-white h-full font-bold justify-center px-4 ">
+                                <div className="flex flex-col justify-center items-center bg-white rounded-lg  px-1.5">
+                                    <span className="text-[#1a57ff] font-bold text-sm">Zalo</span>
+                                    <span className="text-green-500 font-bold text-sm">pay</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-row items-center ">
+                                <span className="text-white text-lg mr-1">Thanh toán qua</span>
+                                <span className="text-[#221AFF] text-lg font-bold">Zalo</span>
+                                <span className="text-green-500 text-lg font-bold mr-1 ">Pay</span>
+                                <sup className="text-white text-sm font-bold ">QR</sup>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-3    p-4">
+                        <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleClosePaymentMethod} />
                     </div>
                 </div>
             </ModalComponent>

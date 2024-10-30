@@ -598,7 +598,7 @@ const SaleInvoice = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <h1 className="font-bold">Phương thức thanh toán:</h1>
                                     <h1 className="font-normal items-center">
-                                        {selectedInvoice?.paymentMethod === 0 ? 'Tiền mặt' : 'VNPay'}
+                                        {selectedInvoice?.paymentMethod === 0 ? 'Tiền mặt' : 'ZaloPay'}
                                     </h1>
                                 </div>
                                 <div className="grid grid-cols-8 gap-2">

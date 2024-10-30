@@ -39,6 +39,7 @@ const SeatComponent = memo(({ setSetGhe }) => {
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 3,
         enabled: !!schedule.scheduleCode,
+        refetchOnWindowFocus: true,
     });
     const dispatch = useDispatch();
     const selectedSeatsFromStore = useSelector((state) => state.seat.seat.selectedSeats);

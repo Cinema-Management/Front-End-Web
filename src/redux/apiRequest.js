@@ -124,8 +124,10 @@ export const logOut = async (dispatch, id, navigate, accessToken, axiosJWT) => {
         });
         dispatch(logOutSuccess());
         navigate('/login');
+        return;
     } catch (err) {
         dispatch(logOutFailed());
+        return;
     }
 };
 

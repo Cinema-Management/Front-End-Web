@@ -549,7 +549,11 @@ const SaleInvoice = () => {
                     {item.customerCode === null ? 'Tại quầy' : item.customerCode.name}
                 </h1>
                 <h1 className="grid items-center ">{item.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
-                <h1 className="grid items-center uppercase">{item.scheduleCode?.movieCode?.name}</h1>
+                <h1 className="grid items-center uppercase">
+                    {item.scheduleCode?.movieCode?.name.length > 50
+                        ? item.scheduleCode.movieCode.name.slice(0, 50) + '...'
+                        : item.scheduleCode.movieCode.name}
+                </h1>
 
                 <div className=" grid grid-cols-12 col-span-3 gap-4 ml-2 ">
                     <h1 className="flex items-center justify-center  col-span-4">{FormatSchedule(item.createdAt)}</h1>
@@ -742,7 +746,7 @@ const SaleInvoice = () => {
                     <div className="py-1 min-w-[1200px]">
                         <List
                             itemCount={invoiceFilter.length === 0 ? invoices?.length : invoiceFilter.length}
-                            itemSize={60}
+                            itemSize={80}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
@@ -847,7 +851,7 @@ const SaleInvoice = () => {
                                     <div className="grid grid-cols-2 gap-2">
                                         <h1 className="font-bold">Phương thức thanh toán:</h1>
                                         <h1 className="font-normal items-center">
-                                            {selectedInvoice?.paymentMethod === 0 ? 'Tiền mặt' : 'VNPay'}
+                                            {selectedInvoice?.paymentMethod === 0 ? 'Tiền mặt' : 'ZaloPay'}
                                         </h1>
                                     </div>
                                     <div className="grid grid-cols-8 gap-2">
