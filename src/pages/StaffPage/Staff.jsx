@@ -40,6 +40,11 @@ const Staff = () => {
     const [gender, setGender] = useState('');
     const [status, setStatus] = useState('');
     const [openDelete, setOpenDelete] = useState(false);
+    const disabledDate = (current) => {
+        // Tính toán ngày 14 năm trước từ hôm nay
+        const fourteenYearsAgo = dayjs().subtract(13, 'year');
+        return current && current > fourteenYearsAgo; // Disable tất cả các ngày sau ngày 14 năm trước
+    };
 
     const optionCV = [
         { value: 3, name: 'Tất cả' },
@@ -875,6 +880,7 @@ const Staff = () => {
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
                                         format="DD/MM/YYYY"
+                                        disabledDate={disabledDate}
                                         disabled={selectedStaff?.status === 2}
                                         className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none  hover:border-[black] "
                                     />

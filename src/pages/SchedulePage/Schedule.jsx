@@ -1347,6 +1347,10 @@ const Schedule = () => {
                                         ? optionAudio
                                               .filter((item) => item.code !== 'AT02')
                                               .map((option) => option.name)
+                                        : selectedSubtitle === 'Việt'
+                                        ? optionAudio
+                                              .filter((item) => item.code === 'AT01')
+                                              .map((option) => option.name)
                                         : optionAudio.map((option) => option.name)
                                 }
                                 freeSolo={false}
