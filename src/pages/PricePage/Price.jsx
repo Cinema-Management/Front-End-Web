@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa6';
+import { FaChevronDown, FaChevronUp, FaRegCopy } from 'react-icons/fa6';
 import { IoIosAddCircleOutline, IoIosInformationCircleOutline } from 'react-icons/io';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
@@ -14,15 +14,27 @@ import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { DatePicker, Select, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { set } from 'lodash';
+import { type } from '@testing-library/user-event/dist/type';
 
 const { Option } = Select;
-const { getFormatteNgay, FormatDate } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatDate, getTimeSlot } = require('~/utils/dateUtils');
 
 const fetchPrice = async () => {
     try {
         const response = await axios.get('api/prices');
+        const optionPrice = response.data
+        .filter((item) => item.status === 0)
+        .map((item) => ({
+            
+            code: item.code,
+            description: item.description,
+            dayOfWeek: item.dayOfWeek,
+            timeSlot: item.timeSlot,
+            type: item.type,
+        }));
 
-        return { prices: response.data };
+
+        return { prices: response.data, optionPrice: optionPrice };
     } catch (error) {
         throw new Error('Failed to fetch data');
     }
@@ -79,6 +91,8 @@ const Price = () => {
     const [disableOtherDays, setDisableOtherDays] = useState(false);
     const [loading, setLoading] = useState(false);
     const [visible, setVisible] = useState(false);
+    const [openCopy, setOpenCopy] = useState(false);
+    const [selectedPriceCopy, setSelectedPriceCopy] = useState([]);
     const queryClient = useQueryClient();
     const optionsSort = [
         { value: 3, name: 'Tất cả' },
@@ -127,9 +141,10 @@ const Price = () => {
     });
 
     const {
-        data: { prices = [] } = {},
+        data: { prices = [], optionPrice = [] } = {},
         isLoading: isLoadingPrice,
         isFetched: isFetchedPrice,
+        isRefetching: isRefetchingPrice,
         isError: isErrorPrice,
         refetch: refetchPrice,
     } = useQuery('fetchPricePage', fetchPrice, {
@@ -193,6 +208,21 @@ const Price = () => {
         setSelectDetail(null);
         setDeleteType('');
     };
+
+    const handleOpenCopy = (item,type) => {
+        setType(type);
+        setOpenCopy(true);
+        setSelectedPrice(item);
+    };
+    const handleCloseCopy = () => {
+        setOpenCopy(false);
+        setType('');
+        setEndDate('');
+        setStartDate('');
+        setSelectedPrice(null);
+    };
+    
+    console.log('optionPrice', optionPrice);
 
     const handleChangeDay = (value) => {
         if (value.includes(2)) {
@@ -304,22 +334,22 @@ const Price = () => {
     };
 
     function disableEndDatePrice(prices, selectedStartDate) {
-        const currentDate = dayjs(); // Ngày hiện tại dưới dạng dayjs
+        const currentDate = dayjs(); 
 
         return (current) => {
             if (!current || !dayjs(current).isValid()) {
-                return true; // Nếu không có giá trị current hoặc không hợp lệ, vô hiệu hóa
+                return true;
             }
 
             const currentDayjs = dayjs(current);
-            const startDayjs = dayjs(selectedStartDate); // Ngày bắt đầu đã chọn
+            const startDayjs = dayjs(selectedStartDate); 
 
             if (currentDayjs.isBefore(currentDate, 'day')) {
-                return true; // Disable the current date and any past dates
+                return true; 
             }
 
             if (currentDayjs.isBefore(startDayjs, 'day')) {
-                return true; // Disable dates before selected start date
+                return true;
             }
 
             let nextPriceStartDate = null;
@@ -327,21 +357,20 @@ const Price = () => {
             for (let i = 0; i < prices?.length; i++) {
                 const priceStartDate = dayjs(prices[i].startDate);
 
-                // Tìm ngày bắt đầu khuyến mãi tiếp theo lớn hơn ngày bắt đầu đã chọn
                 if (priceStartDate.isAfter(startDayjs)) {
                     nextPriceStartDate = priceStartDate;
-                    break; // Không cần tìm thêm
+                    break; 
                 }
             }
 
-            // Vô hiệu hóa ngày nếu nằm trong khoảng thời gian khuyến mãi tiếp theo
+
             if (nextPriceStartDate) {
                 if (currentDayjs.isAfter(nextPriceStartDate.subtract(1, 'day'))) {
-                    return true; // Disable dates in the next promotion range
+                    return true;
                 }
             }
 
-            return false; // Ngày không bị vô hiệu hóa
+            return false; 
         };
     }
     const handleTooltipClick = () => {
@@ -356,7 +385,10 @@ const Price = () => {
             return 'Chưa hoạt động';
         }
     };
-
+    const handleChangePrice = (value) => {
+        const selectedOptions = optionPrice.filter(option => value.includes(option.code));
+        setSelectedPriceCopy(selectedOptions);
+    };
     const checkExitsPrice = () => {
         const price = prices.find((item) => {
             const dayExists = selectedDayOfWeek.some((day) => item.dayOfWeek.includes(day));
@@ -506,7 +538,6 @@ const Price = () => {
                     price.type = String(typePrice);
 
                     const exists = checkExitsPriceAll(price);
-                    // console.log(exists);
                     if (!exists) {
                         toast.warn(
                             `${price.description} ${
@@ -566,6 +597,8 @@ const Price = () => {
             toast.error('Thêm bảng giá thất bại!');
         }
     };
+
+
 
     const handleUpdate = async () => {
         try {
@@ -699,6 +732,37 @@ const Price = () => {
         }
     };
 
+    const handleCopyPrice = async () => {
+        let loadingToastId;
+        const api = type === 0 ? 'api/prices/copyPrice' : 'api/prices/copyPriceFood';
+        const arrayPriceCopy = selectedPriceCopy.map(item => 
+            item.code,
+        );
+        
+        if(arrayPriceCopy.length === 0){
+            toast.warn('Vui lòng chọn bảng giá cần chuyển qua');
+            return;
+        }
+        try {
+            loadingToastId = toast.loading('Đang sao chép bảng giá!');
+            setLoading(true);
+             await axios.post(api, {
+                sourcePriceCode: selectedPrice.code,
+                selectedPriceCodes: arrayPriceCopy,
+            });
+            toast.dismiss(loadingToastId);
+            toast.success('Sao chép bảng giá thành công');
+            setSelectedPriceCopy([]);
+            setLoading(false);
+            setSelectedPrice(null);
+            setOpenCopy(false);
+            refetchPrice();
+        } catch (error) {
+            toast.dismiss(loadingToastId);
+            toast.error('Sao chép bảng giá thất bại');
+        }
+    };
+
     const mutation = useMutation(handleUpdate, {
         onSuccess: () => {
             queryClient.refetchQueries('fetchSeatByRoomCode');
@@ -805,8 +869,6 @@ const Price = () => {
             toast.warn('Ghế đã có bảng giá!');
         }
     };
-    console.log('selectDetail', selectDetail);
-    console.log('detailPrice', detailPrice);
     const handleUpdateDetail = async () => {
         try {
             if (type === 1) {
@@ -914,7 +976,7 @@ const Price = () => {
         { value: 2, label: 'Trước 17h' },
         { value: 3, label: 'Sau 17h' },
     ];
-
+  
     const handleCheckboxChange = (event) => {
         const checked = event.target.checked;
         setShowAllPrice(checked);
@@ -1002,7 +1064,7 @@ const Price = () => {
         setPriceFilter(filterDate);
     };
 
-    if (isLoading || isLoadingPrice || isLoadingProduct) return <Loading />;
+    if (isLoading || isLoadingPrice || isLoadingProduct ||isRefetchingPrice) return <Loading />;
     if (!isFetched || !isFetchedPrice || !isFetchedProduct) return <div>Fetching...</div>;
     if (error || isErrorPrice || isErrorProduct)
         return <div>Error loading data: {error.message || isErrorPrice.message || isErrorProduct.message}</div>;
@@ -1120,7 +1182,7 @@ const Price = () => {
                                                             ? '6'
                                                             : day === 6
                                                             ? '7'
-                                                            : ''; // Thay các ngày từ 1 đến 6 bằng tên viết tắt tương ứng
+                                                            : ''; 
                                                     }
                                                 })
                                                 .join(', ')}
@@ -1157,9 +1219,9 @@ const Price = () => {
                                                 </button>
                                             </div>
 
-                                            <div className="justify-center grid col-span-2 grid-cols-2 items-center ">
+                                            <div className="justify-center grid col-span-2 grid-cols-3 items-center ">
                                                 <button
-                                                    className="grid justify-center"
+                                                   
                                                     onClick={() => {
                                                         handleOpen(true, 0);
                                                         setSelectedPrice(item);
@@ -1174,7 +1236,21 @@ const Price = () => {
                                                     />
                                                 </button>
                                                 <button
-                                                    className=" grid justify-center items-center"
+                                                   
+                                                    onClick={() => {
+                                                        handleOpenCopy(item, 0);
+                                                       
+                                                    }}
+                                                    disabled={item.status === 0 ? true : false}
+                                                
+                                                >
+                                                    <FaRegCopy  
+                                                        color={`${item.status === 0 ? 'gray' : 'black'}`}
+                                                        fontSize={22}
+                                                    />
+                                                </button>
+                                                <button
+                                                 
                                                     onClick={() => {
                                                         handleOpenDelete(item, 1);
                                                         setSelectedPrice(item);
@@ -1356,9 +1432,9 @@ const Price = () => {
                                                     : 'Ngừng hoạt động'}
                                             </button>
                                         </div>
-                                        <div className="justify-center grid grid-cols-2 items-center ">
+                                        <div className="justify-center grid grid-cols-3 items-center ">
                                             <button
-                                                className=" grid justify-center"
+                                                className=" grid "
                                                 onClick={() => {
                                                     handleOpen(true, 1);
                                                     setSelectedPrice(item);
@@ -1372,9 +1448,19 @@ const Price = () => {
                                                     size={22}
                                                 />
                                             </button>
-
                                             <button
-                                                className=" grid justify-center items-center"
+                                                   onClick={() => {
+                                                       handleOpenCopy(item, 1);
+                                                   }}
+                                                   disabled={item.status === 0 ? true : false}
+                                               >
+                                                   <FaRegCopy  
+                                                      color={`${item.status === 0 ? 'gray' : 'black'}`}
+                                                       fontSize={22}
+                                                   />
+                                               </button>
+                                            <button
+                                                className=" grid "
                                                 onClick={() => {
                                                     handleOpenDelete(item, 1);
                                                     setSelectedPrice(item);
@@ -1848,6 +1934,78 @@ const Price = () => {
                     </div>
                 </div>
             </ModalComponent>
+            <ModalComponent
+                open={openCopy}
+                handleClose={handleCloseCopy}
+                width="35%"
+                height='55%'
+                top="35%"
+                left="55%"
+                smallScreenWidth="68%"
+                smallScreenHeight='37%'
+                mediumScreenWidth="68%"
+                mediumScreenHeight='35%'
+                largeScreenHeight= '28%'
+                largeScreenWidth="50%"
+                maxHeightScreenHeight= '60%'
+                maxHeightScreenWidth="45%"
+                heightScreen='50%'
+                widthScreen="40%"
+                title={`Sao chép bảng giá ${selectedPrice?.code}`}
+            >
+                <div className="h-[80%] grid grid-rows-9 gap-2">
+                  
+                <div className="grid grid-rows-7 row-span-8 p-3 h-full">
+                <div className="grid row-span-2">
+                    <h1 className="text-[16px] truncate mb-1">Chọn bảng giá muốn chuyển qua:</h1>
+                    <Select
+                        mode="multiple"
+                        allowClear
+                        placeholder="Chọn bảng giá"
+                        value={selectedPriceCopy.map(item => item.code)}
+                        onChange={handleChangePrice}
+                        className="h-[36px] w-full border border-black rounded-[5px]"
+                        listHeight={130}
+                        getPopupContainer={(trigger) => trigger.parentNode}
+                    >
+                 
+                        {optionPrice.filter((item) => item.type === String(type)).map((option) => (
+                            <Option key={option.code} value={option.code}>
+                                {option.name}
+                            </Option>
+                        ))}
+                    
+                    </Select>
+                </div>
+                    
+
+                <div className="grid row-span-5  grid-rows-5 mt-1 rounded">
+                    <h1 className="text-[16px] truncate ">Mô tả của các bảng giá muốn chuyển qua:</h1>
+                    <div className="grid row-span-4  overflow-auto flex-row border p-2 border-gray-500 rounded">
+                       <div className='flex flex-col gap-1'>
+                            {selectedPriceCopy?.map((item) => (
+                                <h1 className="" key={item.code}>{item.description} - {getTimeSlot(item.timeSlot)}</h1>
+                            ))}
+                       </div>
+                    </div>
+                </div>
+                </div>
+
+                  
+                       
+                        <div className="justify-end flex space-x-3 border-t py-[6px] px-4  pt-3 ">
+                            <ButtonComponent text="Hủy" className="bg-[#a6a6a7]" onClick={handleCloseCopy} />
+                            <ButtonComponent
+                                text="Xác nhận"
+                                onClick={handleCopyPrice}
+                                className={` bg-blue-500 ${loading ? 'pointer-events-none opacity-50' : ''} `}
+                                
+                            />
+                        </div>
+
+                </div>
+            </ModalComponent>
+            
         </div>
     );
 };

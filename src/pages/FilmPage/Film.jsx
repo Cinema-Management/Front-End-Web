@@ -18,9 +18,10 @@ import { FixedSizeList as List } from 'react-window';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
 import { useSelector } from 'react-redux';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
+import { set } from 'lodash';
 const { Option } = Select;
 
-const { getFormatteNgay, FormatDate, FormatSchedule } = require('~/utils/dateUtils');
+const { getFormatteNgay, FormatDate, FormatSchedule, getVideoIdFromUri } = require('~/utils/dateUtils');
 
 const fetchMovies = async () => {
     const moviesResponse = await axios.get('api/movies');
@@ -39,6 +40,7 @@ const fetchGenres = async () => {
         code: genre.code,
         name: genre.name,
     }));
+
     return { optionGenre: arrayName };
 };
 
@@ -73,10 +75,11 @@ const Film = React.memo(() => {
     const [currentImage, setCurrentImage] = useState('');
     const [openDetail, setOpenDetail] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
+    const [ytbTrainler, setYtbTrainler] = useState('');
     const optionStatus = [
         { value: 3, name: 'Tất cả' },
         { value: 0, name: 'Chưa phát hành' },
-        { value: 1, name: 'Đã phát hành' },
+        { value: 1, name: 'Phát hành' },
         { value: 2, name: 'Ngừng phát hành' },
     ];
 
@@ -87,6 +90,7 @@ const Film = React.memo(() => {
         error,
         isLoading,
         isFetched,
+        isRefetching,
         refetch,
     } = useQuery(['movies', user], fetchMovies, {
         enabled: !!user,
@@ -131,10 +135,12 @@ const Film = React.memo(() => {
     };
     const handleOpenDetail = () => {
         setOpenDetail(true);
+       
     };
     const handleCloseDetail = () => {
         setOpenDetail(false);
         setSelectedFilm(null);
+        setYtbTrainler('');
     };
     const handleShowVideo = () => {
         setShowVideo(true);
@@ -161,6 +167,7 @@ const Film = React.memo(() => {
         setRangePickerValue(['', '']);
     };
 
+    const youtubeEmbedUrl = `https://www.youtube.com/embed/${ytbTrainler}?autoplay=1&fullscreen=1`;
     const sortMovie = (selectedGenre) => {
         if (!selectedGenre) {
             setMovieFilter(movies);
@@ -268,6 +275,7 @@ const Film = React.memo(() => {
         { value: 'TL', label: 'Nhật Bản' },
         { value: 'AD', label: 'Ấn Độ' },
         { value: 'USA', label: 'Mỹ' },
+        { value: 'IN', label: 'Indonesia' },
     ];
     const onChangeStart = (dateString) => {
         if (!dateString) {
@@ -298,14 +306,14 @@ const Film = React.memo(() => {
 
     const optionsStatus = [
         { value: 0, name: 'Chưa phát hành' },
-        { value: 1, name: 'Đã phát hành' },
+        { value: 1, name: 'Phát hành' },
         { value: 2, name: 'Ngừng phát hành' },
     ];
     const changStatus = (value) => {
         if (value === 2) {
             return 'Ngừng phát hành';
         } else if (value === 1) {
-            return 'Đã phát hành';
+            return 'Phát hành';
         } else {
             return 'Chưa phát hành';
         }
@@ -495,8 +503,8 @@ const Film = React.memo(() => {
         }
     };
 
-    if (isLoading || isLoadingGenre) return <Loading />;
-    if (!isFetched || isFetchedGenre) return <div>Fetching...</div>;
+    if (isLoading || isLoadingGenre || isRefetching ) return <Loading />;
+    if (!isFetched || isFetchedGenre) return <Loading />;
     if (error || errorGenre) return <div>Error loading data: {error.message}</div>;
 
     const rowRenderer = ({ index, style }, data) => {
@@ -550,7 +558,7 @@ const Film = React.memo(() => {
                             {item.status === 0
                                 ? 'Chưa phát hành'
                                 : item.status === 1
-                                ? 'Đã phát hành'
+                                ? 'Phát hành'
                                 : 'Ngừng phát hành'}
                         </button>
                     </div>
@@ -566,15 +574,15 @@ const Film = React.memo(() => {
                                 setStartDate(dayjs(item.startDate));
                                 setEndDate(dayjs(item.endDate));
                             }}
-                            disabled={item.status === 0 ? false : true}
                         >
-                            <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={22} />
+                            <FaRegEdit color='black' size={22} />
                         </button>
                         <button
                             className=" py-3"
                             onClick={() => {
                                 handleOpenDetail(true);
                                 setSelectedFilm(item);
+                                setYtbTrainler(getVideoIdFromUri(item?.trailer));
                             }}
                         >
                             <FaRegEye color="black" size={22} />
@@ -624,6 +632,7 @@ const Film = React.memo(() => {
                         placeholder="Nhập"
                         heightSelect={200}
                         borderRadius="10px"
+                      
                     />
                     <AutoInputComponent
                         options={optionGenre?.map((option) => option.name)}
@@ -746,6 +755,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-4"
+                                    disabled={isUpdate ? true : false}
                                 />
                                 <AutoInputComponent
                                     value={String(isUpdate ? selectedFilm?.duration : duration)}
@@ -756,6 +766,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-2"
+                                    disabled={isUpdate ? true : false}
                                 />
                             </div>
                             <div className="grid grid-cols-6 col-span-4 ml-5 gap-5">
@@ -775,9 +786,10 @@ const Film = React.memo(() => {
                                         }
                                         onChange={handleChangeDay}
                                         className="h-[36px] w-full border border-black rounded-[5px]"
-                                        dropdownStyle={{ maxHeight: '170px' }}
+                                        listHeight={170}
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         maxTagCount={maxTagCount}
+                                        disabled={isUpdate ? true : false}
                                     >
                                         {optionGenre.map((option) => (
                                             <Option key={option.code} value={option.code}>
@@ -796,6 +808,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập quốc gia"
                                     heightSelect={150}
                                     className1="col-span-2"
+                                    disabled={isUpdate ? true : false}
                                 />
                             </div>
                         </div>
@@ -811,6 +824,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-3"
+                                    disabled={isUpdate ? true : false}
                                 />
 
                                 <div className="col-span-2">
@@ -822,6 +836,7 @@ const Film = React.memo(() => {
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
                                         format="DD-MM-YYYY"
+                                        disabled={isUpdate ? true : false}
                                         className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
@@ -836,6 +851,7 @@ const Film = React.memo(() => {
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
                                         format="DD-MM-YYYY"
+                                        disabled={isUpdate ? true : false}
                                         className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
@@ -849,6 +865,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={150}
                                     className1="col-span-2"
+                                    disabled={isUpdate ? true : false}
                                 />
                             </div>
                         </div>
@@ -864,6 +881,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-3"
+                                    disabled={isUpdate ? true : false}
                                 />
 
                                 <AutoInputComponent
@@ -878,6 +896,7 @@ const Film = React.memo(() => {
                                     disableClearable={true}
                                     title="Trạng thái"
                                     placeholder="Chưa phát hành"
+                                    
                                     heightSelect={150}
                                     disabled={!isUpdate || selectedFilm?.status === 1 ? true : false}
                                 />
@@ -1087,7 +1106,7 @@ const Film = React.memo(() => {
                             <iframe
                                 width="640"
                                 height="360"
-                                src={`${selectedFilm?.trailer.replace('watch?v=', 'embed/')}?autoplay=1`}
+                                src={youtubeEmbedUrl}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                                 title="YouTube Video"

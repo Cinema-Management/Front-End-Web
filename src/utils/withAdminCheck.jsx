@@ -12,4 +12,6 @@ const withAdminCheck = (Component) => {
         }
     };
 };
+
+
 export default withAdminCheck;

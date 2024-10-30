@@ -1329,10 +1329,10 @@ const Promotion = () => {
     };
 
     return (
-        <div className="max-h-screen">
-            <div className="bg-white border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
+        <div className="max-h-screen screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+            <div className="bg-white overflow-x-auto overflow-y-hidden  xl:overflow-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Khuyến mãi</h1>
-                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3">
+                <div className="grid grid-cols-4 max-lg:gap-3 gap-12 items-center w-full h-16 px-3 min-w-[900px]">
                     <AutoInputComponent
                         options={optionPromotion.map((option) => option.name)}
                         value={selectedFilterPromotion}
@@ -1370,8 +1370,8 @@ const Promotion = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border overflow-auto  shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
-                <div className="gradient-button text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-6 items-center gap-3 ">
+            <div className="overflow-auto bg-white border shadow-md rounded-[10px] box-border custom-hubmax h-[515px] custom-height-xs max-h-screen custom-height-sm custom-height-md custom-height-lg custom-height-xl">
+                <div className="gradient-button text-[13px] text-white h-auto py-1 font-semibold grid grid-cols-6 items-center gap-3 min-w-[1200px]">
                     <div className=" grid col-span-3 grid-cols-10">
                         <div className="uppercase grid justify-center items-center col-span-2 "></div>
                         <h1 className="uppercase grid justify-center items-center   col-span-3">Mã Khuyến mãi</h1>
@@ -1389,7 +1389,7 @@ const Promotion = () => {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-auto h-[92%] height-sm-1">
+                <div className="overflow-auto h-[92%] height-sm-1  min-w-[1200px]">
                     {Array.isArray(promotionFilterLine) && promotionFilterLine.length > 0
                         ? renderPromotion(promotionFilterLine)
                         : Array.isArray(promotionFilter) && promotionFilter.length > 0
