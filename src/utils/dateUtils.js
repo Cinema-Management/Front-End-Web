@@ -64,7 +64,45 @@ function handleChangAge(age) {
         return 'P';
     }
 }
+function getDayName(day) {
+    switch (day) {
+        case 0:
+            return 'CN';
+        case 1:
+            return '2';
+        case 2:
+            return '3';
+        case 3:
+            return '4';
+        case 4:
+            return '5';
+        case 5:
+            return '6';
+        case 6:
+            return '7';
+        default:
+            return '';
+    }
+}
+function getTimeSlot(time) {
+    switch (time) {
+        case 1:
+            return 'Cả ngày';
+        case 2:
+            return 'trước 17h';
+        case 3:
+            return 'sau 17h';
 
+        default:
+            return '';
+    }
+}
+
+function getVideoIdFromUri(uri) {
+    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^&\n]{11})/;
+    const match = uri.match(regex);
+    return match ? match[1] : null;
+}
 module.exports = {
     getFormattedDate,
     getFormatteNgay,
@@ -72,4 +110,7 @@ module.exports = {
     FormatSchedule,
     getFormattedDateTime,
     handleChangAge,
+    getDayName,
+    getTimeSlot,
+    getVideoIdFromUri,
 };
