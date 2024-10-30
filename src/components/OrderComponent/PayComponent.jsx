@@ -247,7 +247,6 @@ const PayComponent = () => {
                 );
 
                 dispatch(setFreeProduct(freeProductAdd));
-                console.log('11', freeProductAdd);
             } else {
                 const { freeProductAdd } = calculateTotalWithPromotion(
                     totalPriceBefore,
@@ -257,7 +256,6 @@ const PayComponent = () => {
                     products,
                 );
                 dispatch(setFreeProduct([]));
-                console.log('tt', freeProductAdd);
 
                 // Nếu không có khuyến mãi tặng sản phẩm, tìm khuyến mãi type = 1 hoặc type = 2 có mức giảm nhiều nhất
                 const bestDiscountPromotion = promotionDetails
