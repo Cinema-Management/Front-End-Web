@@ -136,15 +136,12 @@ const Cinema = () => {
         let sortedCinemas = [];
 
         if (option.value === 1) {
-            // Sắp xếp theo tên
             sortedCinemas = [...cinemas].sort((a, b) => a.name.localeCompare(b.name));
         } else if (option.value === 2) {
-            // Sắp xếp theo số lượng phòng
             sortedCinemas = [...cinemas].sort((a, b) => a.roomsCount - b.roomsCount);
         } else if (option.value === 3) {
-            // Sắp xếp theo trạng thái giảm dần (1 trước, 0 sau)
             sortedCinemas = [...cinemas].sort((a, b) => {
-                return b.status - a.status; // Sắp xếp theo thứ tự giảm
+                return b.status - a.status;
             });
         }
         if (sortedCinemas.length > 0) {
@@ -160,15 +157,13 @@ const Cinema = () => {
 
             const sortedData = data.sort((a, b) => b.code.localeCompare(a.code));
 
-            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
             const arrayNameCinema = data.map((cinema) => ({
-                name: cinema.name, // Hiển thị tên
-                code: cinema.code, // Giá trị sẽ được gửi về
+                name: cinema.name, 
+                code: cinema.code, 
             }));
 
             return { cinemas: sortedData, optionNameCinema: arrayNameCinema };
         } catch (error) {
-            // Handle errors based on response or other criteria
             if (error.response) {
                 throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
             } else if (error.request) {
@@ -183,16 +178,13 @@ const Cinema = () => {
         try {
             const response = await axios.get('api/room-types');
             const data = response.data;
-
-            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
             const optionRomTypes = data.map((roomType) => ({
-                label: roomType.name, // Hiển thị tên
-                value: roomType.code, // Giá trị sẽ được gửi về
+                label: roomType.name, 
+                value: roomType.code, 
             }));
 
-            return optionRomTypes; // Cập nhật state với options
+            return optionRomTypes; 
         } catch (error) {
-            // Handle errors based on response or other criteria
             if (error.response) {
                 throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
             } else if (error.request) {
@@ -208,15 +200,14 @@ const Cinema = () => {
             const response = await axios.get('api/room-sizes');
             const data = response.data;
 
-            // Chuyển đổi dữ liệu thành định dạng cho MultiSelect
             const optionRomSize = data.map((roomSize) => ({
-                name: roomSize.name, // Hiển thị tên
-                value: roomSize.code, // Giá trị sẽ được gửi về
+                name: roomSize.name,
+                value: roomSize.code,
             }));
 
             return optionRomSize;
         } catch (error) {
-            // Handle errors based on response or other criteria
+      
             if (error.response) {
                 throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
             } else if (error.request) {
@@ -243,7 +234,6 @@ const Cinema = () => {
         setSelectedStatusRoom('');
     };
 
-    // action
     const handleAddRoom = async () => {
         let loadingToastId;
         try {
@@ -254,7 +244,7 @@ const Cinema = () => {
 
             const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
 
-            // Dữ liệu gửi đi
+       
             const roomData = {
                 name: nameRoom,
                 cinemaCode: selectedCinema?.code,
@@ -262,7 +252,7 @@ const Cinema = () => {
                 roomSizeCode: roomSizeCode,
             };
 
-            // Gửi request POST tới server
+        
             const responseRoom = await axios.post('api/rooms', roomData);
 
             const seatData = {
@@ -280,7 +270,7 @@ const Cinema = () => {
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
-            // Nếu có lỗi, hiển thị lỗi
+          
             toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -927,7 +917,7 @@ const Cinema = () => {
                     <div className="">
                         <p className="mb-1">Số lượng phòng</p>
                         <input
-                            className="border border-black rounded-[10px] p-1 w-full text-base"
+                            className="border pl-3 border-black rounded-[10px] p-1 w-full text-base"
                             type="number"
                             value={inputValue}
                             onChange={handleInputChange}
@@ -1006,10 +996,10 @@ const Cinema = () => {
                 width="30%"
                 height="75%"
                 smallScreenWidth="50%"
-                smallScreenHeight="57%"
+                smallScreenHeight="54%"
                 mediumScreenWidth="50%"
-                mediumScreenHeight="50%"
-                largeScreenHeight="45%"
+                mediumScreenHeight="47%"
+                largeScreenHeight="40%"
                 largeScreenWidth="40%"
                 maxHeightScreenHeight="92%"
                 maxHeightScreenWidth="45%"

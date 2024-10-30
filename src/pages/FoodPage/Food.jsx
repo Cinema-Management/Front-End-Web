@@ -109,7 +109,7 @@ const Food = () => {
         error,
         isLoading,
         isFetched,
-        // isFetching,
+        isRefetching,
         refetch,
     } = useQuery('productNotSeat', fetchProductNotSeat, {
         staleTime: 1000 * 60 * 7,
@@ -498,7 +498,7 @@ const Food = () => {
         }
     };
 
-    if (isLoading) return <Loading />;
+    if (isLoading ||isRefetching) return <Loading />;
     if (!isFetched) return <div>Fetching...</div>;
     if (error) return <div>Error loading data: {error.message}</div>;
 
