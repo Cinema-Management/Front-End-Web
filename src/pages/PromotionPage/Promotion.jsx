@@ -307,7 +307,7 @@ const Promotion = () => {
         });
 
         if (filterDate.length === 0) {
-            toast.info('Không tìm thấy bảng giá nào trong khoảng thời gian này!');
+            toast.info('Không tìm thấy khuyến mãi nào !');
             setPromotionFilter([]);
             return;
         }

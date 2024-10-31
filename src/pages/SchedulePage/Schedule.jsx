@@ -15,7 +15,6 @@ import dayjs from 'dayjs';
 import { DatePicker, TimePicker } from 'antd';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
-import { set } from 'lodash';
 
 const Schedule = () => {
     const [isUpdate, setIsUpdate] = useState(false);
@@ -111,7 +110,7 @@ const Schedule = () => {
 
     const fetchCinemasFullAddress = async () => {
         try {
-            const response = await axios.get('/api/cinemas/getAllFullAddress');
+            const response = await axios.get('api/cinemas/getAllFullAddress');
 
             const data = response.data;
 
@@ -121,6 +120,7 @@ const Schedule = () => {
                     name: cinema.name,
                     code: cinema.code,
                 }));
+                console.log('tt');
             setSelectedFilterCinema(arrayNameCinema[0]?.name);
             return { optionNameCinema: arrayNameCinema };
         } catch (error) {
@@ -177,7 +177,7 @@ const Schedule = () => {
         data: { optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
-    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
+    } = useQuery('optionCinemaSchedules', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
