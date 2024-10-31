@@ -51,6 +51,7 @@ const HeaderComponent = () => {
             {user?.isAdmin !== null && (
                 <div className="text-center ">
                     <ul className="bg-white border rounded shadow-sm text-[18px] leading-[22px] cursor-pointer">
+                       {user?.isAdmin ===true &&(
                         <li className="w-full">
                             <div
                                 className={`hover:bg-orange-500 relative max-xl:pl-16 max-lg:pl-3 pl-12 ${isParentActive(
@@ -159,6 +160,7 @@ const HeaderComponent = () => {
                                 </ul>
                             )}
                         </li>
+                       )}
                         <li className={`hover:bg-orange-500 w-full ${isActive('/order')}`}>
                             <button
                                 className="flex max-xl:ml-16 items-center max-lg:ml-3 ml-12 py-2 w-full"

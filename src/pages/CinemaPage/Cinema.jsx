@@ -554,14 +554,14 @@ const Cinema = () => {
     const mutationUpdateCinema = useMutation(handleUpdateCinema, {
         onSuccess: () => {
             // Sau khi mutation thành công, refetch lại dữ liệu
-            queryClient.refetchQueries('cinemasFullAddress1');
+            queryClient.refetchQueries('optionCinemaSchedules');
         },
     });
 
     const mutationAddCinema = useMutation(handleAddCinema, {
         onSuccess: () => {
             // Sau khi mutation thành công, refetch lại dữ liệu
-            queryClient.refetchQueries('cinemasFullAddress1');
+            queryClient.refetchQueries('optionCinemaSchedules');
         },
     });
 
@@ -871,9 +871,9 @@ const Cinema = () => {
                         </button>
 
                         <button
-                            className={`grid  ${item.status !== 0 ? 'pointer-events-none opacity-50' : ''}`}
+                            className={`grid  ${item.status !== 0  || item.roomsCount > 0 ? 'pointer-events-none opacity-50' : ''}`}
                             onClick={() => {
-                                handleOpenDelete(true);
+                                handleOpenDelete(true);             
                                 setSelectedCinema(item);
                             }}
                         >
