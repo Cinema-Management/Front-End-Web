@@ -32,7 +32,7 @@ const Order = () => {
 
             const data = response.data;
 
-            const arrayNameCinema = data.map((cinema) => ({
+            const arrayNameCinema = data.filter((item)=> item.status === 1).map((cinema) => ({
                 name: cinema.name,
                 code: cinema.code,
             }));
@@ -86,7 +86,7 @@ const Order = () => {
         data: { optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
-    } = useQuery('cinemasFullAddress1', fetchCinemasFullAddress, {
+    } = useQuery('optionCinemaSchedules', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,

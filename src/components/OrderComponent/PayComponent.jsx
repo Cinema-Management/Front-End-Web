@@ -248,13 +248,7 @@ const PayComponent = () => {
 
                 dispatch(setFreeProduct(freeProductAdd));
             } else {
-                const { freeProductAdd } = calculateTotalWithPromotion(
-                    totalPriceBefore,
-                    selectedPromotion, // Sử dụng giá trị mới
-                    groupedCombos,
-                    promotionDetails,
-                    products,
-                );
+               
                 dispatch(setFreeProduct([]));
 
                 // Nếu không có khuyến mãi tặng sản phẩm, tìm khuyến mãi type = 1 hoặc type = 2 có mức giảm nhiều nhất
@@ -341,12 +335,13 @@ const PayComponent = () => {
                 <AutoInputComponent
                     value={selectedMovie}
                     onChange={setSelectedMovie}
-                    title="Mã khách hàng"
+                    title="Mã thành viên"
                     freeSolo={true}
                     disableClearable={false}
                     placeholder="Nhập ..."
                     heightSelect={200}
                     borderRadius={'10px'}
+                    disabled={true}
                 />
                 <AutoInputComponent
                     value={searchPhone}
