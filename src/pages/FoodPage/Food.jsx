@@ -45,10 +45,9 @@ const Food = () => {
         { value: 2, name: 'Combo' },
     ];
     const optionStatus = [
-        { value: 3, name: 'Tất cả' },
-        { value: 0, name: 'Chưa bán' },
+        { value: 2, name: 'Tất cả' },
+        { value: 0, name: 'Ngưng bán' },
         { value: 1, name: 'Đang bán' },
-        { value: 2, name: 'Ngừng bán' },
     ];
 
     const options = [
@@ -57,17 +56,18 @@ const Food = () => {
     ];
 
     const optionsStatus = [
-        { value: 0, name: 'Chưa bán' },
+        { value: 2, name: 'Tất cả' },
+        { value: 0, name: 'Ngưng bán' },
         { value: 1, name: 'Đang bán' },
-        { value: 2, name: 'Ngừng bán' },
     ];
+
+    console.log('optionsStatus', statusFoodCode);
     const changStatus = (value) => {
-        if (value === 2) {
-            return 'Ngừng bán';
-        } else if (value === 1) {
+        if (value === 1) {
             return 'Đang bán';
-        } else {
-            return 'Chưa bán';
+        } 
+         else {
+            return 'Ngưng bán';
         }
     };
     const handleStatusChang = (value) => {
@@ -84,6 +84,18 @@ const Food = () => {
     const [selectedSort, setSelectedSort] = useState(optionsSort[0]);
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
     const height = HeightComponent();
+
+    const fetchPrice = async () => {
+        try {
+            const response = await axios.get('api/prices'); 
+            const data = response.filter((item) => item.type === "1");
+
+            return { prices: data };
+        } catch (error) {
+            throw new Error('Failed to fetch data');
+        }
+    };
+
     const fetchProductNotSeat = async () => {
         try {
             const response = await axios.get('api/products/getAllNotSeat');
@@ -105,6 +117,16 @@ const Food = () => {
         }
     };
     const {
+        data: { prices = []} = {},
+        isLoading: isLoadingPrice,
+        isFetched: isFetchedPrice,
+        isError: isErrorPrice,
+    } = useQuery('fetchPricePageFood', fetchPrice, {
+        staleTime: 1000 * 60 * 7,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
+    });
+    const {
         data: { product = [], optionFood = [] } = {},
         error,
         isLoading,
@@ -119,7 +141,6 @@ const Food = () => {
             setFoodFilter(data.product);
         },
     });
-
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setImage(file);
@@ -212,10 +233,7 @@ const Food = () => {
         } else if (option.value === 1) {
             sortedStatus = product.filter((item) => item.status === 1);
             setFoodFilter(sortedStatus);
-        } else if (option.value === 2) {
-            sortedStatus = product.filter((item) => item.status === 2);
-            setFoodFilter(sortedStatus);
-        } else if (option.value === 3) {
+        }else {
             sortedStatus = product;
         }
         if (sortedStatus.length === 0) {
@@ -270,15 +288,15 @@ const Food = () => {
     const validate = () => {
         if (isUpdate) return true;
         if (!name) {
-            toast.error('Tên không được để trống!');
+            toast.warn('Tên không được để trống!');
             return false;
         }
         if (!description) {
-            toast.error('Mô tả không được để trống!');
+            toast.warn('Mô tả không được để trống!');
             return false;
         }
         if (!image) {
-            toast.error('Hình ảnh không được để trống!');
+            toast.warn('Hình ảnh không được để trống!');
             return false;
         }
         return true;
@@ -300,7 +318,6 @@ const Food = () => {
         const form = formDataFood();
         if (!form) return;
         try {
-            // Gửi yêu cầu POST
             await axios.post('api/products', form, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -318,72 +335,130 @@ const Food = () => {
     };
 
     const handleUpdateFood = async () => {
-        const typeSelected = selectedFood?.type === 1 ? 'Mặc định' : 'Combo';
-        if (name !== '' || description !== '' || image !== null || type !== typeSelected || statusFoodCode !== '') {
-            const form = formDataFood();
-            try {
-                await axios.post(`api/products/${selectedFood?.code}`, form, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
+        const isProductInPrice = prices.some((price) =>
+            price.priceDetails.some((item) => item.productCode.code === selectedFood?.code)
+        );
 
-                toast.success('Cập nhật thành công!');
-                refetch();
-                setName('');
-                setDescription('');
-                setStatusFood('');
-                setStatusFoodCode('');
-                handleClose();
-            } catch (error) {
-                toast.error(error.response.data.message);
+        if (isProductInPrice) {
+            if (statusFoodCode !== '') {
+                const form = new FormData();
+                form.append('status', statusFoodCode); 
+    
+                try {
+                    await axios.post(`api/products/${selectedFood?.code}`, form, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+    
+                    toast.success('Cập nhật thành công!');
+                    refetch();
+                    setStatusFoodCode('');
+                    handleClose();
+                    return true;
+                } catch (error) {
+                    toast.error('Cập nhật thất bại!');
+                    return false;
+                }
+            } else {
+                toast.warn('Sản phẩm đã có bảng giá  chỉ được cập nhật trạng thái!');
+                return false;
             }
         } else {
-            toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
-            return;
+            if (name !== '' || description !== '' || image !== null || type !== (selectedFood?.type === 1 ? 'Mặc định' : 'Combo' ) || statusFoodCode !== '') {
+               const form = formDataFood();
+                try {
+                    await axios.post(`api/products/${selectedFood?.code}`, form, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+    
+                    toast.success('Cập nhật thành công!');
+                    refetch();
+                    setName('');
+                    setDescription('');
+                    setStatusFood('');
+                    setStatusFoodCode('');
+                    handleClose();
+                    return true;
+                } catch (error) {
+                    toast.error('Cập nhật thất bại!');
+                    return false;
+                }
+            } else {
+                toast.warn('Vui lòng nhập thông tin cần cập nhật!');
+                return false;
+            }
         }
     };
+    
 
     const mutation = useMutation(handleUpdateFood, {
-        onSuccess: () => {
-            queryClient.refetchQueries('productNotSeat1');
-            queryClient.refetchQueries('fetchProducts');
+        onSettled: (success) => {
+            if (success) {
+                queryClient.refetchQueries('productNotSeat1');
+                queryClient.refetchQueries('fetchProducts');
+            }
         },
     });
 
     const handleUpdateCombo = async () => {
         const isQuantityMismatch = inputSets.some((inputItem, index) => {
             const comboItem = selectedFood?.comboItemNames[index];
-
-            if (comboItem) {
-                return comboItem.quantity !== Number(inputItem.quantity);
-            }
-            return true;
+            return comboItem ? comboItem.quantity !== Number(inputItem.quantity) : true;
         });
-
+    
         const comBo = inputSets.map(({ code, quantity }) => ({
             code,
             quantity: Number(quantity),
         }));
+        
         const comBoCodes = comBo.map((item) => item.code);
-
         const uniqueCodes = new Set(comBoCodes);
         const hasDuplicates = uniqueCodes.size !== comBoCodes.length;
-
+    
         if (hasDuplicates) {
             toast.warn('Sản phẩm đã được chọn!');
-            return;
+            return false;
         }
+    
         const isNameMismatch = inputSets.some((inputItem, index) => {
             const comboItem = selectedFood?.comboItemNames[index];
-
-            if (comboItem) {
-                return comboItem.name !== inputItem.name;
-            }
-            return true;
+            return comboItem ? comboItem.name !== inputItem.name : true;
         });
-
+    
         const typeSelected = selectedFood?.type === 1 ? 'Mặc định' : 'Combo';
+        const isProductInPrice = prices.some((price) =>
+            price.priceDetails.some((item) => item.productCode.code === selectedFood?.code)
+        );
+    
+        if (isProductInPrice) {
+            if (statusFoodCode !== '') {
+                const form = new FormData();
+                form.append('status', statusFoodCode);
+    
+                try {
+                    await axios.post(`api/products/updateCombo/${selectedFood?.code}`, form, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+    
+                    toast.success('Cập nhật trạng thái thành công!');
+                    refetch();
+                    setStatusFoodCode('');
+                    handleClose();
+                    return true;
+                } catch (error) {
+                    toast.error(error.response.data.message);
+                    return false;
+                }
+            } else {
+                toast.warn('Sản phẩm đã có bảng giá  chỉ được cập nhật trạng thái!');
+                return false;
+            }
+        }
         if (
             name !== '' ||
             description !== '' ||
@@ -394,16 +469,12 @@ const Food = () => {
             inputSets.length !== selectedFood?.comboItems.length ||
             statusFoodCode !== ''
         ) {
-            const comBo = inputSets.map(({ code, quantity }) => ({
-                code,
-                quantity: Number(quantity),
-            }));
-
             const hasInvalidQuantity = comBo.some((item) => isNaN(item.quantity) || item.quantity < 1);
             if (hasInvalidQuantity) {
                 toast.warn('Số lượng không hợp lệ!');
-                return;
+                return false;
             }
+    
             const form = new FormData();
             form.append('name', name);
             form.append('description', description);
@@ -411,31 +482,37 @@ const Food = () => {
             form.append('image', image);
             form.append('comboItems', JSON.stringify(comBo));
             form.append('status', statusFoodCode);
+    
             try {
                 await axios.post(`api/products/updateCombo/${selectedFood?.code}`, form, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
                 });
-
+    
                 toast.success('Cập nhật Combo thành công!');
                 refetch();
                 setName('');
                 setDescription('');
                 handleClose();
+                return true;
             } catch (error) {
                 toast.error(error.response.data.message);
+                return false;
             }
         } else {
-            toast.warn('Vui lòng nhập thông tin cần chỉnh sửa!');
-            return;
+            toast.warn('Vui lòng nhập thông tin cần cập nhật!');
+            return false;
         }
     };
+    
 
     const mutation1 = useMutation(handleUpdateCombo, {
-        onSuccess: () => {
-            queryClient.refetchQueries('productNotSeat1');
-            queryClient.refetchQueries('fetchProducts');
+        onSettled: (success) => {
+            if (success) {
+                queryClient.refetchQueries('productNotSeat1');
+                queryClient.refetchQueries('fetchProducts');
+            }
         },
     });
     const handleAddCombo = async () => {
@@ -489,18 +566,31 @@ const Food = () => {
 
     const handleDeleteProduct = async (productId) => {
         try {
+            const isProductInPrice = prices.some((price) =>
+            price.priceDetails.some((item) => item.productCode.code === productId)
+            );
+
+        if (isProductInPrice) {
+            toast.warn('Sản phẩm đang có giá không thể xóa!');
+            return; 
+        }
             await axios.delete(`api/products/${productId}`);
-            toast.success('Xóa thành công!');
+            toast.success('Xóa sản phẩm thành công!');
             refetch();
             handleCloseDelete();
         } catch (error) {
-            toast.error('Xóa thất bại!');
+            console.log(error);
+            toast.error('Xóa sản phẩm thất bại!');
         }
     };
 
-    if (isLoading ||isRefetching) return <Loading />;
-    if (!isFetched) return <div>Fetching...</div>;
-    if (error) return <div>Error loading data: {error.message}</div>;
+
+
+    if (isLoading ||isRefetching || isLoadingPrice ) return <Loading />;
+    if (!isFetched ||!isFetchedPrice) return <div>Fetching...</div>;
+    if (error  || isErrorPrice ) return <div>Error loading data: {error.message || isErrorPrice.message }</div>;
+
+
 
     const rowRenderer = ({ index, style }, data) => {
         const reversedData = [...data].reverse();
@@ -539,7 +629,7 @@ const Food = () => {
                             item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
                     >
-                        {item.status === 1 ? 'Đang bán' : item.status === 2 ? 'Ngừng bán' : 'Chưa bán'}
+                        {item.status === 1 ? 'Đang bán' : 'Ngưng bán'}
                     </button>
                 </div>
                 <div className="justify-center col-span-1 items-center grid">
@@ -552,18 +642,17 @@ const Food = () => {
                                 setType(item?.type === 1 ? 'Mặc định' : 'Combo');
                                 handleComboSelect(item);
                             }}
-                            disabled={item.status === 0 ? false : true}
                         >
-                            <FaRegEdit color={` ${item.status !== 0 ? 'bg-gray-100' : 'black'}  `} size={20} />
+                            <FaRegEdit color= 'black' size={20} />
                         </button>
                         <button
                             onClick={() => {
                                 handleOpenDelete();
                                 setSelectedFood(item);
                             }}
-                            disabled={item.status === 0 ? false : true}
+                           
                         >
-                            <MdOutlineDeleteOutline color={`${item.status === 0 ? 'black' : 'gray'}`} fontSize={20} />
+                            <MdOutlineDeleteOutline color='black' fontSize={20} />
                         </button>
                     </div>
                 </div>
@@ -716,7 +805,35 @@ const Food = () => {
                             heightSelect={200}
                             className1="col-span-2"
                         />
+                       <AutoInputComponent
+                            value={isUpdate ? changStatus(selectedFood?.status) : changStatus(statusFood)}
+                            onChange={handleStatusChang}
+                            options={
+                              optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
+                               
+                            }
+                            freeSolo={false}
+                            disableClearable={true}
+                            title="Trạng thái"
+                            placeholder="Ngưng bán"
+                            heightSelect={150}
+                            disabled={!isUpdate ? true : false}
+                        />
+                    </div>
+
+                    <div className="grid gap-x-6 grid-cols-3 px-3 py-1">
                         <AutoInputComponent
+                            value={isUpdate ? selectedFood?.description : description}
+                            onChange={setDescription}
+                            title="Mô tả"
+                            freeSolo={true}
+                            disableClearable={false}
+                            placeholder="Nhập ..."
+                            heightSelect={200}
+                            className1="col-span-2"
+                        />
+                       
+                          <AutoInputComponent
                             value={
                                 isUpdate
                                     ? selectedFood?.type === 1
@@ -733,38 +850,11 @@ const Food = () => {
                             onChange={setType}
                             options={options.map((option) => option.label)}
                             title="Loại"
+                            disabled = {isUpdate ? true : false}
                             freeSolo={true}
                             disableClearable={true}
                             defaultValue={options[0].label}
                             heightSelect={200}
-                        />
-                    </div>
-
-                    <div className="grid gap-x-6 grid-cols-3 px-3 py-1">
-                        <AutoInputComponent
-                            value={isUpdate ? selectedFood?.description : description}
-                            onChange={setDescription}
-                            title="Mô tả"
-                            freeSolo={true}
-                            disableClearable={false}
-                            placeholder="Nhập ..."
-                            heightSelect={200}
-                            className1="col-span-2"
-                        />
-                        <AutoInputComponent
-                            value={isUpdate ? changStatus(selectedFood?.status) : changStatus(statusFood)}
-                            onChange={handleStatusChang}
-                            options={
-                                selectedFood?.status === 0
-                                    ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
-                            }
-                            freeSolo={false}
-                            disableClearable={true}
-                            title="Trạng thái"
-                            placeholder="Chưa bán"
-                            heightSelect={150}
-                            disabled={!isUpdate || selectedFood?.status === 1 ? true : false}
                         />
                     </div>
                     <div className="grid items-center justify-center grid-cols-7 px-3 gap-3 py-1 row-span-2">

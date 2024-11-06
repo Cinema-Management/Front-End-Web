@@ -77,10 +77,9 @@ const Film = React.memo(() => {
     const [showVideo, setShowVideo] = useState(false);
     const [ytbTrainler, setYtbTrainler] = useState('');
     const optionStatus = [
-        { value: 3, name: 'Tất cả' },
-        { value: 0, name: 'Chưa phát hành' },
+        { value: 2, name: 'Tất cả' },
+        { value: 0, name: 'Ngưng phát hành' },
         { value: 1, name: 'Phát hành' },
-        { value: 2, name: 'Ngừng phát hành' },
     ];
 
     const [selectedStatus, setSelectedStatus] = useState(optionStatus[0]);
@@ -154,6 +153,10 @@ const Film = React.memo(() => {
         descriptionRef.current = event.target.value; // Cập nhật giá trị vào ref
     };
 
+    console.log('selectedFilm', selectedFilm);
+    const isEndDatePassed = !!selectedFilm && dayjs().isAfter(dayjs(selectedFilm.endDate));
+
+    const isStartDatePassed = !!selectedFilm && dayjs().isBefore(dayjs(selectedFilm.startDate));
     const handleSearch = (value) => {
         setInputSearch(value);
         if (value === '' || value === null) {
@@ -201,10 +204,7 @@ const Film = React.memo(() => {
         } else if (option.value === 1) {
             sortedStatus = movies.filter((item) => item.status === 1);
             setMovieFilter(sortedStatus);
-        } else if (option.value === 2) {
-            sortedStatus = movies.filter((item) => item.status === 2);
-            setMovieFilter(sortedStatus);
-        } else if (option.value === 3) {
+        }  else {
             sortedStatus = movies;
         }
         if (sortedStatus.length === 0) {
@@ -305,17 +305,14 @@ const Film = React.memo(() => {
     ];
 
     const optionsStatus = [
-        { value: 0, name: 'Chưa phát hành' },
+        { value: 0, name: 'Ngưng phát hành' },
         { value: 1, name: 'Phát hành' },
-        { value: 2, name: 'Ngừng phát hành' },
     ];
     const changStatus = (value) => {
-        if (value === 2) {
-            return 'Ngừng phát hành';
-        } else if (value === 1) {
+        if (value === 1) {
             return 'Phát hành';
         } else {
-            return 'Chưa phát hành';
+            return 'Ngưng phát hành';
         }
     };
     const handleStatusChang = (value) => {
@@ -447,13 +444,20 @@ const Film = React.memo(() => {
             dayjs(selectedFilm?.endDate).isSame(endDate, 'day')
         ) {
             toast.warn('Vui lòng nhập thông tin cần cập nhật!');
-            return;
+            return false;
         }
         if (endDate === null) {
             toast.warn('Vui lòng chọn ngày kết thúc!');
-            return;
+            return false;
+        }
+        const checkScheduleResponse = await axios.get(`/api/schedules/getScheduleByCode/${movieCode}`);
+        const check = checkScheduleResponse.data.exists;
+        if(check){
+            toast.warn('Phim đã có lịch chiếu không thể cập nhật!');
+            return false;
         }
         const formData = handleFormData();
+
         try {
             await axios.put(`api/movies/${movieCode}`, formData, {
                 headers: {
@@ -464,16 +468,19 @@ const Film = React.memo(() => {
             toast.success('Cập nhật phim thành công!');
             clearText();
             handleClose();
-            refetch();
+            return true;
         } catch (error) {
             toast.error('Cập nhật phim thất bại!');
+            return false;
         }
     };
 
     const mutation = useMutation(handleUpdateMovie, {
-        onSuccess: () => {
-            queryClient.refetchQueries('movies');
-            queryClient.refetchQueries('moviesOrder');
+        onSettled: (success) => {
+            if (success) {
+                queryClient.refetchQueries('movies');
+                queryClient.refetchQueries('moviesOrder');
+            }
         },
     });
 
@@ -494,10 +501,16 @@ const Film = React.memo(() => {
 
     const handleDeleteMovie = async (movieId) => {
         try {
+            const checkScheduleResponse = await axios.get(`/api/schedules/${movieId}`);
+           const check = checkScheduleResponse.data.exists;
+           if(check){
+                toast.warn('Phim đã có lịch chiếu không thể xóa!');
+           }else{
             await axios.delete(`api/movies/${movieId}`);
             toast.success('Xóa thành công!');
             refetch();
             handleCloseDelete();
+           }
         } catch (error) {
             toast.error('Xóa thất bại!');
         }
@@ -556,10 +569,9 @@ const Film = React.memo(() => {
                             }`}
                         >
                             {item.status === 0
-                                ? 'Chưa phát hành'
-                                : item.status === 1
-                                ? 'Phát hành'
-                                : 'Ngừng phát hành'}
+                                ? 'Ngưng phát hành'
+                                : 'Phát hành'
+                              }
                         </button>
                     </div>
 
@@ -593,9 +605,8 @@ const Film = React.memo(() => {
                                 handleOpenDelete();
                                 setSelectedFilm(item);
                             }}
-                            disabled={item.status === 0 ? false : true}
                         >
-                            <MdOutlineDeleteOutline color={`${item.status === 0 ? 'black' : 'gray'}`} fontSize={22} />
+                            <MdOutlineDeleteOutline color='black' fontSize={22} />
                         </button>
                     </div>
                 </div>
@@ -799,16 +810,19 @@ const Film = React.memo(() => {
                                     </Select>
                                 </div>
                                 <AutoInputComponent
-                                    options={optionsQG.map((option) => option.label)}
-                                    value={country}
-                                    onChange={(newValue) => setCountry(newValue)}
-                                    title="Quốc gia"
+                                    value={isUpdate ? changStatus(selectedFilm?.status) : changStatus(statusFilm)}
+                                    onChange={handleStatusChang}
+                                    options={
+                                        optionsStatus
+                                            .map((item) => item.name) 
+                                    }
                                     freeSolo={false}
                                     disableClearable={true}
-                                    placeholder="Nhập quốc gia"
-                                    heightSelect={150}
+                                    title="Trạng thái"
+                                    placeholder="Ngưng phát hành"
                                     className1="col-span-2"
-                                    disabled={isUpdate ? true : false}
+                                    heightSelect={150}
+                                    disabled={!isUpdate  ||(!isEndDatePassed &&!isStartDatePassed && selectedFilm?.status === 1) ? true : false}
                                 />
                             </div>
                         </div>
@@ -826,22 +840,21 @@ const Film = React.memo(() => {
                                     className1="col-span-3"
                                     disabled={isUpdate ? true : false}
                                 />
-
-                                <div className="col-span-2">
-                                    <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
-                                    <DatePicker
-                                        value={startDate}
-                                        minDate={dayjs()}
-                                        onChange={onChangeStart}
-                                        getPopupContainer={(trigger) => trigger.parentNode}
-                                        placeholder="Chọn ngày"
-                                        format="DD-MM-YYYY"
-                                        disabled={isUpdate ? true : false}
-                                        className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
-                                    />
-                                </div>
+   <AutoInputComponent
+                                    options={optionTuoi.map((option) => option.label)}
+                                    value={ageRestriction}
+                                    onChange={(newValue) => setAgeRestriction(newValue)}
+                                    title="Giới hạn tuổi"
+                                    freeSolo={false}
+                                    disableClearable={true}
+                                    placeholder="Nhập ..."
+                                    heightSelect={150}
+                                    className1="col-span-2"
+                                    disabled={isUpdate ? true : false}
+                                />
+                            
                             </div>
-                            <div className="grid grid-cols-5 gap-5 ml-5">
+                            <div className="grid grid-cols-6 gap-5 ml-5">
                                 <div className="col-span-3">
                                     <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                     <DatePicker
@@ -855,18 +868,19 @@ const Film = React.memo(() => {
                                         className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
-                                <AutoInputComponent
-                                    options={optionTuoi.map((option) => option.label)}
-                                    value={ageRestriction}
-                                    onChange={(newValue) => setAgeRestriction(newValue)}
-                                    title="Giới hạn tuổi"
-                                    freeSolo={false}
-                                    disableClearable={true}
-                                    placeholder="Nhập ..."
-                                    heightSelect={150}
-                                    className1="col-span-2"
-                                    disabled={isUpdate ? true : false}
-                                />
+                                <div className="col-span-3">
+                                    <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
+                                    <DatePicker
+                                        value={startDate}
+                                        minDate={dayjs()}
+                                        onChange={onChangeStart}
+                                        getPopupContainer={(trigger) => trigger.parentNode}
+                                        placeholder="Chọn ngày"
+                                        format="DD-MM-YYYY"
+                                        disabled={isUpdate ? true : false}
+                                        className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -884,21 +898,17 @@ const Film = React.memo(() => {
                                     disabled={isUpdate ? true : false}
                                 />
 
-                                <AutoInputComponent
-                                    value={isUpdate ? changStatus(selectedFilm?.status) : changStatus(statusFilm)}
-                                    onChange={handleStatusChang}
-                                    options={
-                                        selectedFilm?.status === 0
-                                            ? optionsStatus.filter((item) => item.value !== 2).map((item) => item.name)
-                                            : optionsStatus.filter((item) => item.value !== 0).map((item) => item.name)
-                                    }
+                              
+                                 <AutoInputComponent
+                                    options={optionsQG.map((option) => option.label)}
+                                    value={country}
+                                    onChange={(newValue) => setCountry(newValue)}
+                                    title="Quốc gia"
                                     freeSolo={false}
                                     disableClearable={true}
-                                    title="Trạng thái"
-                                    placeholder="Chưa phát hành"
-                                    
+                                    placeholder="Nhập quốc gia"
                                     heightSelect={150}
-                                    disabled={!isUpdate || selectedFilm?.status === 1 ? true : false}
+                                    disabled={isUpdate ? true : false}
                                 />
                             </div>
                         </div>

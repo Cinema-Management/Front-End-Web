@@ -411,7 +411,6 @@ const Seat = () => {
     };
     const mutationPay = useMutation(handleAddSalesInvoice, {
         onSuccess: () => {
-            // Refetch dữ liệu cần thiết
             queryClient.refetchQueries('fetchSaleInvoice');
             queryClient.refetchQueries('fetchSeatByRoomCode');
         },
