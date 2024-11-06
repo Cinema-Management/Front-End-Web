@@ -82,7 +82,11 @@ const Schedule = () => {
         if (availableSchedules.length === 0 && checked) {
             if (toastAdd === 1) {
                 toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
-            } else {
+            }else
+            if (toastAdd === 2) {
+                toast.info('Phim này đã ngừng phát hành!');
+            }
+            else {
                 toast.info('Phòng này đã hết suất chiếu !');
             }
         }
@@ -303,7 +307,14 @@ const Schedule = () => {
         if (differenceInDays > 3) {
             toastAdd = 1;
 
-            return false; // Ngày không hợp lệ
+            return false; // chưa tới ngày phát hành tối đa 3 ngày
+        }
+        const endDate = new Date( dayjs( movieByCode?.endDate).format('YYYY-MM-DD'));
+        const formatSelected = new Date(formattedDate);
+
+        if (formatSelected > endDate) {
+            toastAdd = 2;
+            return false; //ngừng phát hành
         }
 
         const endTime = new Date(startTime.getTime() + duration * 60000 + 15 * 60000);
@@ -814,11 +825,10 @@ const Schedule = () => {
             toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
             return false; // Ngày không hợp lệ
         }
-        const endDate = new Date(movieByCode?.endDate);
+        const endDate = new Date( dayjs( movieByCode?.endDate).format('YYYY-MM-DD'));
+        const formatSelected = new Date(formattedDate);
 
-        toast.success('Ngày hợp lệ!' + selectedDate);
-        toast.success('Ngày hợp lệ111!' + endDate);
-        if (selectedDate > endDate) {
+        if (formatSelected > endDate) {
             toast.info('Ngày này đã phim đã ngừng phát hành!');
             return false; // Ngày không hợp lệ
         }
