@@ -82,11 +82,9 @@ const Schedule = () => {
         if (availableSchedules.length === 0 && checked) {
             if (toastAdd === 1) {
                 toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
-            }else
-            if (toastAdd === 2) {
+            } else if (toastAdd === 2) {
                 toast.info('Phim này đã ngừng phát hành!');
-            }
-            else {
+            } else {
                 toast.info('Phòng này đã hết suất chiếu !');
             }
         }
@@ -124,7 +122,7 @@ const Schedule = () => {
                     name: cinema.name,
                     code: cinema.code,
                 }));
-                console.log('tt');
+            console.log('tt');
             setSelectedFilterCinema(arrayNameCinema[0]?.name);
             return { optionNameCinema: arrayNameCinema };
         } catch (error) {
@@ -147,6 +145,7 @@ const Schedule = () => {
             const arrayNameMovie = filteredMovies.map((movie) => ({
                 name: movie.name,
                 code: movie.code,
+                endDate: movie.endDate,
             }));
 
             return arrayNameMovie;
@@ -309,7 +308,7 @@ const Schedule = () => {
 
             return false; // chưa tới ngày phát hành tối đa 3 ngày
         }
-        const endDate = new Date( dayjs( movieByCode?.endDate).format('YYYY-MM-DD'));
+        const endDate = new Date(dayjs(movieByCode?.endDate).format('YYYY-MM-DD'));
         const formatSelected = new Date(formattedDate);
 
         if (formatSelected > endDate) {
@@ -318,7 +317,7 @@ const Schedule = () => {
         }
 
         const endTime = new Date(startTime.getTime() + duration * 60000 + 15 * 60000);
-        const schedules = rooms.schedules || [];
+        const schedules = rooms?.schedules || [];
 
         const conflictingSchedules = schedules.filter((schedule) => {
             // Kiểm tra xung đột với lịch chiếu khác
@@ -825,7 +824,7 @@ const Schedule = () => {
             toast.info('Phải trước ngày phát hành phim tối đa 3 ngày!');
             return false; // Ngày không hợp lệ
         }
-        const endDate = new Date( dayjs( movieByCode?.endDate).format('YYYY-MM-DD'));
+        const endDate = new Date(dayjs(movieByCode?.endDate).format('YYYY-MM-DD'));
         const formatSelected = new Date(formattedDate);
 
         if (formatSelected > endDate) {
@@ -1289,7 +1288,13 @@ const Schedule = () => {
                             </div>
 
                             <AutoInputComponent
-                                options={optionMovieName.map((option) => option.name.toUpperCase())}
+                                options={optionMovieName
+                                    .filter((item) =>
+                                        dayjs(item?.endDate)
+                                            .add(1, 'day')
+                                            .isAfter(selectedDate.format('YYYY-MM-DD'), 'day'),
+                                    )
+                                    .map((option) => option.name.toUpperCase())}
                                 value={selectedMovieName}
                                 onChange={handleOnChangeOptionMovie}
                                 title="Tên phim"
