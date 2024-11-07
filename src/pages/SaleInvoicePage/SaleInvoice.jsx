@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FaRegEye } from 'react-icons/fa6';
 
-import { IoIosPrint } from 'react-icons/io';
+import { IoIosArrowBack, IoIosArrowForward, IoIosPrint } from 'react-icons/io';
 
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,7 +9,7 @@ import { RiRefund2Fill } from 'react-icons/ri';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
-import { DatePicker } from 'antd';
+import { Button, DatePicker } from 'antd';
 import { FormatDate, FormatSchedule, getFormattedDateTime, getFormatteNgay, handleChangAge } from '~/utils/dateUtils';
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
@@ -38,20 +38,23 @@ const SaleInvoice = () => {
     const [openDelete, setOpenDelete] = useState(false);
     const descriptionRef = useRef('');
     const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [invoiceFilter, setInvoiceFilter] = useState([]);
     const [selectedOptionFilterCinema, setSelectedOptionFilterCinema] = useState('');
+    const [selectOptionCinemaCode, setSelectOptionCinemaCode] = useState('');
     const [inputSearch, setInputSearch] = useState('');
+    const [movieCodeFilter, setMovieCodeFilter] = useState('');
     const [staffFilter, setStaffFilter] = useState('');
+    const [staffCode, setStaffCode] = useState('');
     const [searchSDT, setSearchSDT] = useState('');
     const [searchCodeHD, setSearchCodeHD] = useState('');
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
     const user = useSelector((state) => state.auth.login?.currentUser);
     const height = HeightInVoiceComponent();
     const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
     const optionStatus = [
-        { value: 3, name: 'Tất cả' },
+        { value: 2, name: 'Tất cả' },
         { value: 1, name: 'Đã thanh toán' },
-        { value: 2, name: 'Đã trả' },
+        { value: 0, name: 'Đã hoàn trả' },
     ];
     const [openPrint, setOpenPrint] = useState(false);
 
@@ -100,12 +103,11 @@ const SaleInvoice = () => {
         }));
         return { optionStaff: arrayStaff };
     };
-    const fetchSaleInvoice = async () => {
+    const fetchSaleInvoice = async (page, filter = {}) => {
         try {
-            const response = await axios.get('api/sales-invoices');
+            const response = await axios.get('api/sales-invoices', { params: { page, ...filter } });
             const data = response.data;
-
-            return { invoices: data };
+            return { invoices: data.items, totalPages: data.totalPages };
         } catch (error) {
             console.log('error', error);
         }
@@ -144,20 +146,35 @@ const SaleInvoice = () => {
             }
         }
     };
-
+    const getActiveFilter = () => {
+        if (searchCodeHD !== "") return { invoiceCode: searchCodeHD };
+        if (staffCode !== "") return { staffCode: staffCode };
+        if (movieCodeFilter !=="") return { movieCode: movieCodeFilter };
+        if (searchSDT !== "") return { customerCode: searchSDT };
+        if (selectOptionCinemaCode !== "") return { cinemaCode: selectOptionCinemaCode };
+        if (selectedStatus.value !== 2) return { status: selectedStatus.value };
+        if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== "" && rangePickerValue[1] !== "") {
+            return {
+                fromDate: FormatDate(rangePickerValue[0]),
+                toDate: FormatDate(rangePickerValue[1]),
+            };
+        }
+        
+        return {}; 
+    };
     const {
-        data: { invoices = [] } = {},
+        data: { invoices = [], totalPages = 1 } = {},
         isLoading,
         isFetched,
         isError,
         refetch: refetchInvoice,
-    } = useQuery('fetchSaleInvoice', fetchSaleInvoice, {
+    } = useQuery(
+        ['fetchSaleInvoice', page, getActiveFilter()],
+        () => fetchSaleInvoice(page, getActiveFilter()),
+        {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
-        // onSuccess: (data) => {
-        //     setFoodFilter(data.product);
-        // },
     });
 
     const {
@@ -198,10 +215,10 @@ const SaleInvoice = () => {
         isLoading: isLoadingPromotionResult,
         error: errorPromotionResult,
     } = useQuery(['fetchPromotionResult', selectedInvoice?.code], () => fetchPromotionResult(selectedInvoice?.code), {
-        staleTime: 1000 * 60 * 7, // Thời gian dữ liệu được xem là "cũ"
-        cacheTime: 1000 * 60 * 10, // Thời gian dữ liệu được lưu trong bộ nhớ cache
-        refetchInterval: 1000 * 60 * 7, // Tần suất làm mới dữ liệu
-        enabled: !!selectedInvoice?.code, // Chỉ thực hiện truy vấn khi có mã hóa đơn
+        staleTime: 1000 * 60 * 7, 
+        cacheTime: 1000 * 60 * 10, 
+        refetchInterval: 1000 * 60 * 7, 
+        enabled: !!selectedInvoice?.code, 
     });
 
     const {
@@ -219,6 +236,8 @@ const SaleInvoice = () => {
             enabled: !!selectedInvoice?.scheduleCode?.roomCode?.cinemaCode?.code,
         },
     );
+
+    
 
     const handleReturnInvoice = async () => {
         if (!descriptionRef.current || descriptionRef.current.trim() === '') {
@@ -242,7 +261,6 @@ const SaleInvoice = () => {
             descriptionRef.current = '';
             handleCloseDelete();
         } catch (error) {
-            console.log('error', error);
             toast.error('Trả hóa đơn thất bại!');
         }
     };
@@ -252,157 +270,86 @@ const SaleInvoice = () => {
             queryClient.refetchQueries('fetchReturnInvoice');
         },
     });
-
     const onChangeRanger = (dates) => {
-        if (!Array.isArray(dates) || dates.length !== 2) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        setRangePickerValue(dates);
-
-        const startDateFormatted = FormatDate(dates[0]);
-        const endDateFormatted = FormatDate(dates[1]);
-
-        const filterDate = invoices.filter((item) => {
-            const itemDate = FormatDate(new Date(item.createdAt));
-            console.log(itemDate);
-            return itemDate >= startDateFormatted && itemDate <= endDateFormatted;
-        });
-
-        if (filterDate.length === 0) {
-            toast.info('Không tìm thấy phim nào!');
-            setInvoiceFilter(invoices);
-            setInputSearch('');
-            setSelectedStatus(optionStatus[0]);
-            setSearchSDT('');
-            setSearchCodeHD('');
-            setSelectedOptionFilterCinema('');
-            setStaffFilter('');
-            return;
-        }
-
-        setInvoiceFilter(filterDate);
-        setInputSearch('');
-        setSelectedStatus(optionStatus[0]);
-        setSearchSDT('');
-        setSearchCodeHD('');
-        setSelectedOptionFilterCinema('');
+        setStaffCode('');
         setStaffFilter('');
+        setInputSearch('');
+        setMovieCodeFilter('');
+        setSearchCodeHD('');
+        setSearchSDT('');
+        setSelectOptionCinemaCode('');
+        setSelectedOptionFilterCinema('');
+        setSelectedStatus(optionStatus[0]);
+        setRangePickerValue(dates);
+        
     };
 
     const sortedStatus = (option) => {
-        if (!option) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        setSelectedStatus(option);
-        let sortedStatus = [];
-        if (option.value === 1) {
-            sortedStatus = invoices.filter((item) => item.status === 1);
-            setInvoiceFilter(sortedStatus);
-        } else if (option.value === 2) {
-            sortedStatus = invoices.filter((item) => item.status === 0);
-            setInvoiceFilter(sortedStatus);
-        } else if (option.value === 3) {
-            sortedStatus = invoices;
-        }
-        if (sortedStatus.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        }
-        setInvoiceFilter(sortedStatus);
-        setSearchSDT('');
-        setSearchCodeHD('');
-        setSelectedOptionFilterCinema('');
-        setInputSearch('');
+        setStaffCode('');
         setStaffFilter('');
+        setInputSearch('');
+        setMovieCodeFilter('');
+        setSearchCodeHD('');
+        setSearchSDT('');
+        setSelectOptionCinemaCode('');
+        setSelectedOptionFilterCinema('');
         setRangePickerValue(['', '']);
+        setSelectedStatus(option);
     };
+
 
     const handleSearch = (value) => {
-        setInputSearch(value);
-        if (value === '' || value === null) {
-            setInvoiceFilter(invoices);
-
-            return;
-        }
-        const search = invoices.filter((item) =>
-            item.scheduleCode.movieCode.name.toLowerCase().includes(value.toLowerCase()),
-        );
-
-        if (search.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        } else {
-            setInvoiceFilter(search);
-        }
-        setSearchSDT('');
         setSearchCodeHD('');
+        setSearchSDT('');
+        setStaffCode('');
+        setStaffFilter('');
+        setSelectOptionCinemaCode('');
         setSelectedOptionFilterCinema('');
         setSelectedStatus(optionStatus[0]);
-        setStaffFilter('');
         setRangePickerValue(['', '']);
+        setInputSearch(value);
+        const movieCode = optionMovie.find((item) => item.name === value);
+        setMovieCodeFilter(movieCode?.code);
     };
     const handleStaff = (value) => {
-        setStaffFilter(value);
-        if (value === '' || value === null) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        const search = invoices.filter((item) => item.staffCode.name === value);
-
-        if (search.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        } else {
-            setInvoiceFilter(search);
-        }
-        setSearchSDT('');
-        setSearchCodeHD('');
-        setSelectedOptionFilterCinema('');
         setInputSearch('');
+        setMovieCodeFilter('');
+        setSearchCodeHD('');
+        setSelectOptionCinemaCode('');
+        setSelectedOptionFilterCinema('');
+        setSearchSDT('');
         setSelectedStatus(optionStatus[0]);
         setRangePickerValue(['', '']);
+        setStaffFilter(value);
+        const staffCode = optionStaff.find((item) => item.name === value);
+        setStaffCode(staffCode?.code);
+       
     };
-
     const handleSearchSDT = (value) => {
-        setSearchSDT(value);
-        if (value === '' || value === null) {
-            setInvoiceFilter(invoices);
-
-            return;
-        }
-        const search = invoices.filter((item) => item.customerCode?.phone === value);
-
-        if (search.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào!');
-        } else {
-            setInvoiceFilter(search);
-        }
+        setStaffCode('');
         setStaffFilter('');
         setInputSearch('');
+        setMovieCodeFilter('');
         setSearchCodeHD('');
+        setSelectOptionCinemaCode('');
         setSelectedOptionFilterCinema('');
         setRangePickerValue(['', '']);
         setSelectedStatus(optionStatus[0]);
+        setSearchSDT(value);
     };
 
     const handleSearchCodeHD = (value) => {
-        setSearchCodeHD(value);
-        if (value === '' || value === null) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        const search = invoices.filter((item) => item.code === value);
-
-        if (search.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        } else {
-            setInvoiceFilter(search);
-        }
+        setStaffCode('');
         setStaffFilter('');
         setInputSearch('');
         setSearchSDT('');
+        setMovieCodeFilter('');
+        setSelectOptionCinemaCode('');
         setSelectedOptionFilterCinema('');
-        setSelectedStatus(optionStatus[0]);
         setRangePickerValue(['', '']);
+        setSelectedStatus(optionStatus[0]);
+        setSearchCodeHD(value);
+        
     };
 
     const handleEnterPress = (newValue) => {
@@ -413,25 +360,22 @@ const SaleInvoice = () => {
     };
 
     const handleOptionCinemas = (value) => {
-        setSelectedOptionFilterCinema(value);
-        const cinemaCode = optionNameCinema.find((item) => item.name === value);
-        if (value === '' || value === null) {
-            setInvoiceFilter(invoices);
-            return;
-        }
-        const fillter = invoices.filter((item) => item.scheduleCode.roomCode.cinemaCode.code === cinemaCode.code);
-
-        if (fillter.length === 0) {
-            toast.info('Không tìm thấy hóa đơn nào nào!');
-        } else {
-            setInvoiceFilter(fillter);
-        }
+        setStaffCode('');
         setStaffFilter('');
         setInputSearch('');
+        setMovieCodeFilter('');
         setSearchSDT('');
         setSearchCodeHD('');
         setSelectedStatus(optionStatus[0]);
+        setRangePickerValue(['', '']);
+        setSelectedOptionFilterCinema(value);
+        const cinemaCode = optionNameCinema.find((item) => item.name === value);
+       setSelectOptionCinemaCode(cinemaCode?.code);
     };
+    useEffect(() => {
+        setPage(1); 
+    }, [staffFilter, inputSearch, movieCodeFilter, searchSDT, searchCodeHD, selectOptionCinemaCode, selectedStatus, rangePickerValue]);
+    
 
     const calculateTotal = (details) => {
         return details?.reduce((acc, item) => acc + item.totalAmount, 0);
@@ -521,6 +465,7 @@ const SaleInvoice = () => {
         totalPrice: food.totalAmount,
     }));
 
+
     const combinedPrint = [freeProductPrint, ...foodPrint].filter((item) => item.quantity > 0);
 
     const calculateTotalPriceForCombos = (foodItems = []) => {
@@ -530,43 +475,43 @@ const SaleInvoice = () => {
     const totalPriceCombo = useMemo(() => calculateTotalPriceForCombos(foodPrint || []), [foodPrint]);
 
     const rowRenderer = ({ index, style }, data) => {
-        const reversedData = [...data].reverse();
+        const reversedData = [...data];
         const item = reversedData[index];
 
         return (
             <div
                 className="border-b  text-[15px] font-normal gap-2 text-slate-500 grid grid-cols-8 items-center px-2"
-                key={item.code}
+                key={item?.code}
                 style={style}
             >
                 <div className="grid grid-cols-3 ">
                     <h1 className="grid pl-[10px] items-center ">{index + 1}</h1>
-                    <h1 className="grid justify-center items-center col-span-2 pl-1 ">{item.code}</h1>
+                    <h1 className="grid justify-center items-center col-span-2 pl-1 ">{item?.code}</h1>
                 </div>
-                <h1 className="grid items-center pl-[5px]">{item.staffCode === null ? 'App' : item.staffCode.name}</h1>
+                <h1 className="grid items-center pl-[5px]">{item?.staffCode === null ? 'App' : item?.staffCode.name}</h1>
                 <h1 className="grid items-center pl-[5px] ">
                     {' '}
-                    {item.customerCode === null ? 'Tại quầy' : item.customerCode.name}
+                    {item?.customerCode === null ? 'Tại quầy' : item?.customerCode.name}
                 </h1>
-                <h1 className="grid items-center ">{item.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
+                <h1 className="grid items-center ">{item?.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
                 <h1 className="grid items-center uppercase">
-                    {item.scheduleCode?.movieCode?.name.length > 50
-                        ? item.scheduleCode.movieCode.name.slice(0, 50) + '...'
-                        : item.scheduleCode.movieCode.name}
+                    {item?.scheduleCode?.movieCode?.name.length > 45
+                        ? item?.scheduleCode.movieCode.name.slice(0, 45) + '...'
+                        : item?.scheduleCode.movieCode.name}
                 </h1>
 
                 <div className=" grid grid-cols-12 col-span-3 gap-4 ml-2 ">
-                    <h1 className="flex items-center justify-center  col-span-4">{FormatSchedule(item.createdAt)}</h1>
+                    <h1 className="flex items-center justify-center  col-span-4">{FormatSchedule(item?.createdAt)}</h1>
 
                     <h1 className="grid justify-center col-span-3 items-center  ">
-                        {formatCurrency(calculateTotal(item.details) - item.discountAmount)}
+                        {formatCurrency(calculateTotal(item?.details) - item?.discountAmount)}
                     </h1>
                     <div className="grid col-span-4  justify-center items-center    cursor-default">
                         <h1
                             className={`px-2 py-2 rounded-[40px]    justify-center items-center text-white uppercase text-sm 
-                         ${item.status === 1 ? 'bg-green-500' : 'bg-gray-400'} `}
+                         ${item?.status === 1 ? 'bg-green-500' : 'bg-gray-400'} `}
                         >
-                            {item.status === 1 ? 'Đã thanh toán' : 'Đã hoàn trả'}
+                            {item?.status === 1 ? 'Đã thanh toán' : 'Đã hoàn trả'}
                         </h1>
                     </div>
                     <div className="grid grid-rows-1  gap-2">
@@ -578,7 +523,7 @@ const SaleInvoice = () => {
                             }}
                             disabled={item?.status === 0 ? true : false}
                         >
-                            <RiRefund2Fill color={`${item.status === 0 ? 'gray' : 'black'}`} size={22} />
+                            <RiRefund2Fill color={`${item?.status === 0 ? 'gray' : 'black'}`} size={22} />
                         </button>
                         <button
                             className=""
@@ -693,7 +638,7 @@ const SaleInvoice = () => {
                         <AutoInputComponent
                             value={searchSDT}
                             onChange={(newValue) => handleSearchSDT(newValue)}
-                            title="Số điện thoại"
+                            title="SĐT khách hàng"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập ..."
@@ -723,7 +668,7 @@ const SaleInvoice = () => {
                     </div>
                 </div>
             </div>
-            <div className="bg-white border shadow-md rounded-[10px] box-border  py-2 h-[455px] custom-height-xs2 max-h-screen custom-height-sm25 custom-height-md5 custom-height-lg4 custom-height-xl3 custom-hubmax3">
+            <div className="bg-white border shadow-md rounded-[10px] box-border  py-2 h-[420px] custom-height-xs2 max-h-screen custom-height-sm26 custom-height-md6 custom-height-lg5 custom-height-xl4 custom-hubmax4">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
                     <div className="border-b py-2 gap-2 text-xs uppercase font-bold text-slate-500 grid grid-cols-8 items-center min-w-[1200px] pr-2">
                         <div className="grid grid-cols-3">
@@ -745,19 +690,78 @@ const SaleInvoice = () => {
 
                     <div className="py-1 min-w-[1200px]">
                         <List
-                            itemCount={invoiceFilter.length === 0 ? invoices?.length : invoiceFilter.length}
+                            itemCount={invoices?.length }
                             itemSize={80}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
                         >
                             {({ index, style }) =>
-                                rowRenderer({ index, style }, invoiceFilter.length === 0 ? invoices : invoiceFilter)
+                                rowRenderer({ index, style },invoices )
                             }
                         </List>
                     </div>
                 </div>
             </div>
+            {totalPages > 0 && (
+                <div className="justify-end flex items-center mr-7 mt-2">
+                    <Button
+                        onClick={() => setPage(page - 1)}
+                        disabled={page === 1}
+                        style={{ padding: '3px 3px', fontSize: '13px', height: '25px' }}
+                    >
+                        <IoIosArrowBack size={20} />
+                    </Button>
+
+                    <div className="flex items-center mx-2">
+                        {page > 3 && (
+                            <>
+                                <span
+                                    className="page-number border text-sm mx-1 cursor-pointer px-2 py-1 bg-gray-200 hover:bg-gray-400 rounded"
+                                    onClick={() => setPage(1)}
+                                >
+                                    1
+                                </span>
+                                <span className="text-[13px] mx-1">...</span>
+                            </>
+                        )}
+                        {[Math.max(1, page - 2),
+                            Math.max(1, page - 1),
+                            page,
+                            Math.min(totalPages, page + 1),
+                            Math.min(totalPages, page + 2)]
+                            .filter((pageNumber, index, self) => self.indexOf(pageNumber) === index)
+                            .map((pageNumber) => (
+                                <span
+                                    key={pageNumber}
+                                    className={`page-number text-[13px] mx-1 cursor-pointer px-2 py-1 rounded ${page === pageNumber ? 'font-bold border-2 border-blue-500 bg-blue-500 text-white' : 'border bg-white hover:bg-gray-400'}`}
+                                    onClick={() => setPage(pageNumber)}
+                                >
+                                    {pageNumber}
+                                </span>
+                            ))}
+                        {page < totalPages - 2 && (
+                            <>
+                                <span className="text-[13px] mx-1">...</span>
+                                <span
+                                    className="page-number text-[13px] mx-1 cursor-pointer px-2 py-1 bg-gray-200 hover:bg-gray-400 rounded"
+                                    onClick={() => setPage(totalPages)}
+                                >
+                                    {totalPages}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    
+                    <Button
+                        onClick={() => setPage(page + 1)}
+                        disabled={page === totalPages}
+                        style={{ padding: '3px 3px', fontSize: '12px', height: '25px' }}
+                    >
+                        <IoIosArrowForward size={20} />
+                    </Button>
+                </div>
+            )}
 
             <ModalComponent
                 open={open}
