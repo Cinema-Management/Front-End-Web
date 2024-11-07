@@ -18,7 +18,6 @@ import { FixedSizeList as List } from 'react-window';
 import HeightComponent from '~/components/HeightComponent/HeightComponent';
 import { useSelector } from 'react-redux';
 import { MdOutlineDeleteOutline } from 'react-icons/md';
-import { set } from 'lodash';
 const { Option } = Select;
 
 const { getFormatteNgay, FormatDate, FormatSchedule, getVideoIdFromUri } = require('~/utils/dateUtils');
@@ -153,9 +152,7 @@ const Film = React.memo(() => {
         descriptionRef.current = event.target.value; // Cập nhật giá trị vào ref
     };
 
-    console.log('selectedFilm', selectedFilm);
     const isEndDatePassed = !!selectedFilm && dayjs().isAfter(dayjs(selectedFilm.endDate));
-
     const isStartDatePassed = !!selectedFilm && dayjs().isBefore(dayjs(selectedFilm.startDate));
     const handleSearch = (value) => {
         setInputSearch(value);
@@ -386,21 +383,8 @@ const Film = React.memo(() => {
             toast.warn('Vui lòng chọn độ tuổi.');
             return false;
         }
-        if (!cast) {
-            toast.warn('Vui lòng nhập dàn diễn viên.');
-            return false;
-        }
-
-        if (!trailer) {
-            toast.warn('Vui lòng nhập trailer.');
-            return false;
-        }
         if (!selectedImage) {
             toast.warn('Vui lòng chọn hình ảnh.');
-            return false;
-        }
-        if (!descriptionRef.current) {
-            toast.warn('Vui lòng thêm hình ảnh.');
             return false;
         }
 
@@ -627,6 +611,8 @@ const Film = React.memo(() => {
         );
     };
 
+    console.log('isStartDatePassed', isStartDatePassed);
+
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             <div className="bg-white  overflow-x-auto  xl:overflow-hidden overflow-y-hidden border shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
@@ -766,7 +752,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-4"
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
                                 <AutoInputComponent
                                     value={String(isUpdate ? selectedFilm?.duration : duration)}
@@ -777,7 +763,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-2"
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
                             </div>
                             <div className="grid grid-cols-6 col-span-4 ml-5 gap-5">
@@ -800,7 +786,7 @@ const Film = React.memo(() => {
                                         listHeight={170}
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         maxTagCount={maxTagCount}
-                                        disabled={isUpdate ? true : false}
+                                        disabled={!isUpdate || isStartDatePassed  ? false : true}
                                     >
                                         {optionGenre.map((option) => (
                                             <Option key={option.code} value={option.code}>
@@ -838,9 +824,9 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-3"
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
-   <AutoInputComponent
+                                <AutoInputComponent
                                     options={optionTuoi.map((option) => option.label)}
                                     value={ageRestriction}
                                     onChange={(newValue) => setAgeRestriction(newValue)}
@@ -850,24 +836,11 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={150}
                                     className1="col-span-2"
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
                             
                             </div>
                             <div className="grid grid-cols-6 gap-5 ml-5">
-                                <div className="col-span-3">
-                                    <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
-                                    <DatePicker
-                                        value={endDate}
-                                        minDate={startDate ? dayjs(startDate) : dayjs()}
-                                        onChange={onChangeEnd}
-                                        getPopupContainer={(trigger) => trigger.parentNode}
-                                        placeholder="Chọn ngày"
-                                        format="DD-MM-YYYY"
-                                        disabled={isUpdate ? true : false}
-                                        className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
-                                    />
-                                </div>
                                 <div className="col-span-3">
                                     <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                                     <DatePicker
@@ -877,8 +850,21 @@ const Film = React.memo(() => {
                                         getPopupContainer={(trigger) => trigger.parentNode}
                                         placeholder="Chọn ngày"
                                         format="DD-MM-YYYY"
-                                        disabled={isUpdate ? true : false}
+                                        disabled={!isUpdate || isStartDatePassed  ? false : true}
                                         className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
+                                    />
+                                </div>
+                                <div className="col-span-3">
+                                    <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
+                                    <DatePicker
+                                        value={endDate}
+                                        minDate={startDate ? dayjs(startDate) : dayjs()}
+                                        onChange={onChangeEnd}
+                                        getPopupContainer={(trigger) => trigger.parentNode}
+                                        placeholder="Chọn ngày"
+                                        format="DD-MM-YYYY"
+                                        disabled={!isUpdate || isStartDatePassed  ? false : true}
+                                        className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     />
                                 </div>
                             </div>
@@ -895,7 +881,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập ..."
                                     heightSelect={200}
                                     className1="col-span-3"
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
 
                               
@@ -908,7 +894,7 @@ const Film = React.memo(() => {
                                     disableClearable={true}
                                     placeholder="Nhập quốc gia"
                                     heightSelect={150}
-                                    disabled={isUpdate ? true : false}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
                             </div>
                         </div>
@@ -961,6 +947,7 @@ const Film = React.memo(() => {
                                     placeholder="Nhập mô tả"
                                     defaultValue={isUpdate ? selectedFilm?.description : descriptionRef.current} // Thiết lập giá trị mặc định
                                     onChange={handleInputChange}
+                                    disabled={!isUpdate || isStartDatePassed  ? false : true}
                                 />
                             </div>
                         </div>
@@ -1088,7 +1075,7 @@ const Film = React.memo(() => {
                                 <div className="grid gap-2 grid-cols-2 ">
                                     <h1 className="font-bold">Trailer:</h1>
                                     <div>
-                                        <ButtonComponent text="Xem ngay" onClick={handleShowVideo} />
+                                        {selectedFilm?.trailer === "" ? "Đang cập nhật..." :<ButtonComponent text="Xem ngay" onClick={handleShowVideo} />}
                                     </div>
                                 </div>
                                 <div className="grid gap-2 grid-cols-2 ">

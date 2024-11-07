@@ -1,25 +1,18 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
- apiKey: "AIzaSyDSYX5ikDstxC82LrC6jK8AC5lVNxl3mJA",
-  authDomain: "cinema-ccead.firebaseapp.com",
-  projectId: "cinema-ccead",
-  storageBucket: "cinema-ccead.appspot.com",
-  messagingSenderId: "417829055772",
-  appId: "1:417829055772:web:1b4161a4742318b14b1ed9",
-  measurementId: "G-X0D6ZLYPHQ"
+  apiKey: "AIzaSyDBdRnh3UI-72XyhUt4mel4MEb0CmjdZ8w",
+  authDomain: "otp1-afb41.firebaseapp.com",
+  projectId: "otp1-afb41",
+  storageBucket: "otp1-afb41.firebasestorage.app",
+  messagingSenderId: "633644519491",
+  appId: "1:633644519491:web:7c3a9cea94d88cfe8cc4f6",
+  measurementId: "G-GPJ1TYPCH9"
 };
 
 // Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp)
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-export { firebaseApp, auth };
+export { auth };

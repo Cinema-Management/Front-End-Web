@@ -332,8 +332,7 @@ const Order = () => {
                 </div>
             ));
     };
-    // console.log('selectedMovieSchedule', selectedMovieSchedule);
-    // console.log('startdate', selectedMovieSchedule?.schedules[0].schedules[0]?.startTime);
+
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             {!selectedIsSchedule ? (
