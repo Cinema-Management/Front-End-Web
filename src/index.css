@@ -165,6 +165,9 @@ code {
     .custom-height-sm25 {
         height: 320px;
     }
+    .custom-height-sm26 {
+        height: 285px;
+    }
     .custom-nest-hub {
         width: 90%;
     }
@@ -209,6 +212,9 @@ code {
     .custom-height-md5 {
         height: 740px;
     }
+    .custom-height-md6 {
+        height: 705px;
+    }
     .custom-mini {
         min-width: 210px;
     }
@@ -231,6 +237,9 @@ code {
     }
     .custom-height-xl3 {
         height: 900px;
+    }
+    .custom-height-xl4 {
+        height: 860px;
     }
     .custom-air1 {
         min-width: 210px;
@@ -255,6 +264,9 @@ code {
     }
     .custom-height-lg4 {
         height: 1080px;
+    }
+    .custom-height-lg5 {
+        height: 1040px;
     }
     .custom-air-pro {
         width: 90%;
@@ -288,6 +300,9 @@ code {
     }
     .custom-hubmax3 {
         height: 520px;
+    }
+    .custom-hubmax4 {
+        height: 480px;
     }
 }
 

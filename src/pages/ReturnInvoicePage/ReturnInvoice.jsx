@@ -11,7 +11,7 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
 import { FixedSizeList as List } from 'react-window';
-import HeightInVoiceComponent from '~/components/HeightComponent/HeightInVoiceComponent';
+import HeightReturnInVoiceComponent from '~/components/HeightComponent/HeightReturnInVoiceComponent';
 
 const SaleInvoice = () => {
     const [open, setOpen] = useState(false);
@@ -24,7 +24,7 @@ const SaleInvoice = () => {
     const [searchCodeHD, setSearchCodeHD] = useState('');
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
 
-    const height = HeightInVoiceComponent();
+    const height = HeightReturnInVoiceComponent();
 
     const handleOpen = () => {
         setOpen(true);
@@ -359,7 +359,9 @@ const SaleInvoice = () => {
                     {item.customerCode === null ? 'Tại quầy' : item.customerCode.name}
                 </h1>
                 <h1 className="grid items-center ">{item.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
-                <h1 className="grid items-center uppercase">{item.scheduleCode?.movieCode?.name}</h1>
+                <h1 className="grid items-center uppercase">   {item?.scheduleCode?.movieCode?.name.length > 45
+                        ? item?.scheduleCode.movieCode.name.slice(0, 45) + '...'
+                        : item?.scheduleCode.movieCode.name}</h1>
                 <h1 className="grid items-center justify-center ">{FormatSchedule(item.createdAt)}</h1>
 
                 <div className=" grid grid-cols-8 col-span-2 gap-x-0">
@@ -496,7 +498,7 @@ const SaleInvoice = () => {
                     <div className="py-1 min-w-[1200px]">
                         <List
                             itemCount={invoiceFilter.length === 0 ? invoices?.length : invoiceFilter.length}
-                            itemSize={60}
+                            itemSize={80}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
