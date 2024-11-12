@@ -302,9 +302,6 @@ const Order = () => {
             }
         }
     }, [room, selectedMovieSchedule, dispatch]);
-
-    console.log('selectedMovieSchedule', selectedMovieSchedule);
-    console.log('checkSchedule', checkSchedule);
     if (isLoadingRoom || isLoadingCinemas || isLoadingOptionMovieName) return <Loading />;
     if (errorRoom || CinemaError || optionCinemaNameError)
         return (

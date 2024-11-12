@@ -40,8 +40,9 @@ code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 3px;
+    height: 3px;
+    background-color: red;
 }
 
 ::-webkit-scrollbar-track {
@@ -67,9 +68,6 @@ code {
         padding-left: 8px !important;
         padding-right: 8px !important;
     }
-    /* .custom-air-mini1 {
-        p
-    } */
 }
 @media (min-height: 700px) and (max-height: 720px) {
     .custom-height-xs {
@@ -171,6 +169,18 @@ code {
     .custom-nest-hub {
         width: 90%;
     }
+    .custom-height-sm27 {
+        height: 355px;
+    }
+    .custom-height-sm28 {
+        height: 265px;
+    }
+    .custom-height-sm29 {
+        height: 400px;
+    }
+    .custom-height-sm30 {
+        height: 295px;
+    }
 }
 
 @media (min-height: 780px) and (max-height: 850px) {
@@ -215,6 +225,15 @@ code {
     .custom-height-md6 {
         height: 705px;
     }
+    .custom-height-md7 {
+        height: 770px;
+    }
+    .custom-height-md8 {
+        height: 680px;
+    }
+    .custom-height-md9 {
+        height: 710px;
+    }
     .custom-mini {
         min-width: 210px;
     }
@@ -239,6 +258,15 @@ code {
         height: 900px;
     }
     .custom-height-xl4 {
+        height: 860px;
+    }
+    .custom-height-xl5 {
+        height: 920px;
+    }
+    .custom-height-xl6 {
+        height: 830px;
+    }
+    .custom-height-xl7 {
         height: 860px;
     }
     .custom-air1 {
@@ -266,6 +294,15 @@ code {
         height: 1080px;
     }
     .custom-height-lg5 {
+        height: 1040px;
+    }
+    .custom-height-lg6 {
+        height: 1100px;
+    }
+    .custom-height-lg7 {
+        height: 1010px;
+    }
+    .custom-height-lg8 {
         height: 1040px;
     }
     .custom-air-pro {
@@ -303,6 +340,15 @@ code {
     }
     .custom-hubmax4 {
         height: 480px;
+    }
+    .custom-hubmax5 {
+        height: 545px;
+    }
+    .custom-hubmax6 {
+        height: 455px;
+    }
+    .custom-hubmax7 {
+        height: 485px;
     }
 }
 
