@@ -63,6 +63,8 @@ const Seat = () => {
     const freeProduct = useSelector((state) => state.products?.freeProduct);
     const [selectedCombos, setSelectedCombos] = useState([]);
     const [openPaymentMethod, setOpenPaymentMethod] = useState(false);
+    const [loading, setLoading] = useState(false);
+
     const dispatch = useDispatch();
 
     const initialTimeLeft = 10 * 60;
@@ -284,17 +286,21 @@ const Seat = () => {
     const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
 
     const handlePrint = () => {
+        setTimeout(() => {
+            setOpenPrint(false);
+            dispatch(resetCombo());
+            dispatch(resetSeats());
+            dispatch(resetValue());
+            getIsSchedule(dispatch, false);
+        }, 1000);
         const printContent = printRef.current.innerHTML;
         const originalContent = document.body.innerHTML;
 
         document.body.innerHTML = printContent; // Chỉ hiển thị phần in
+
         window.print(); // Thực hiện lệnh in
         document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
-        setOpenPrint(false);
-        dispatch(resetCombo());
-        dispatch(resetSeats());
-        dispatch(resetValue());
-        getIsSchedule(dispatch, false);
+
         document.location.reload(); // Tải lại trang
     };
 
@@ -413,6 +419,7 @@ const Seat = () => {
         onSuccess: () => {
             queryClient.refetchQueries('fetchSaleInvoice');
             queryClient.refetchQueries('fetchSeatByRoomCode');
+            queryClient.refetchQueries('dataCheck');
         },
     });
     const handleZaloPay = async () => {
@@ -420,18 +427,24 @@ const Seat = () => {
             if (!(await handleCheckStatusSeat())) {
                 return;
             }
+            setLoading(true);
 
             const response = await axios.post('/api/web/payment', { amount: priceAfter }); // Đảm bảo đường dẫn này đúng với API của bạn
             if (response.data) {
                 if (response.data.return_code === 1) {
                     const orderUrl = response.data.order_url;
                     window.location.href = orderUrl; // Chuyển hướng tới order_url
+                    setLoading(false);
                 } else {
-                    toast.error(' response.data.return_message');
+                    setLoading(false);
+
+                    toast.error('Lỗi không thể mở trang thanh toans');
                 }
             }
         } catch (error) {
-            toast.error('Error while opening ZaloPay:', error);
+            setLoading(false);
+
+            toast.error('Phương thức thanh toán Zalopay đang bị lỗi:', error);
         }
     };
 
@@ -457,12 +470,12 @@ const Seat = () => {
             // Kiểm tra dữ liệu trả về
             if (response.data.return_code === 1) {
                 // Gọi mutationPay nếu cần
-                mutationPay.mutate(1);
+                await mutationPay.mutate(1);
 
-                dispatch(resetCombo());
-                dispatch(resetSeats());
-                dispatch(resetValue());
-                getIsSchedule(dispatch, false);
+                // dispatch(resetCombo());
+                // dispatch(resetSeats());
+                // dispatch(resetValue());
+                // getIsSchedule(dispatch, false);
             } else {
                 handleUpdateStatusSeat(1);
                 dispatch(resetPromotionData());
@@ -525,7 +538,7 @@ const Seat = () => {
 
     const combinedPrint = [freeProductPrint, ...foodPrint].filter((item) => item.quantity > 0);
 
-    if (isLoadingAddressCinema) return <Loading />;
+    if (isLoadingAddressCinema || loading) return <Loading />;
 
     if (errorAddressCinema) return <div>Error loading data: {errorAddressCinema.message}</div>;
 
@@ -620,8 +633,8 @@ const Seat = () => {
                                     <LuArmchair className="text-white" size={25} />
                                     <h1 className="ml-1">Ghế:</h1>
                                 </div>
-                                <div className="flex ml-3 items-center flex-wrap w-full">
-                                    <h1 className="w-full text-right">
+                                <div className="flex ml-3 items-center flex-wrap w-[100%] justify-end  ">
+                                    <h1 className="w-[95%] text-right  text-ellipsis  overflow-hidden line-clamp-2 ">
                                         {arraySeat.map((item) => item.seatNumber).join(', ')}
                                     </h1>
                                 </div>
@@ -631,9 +644,11 @@ const Seat = () => {
                                     <ImSpoonKnife className="text-white" size={25} />
                                     <h1 className="ml-1">Combo:</h1>
                                 </div>
-                                <div className="flex ml-3 items-center flex-wrap w-full">
-                                    <h1 className="w-full text-right">
-                                        {groupedCombos?.map((combo) => combo.name + ' x' + combo.quantity).join(', ')}
+                                <div className="flex ml-3 items-center flex-wrap w-[100%] justify-end  ">
+                                    <h1 className="w-[95%] text-right  text-ellipsis  overflow-hidden line-clamp-3 ">
+                                        {groupedCombos
+                                            ?.map((combo) => 'x' + combo.quantity + ' ' + combo.name)
+                                            .join(', ')}
                                     </h1>
                                 </div>
                             </div>

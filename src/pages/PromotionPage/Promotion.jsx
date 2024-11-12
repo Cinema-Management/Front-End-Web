@@ -113,6 +113,16 @@ const fetchProductNotSeat = async () => {
         }
     }
 };
+
+const fetchPromotionResult = async (selectedKMLine) => {
+    console.log('data', selectedKMLine?.code + selectedKMLine?.startDate);
+    if (!selectedKMLine?.code) {
+        return ''; // Nếu code không hợp lệ hoặc chưa đến ngày bắt đầu, trả về null hoặc string rỗng
+    }
+    const { data } = await axios.get(`api/promotion-details/checkPromotionInPromotionResult/${selectedKMLine?.code}`);
+    console.log('data', data);
+    return data;
+};
 const Promotion = () => {
     const [openKM, setOpenKM] = useState(false);
     const [openKMDetail, setOpenKMDetail] = useState(false);
@@ -155,9 +165,6 @@ const Promotion = () => {
     const { RangePicker } = DatePicker;
     const [rangePickerValue, setRangePickerValue] = useState(['', '']);
 
-    const isDisabled = (endDate) => {
-        return dayjs().isAfter(dayjs(endDate), 'day');
-    };
     const queryClient = useQueryClient();
 
     const optionKMLines = [
@@ -166,15 +173,15 @@ const Promotion = () => {
         { name: 'Chiết khấu hóa đơn', value: 2 },
     ];
     const optionStatusKMLine = [
-        { value: 0, name: 'Chưa hoạt động' },
+        { value: 0, name: 'Ngưng hoạt động' },
         { value: 1, name: 'Hoạt động' },
-        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const {
         data: { promotions = [], optionPromotion = [] } = {},
         isLoading: isLoadingPromotions,
         error: PromotionError,
+        isFetching: isFetchingPromotions,
         refetch: refetchKM,
     } = useQuery('fetchPromotionsWithLines', fetchPromotionsWithLines, {
         staleTime: 1000 * 60 * 3,
@@ -197,6 +204,7 @@ const Promotion = () => {
     const {
         data: promotionDetails = [],
         isLoading: isLoadingPromotionDetail,
+        isFetching: isFetchingPromotionDetail,
         error: PromotionDetailError,
         refetch: refetchKMDetail,
     } = useQuery(
@@ -206,6 +214,23 @@ const Promotion = () => {
             staleTime: 1000 * 60 * 3,
             cacheTime: 1000 * 60 * 10,
             enabled: !!selectedKMLine?.code, // Chỉ kích hoạt khi có mã KM
+        },
+    );
+    const {
+        data: dataCheck,
+        error: errorCheck,
+        isLoading: isLoadingCheck,
+    } = useQuery(
+        ['dataCheck', selectedKMLine], // Khóa query gồm mã khuyến mãi
+        () => fetchPromotionResult(selectedKMLine),
+        {
+            enabled:
+                !!selectedKMLine &&
+                dayjs().isBefore(dayjs(selectedKMLine?.startDate), 'day') &&
+                selectedKMLine?.status === 1,
+            staleTime: 1000 * 60 * 3,
+            cacheTime: 1000 * 60 * 10,
+            retry: 1, // Retry khi có lỗi
         },
     );
 
@@ -392,12 +417,18 @@ const Promotion = () => {
 
     const handleDeleteKMLine = async (code) => {
         try {
-            await axios.patch(`api/promotion-lines/${code}`);
-            toast.success('Xóa thành công!');
-            refetchKM();
-            handleCloseDelete();
+            const { data } = await axios.get(`api/promotion-details/checkPromotionInPromotionResult/${code}`);
+            if (data) {
+                toast.warning('Đã có hóa đơn áp dụng không thể xóa!');
+                return;
+            } else {
+                await axios.patch(`api/promotion-lines/${code}`);
+                toast.success('Xóa thành công!');
+                refetchKM();
+                handleCloseDelete();
+            }
         } catch (error) {
-            toast.error('Xóa thất bại!');
+            toast.error('Lỗi hệ thống xóa thất bại!');
         }
     };
 
@@ -537,17 +568,32 @@ const Promotion = () => {
 
     const checkPromotionAddAndUpdate = (promotions, startDate, endDate) => {
         // Kiểm tra ngày kết thúc có lớn hơn hoặc bằng ngày bắt đầu không
-        if (new Date(endDate) < new Date(startDate)) {
+
+        const isEndDateValid =
+            dayjs(endDate).startOf('day').isAfter(dayjs(startDate).startOf('day')) ||
+            dayjs(endDate).startOf('day').isSame(dayjs(startDate).startOf('day'));
+        if (!isEndDateValid) {
             toast.warning('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu');
             return false; // Trả về false nếu có lỗi
         }
         if (isUpdateKM) {
             for (const line of selectedKM?.promotionLines) {
-                const lineEndDate = new Date(line.endDate);
-                if (new Date(endDate) < lineEndDate) {
-                    toast.warning(
-                        'Ngày kết thúc của khuyến mãi không thể nhỏ hơn ngày kết thúc của các dòng khuyến mãi.',
-                    );
+                // Kiểm tra ngày bắt đầu không được lớn hơn ngày bắt đầu các dòng khuyến mãi
+                const isStartDateValidKM =
+                    dayjs(startDate).startOf('day').isBefore(dayjs(line.startDate).startOf('day')) ||
+                    dayjs(startDate).startOf('day').isSame(dayjs(line.startDate).startOf('day'));
+                // Kiểm tra ngày kết thúc không được nhỏ hơn ngày kết thúc các dòng khuyến mãi
+                const isEndDateValidKM =
+                    dayjs(endDate).startOf('day').isAfter(dayjs(line.endDate).startOf('day')) ||
+                    dayjs(endDate).startOf('day').isSame(dayjs(line.endDate).startOf('day'));
+
+                if (!isStartDateValidKM) {
+                    toast.warning('Ngày bắt đầu không được lớn hơn ngày bắt đầu các dòng khuyến mãi.');
+                    return false;
+                }
+
+                if (!isEndDateValidKM) {
+                    toast.warning('Ngày kết thúc  không thể nhỏ hơn ngày kết thúc của các dòng khuyến mãi.');
                     return false;
                 }
             }
@@ -567,7 +613,7 @@ const Promotion = () => {
             // Khuyến mãi mới phải có ngày bắt đầu sau ngày kết thúc của khuyến mãi hiện có
             // Hoặc ngày kết thúc trước ngày bắt đầu của khuyến mãi hiện có
             if (!(new Date(startDate) > existingEndDate || new Date(endDate) < existingStartDate)) {
-                toast.warning('Khoảng thời gian này đã có khuyến mãi khác.');
+                toast.warning('Đã có dòng khuyến mãi này trong khoảng thời gian này');
                 return false;
             }
         }
@@ -575,7 +621,7 @@ const Promotion = () => {
         return true; // Trả về true nếu không có lỗi
     };
 
-    const checkPromotionLineAddAndUpdate = (promotionLines, startDate, endDate, type) => {
+    const checkPromotionLineAddAndUpdate = async (promotionLines, startDate, endDate, type, statusOption) => {
         // Kiểm tra ngày kết thúc có lớn hơn hoặc bằng ngày bắt đầu không
         if (new Date(endDate) < new Date(startDate)) {
             toast.warning('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu');
@@ -602,12 +648,32 @@ const Promotion = () => {
 
             // Kiểm tra cùng loại khuyến mãi
             if (promotionLine.type === type) {
-                if (!(new Date(startDate) > existingEndDate || new Date(endDate) < existingStartDate)) {
+                if (
+                    !(new Date(startDate) > existingEndDate || new Date(endDate) < existingStartDate) &&
+                    promotionLine.status === 1 &&
+                    statusOption === 1
+                ) {
                     toast.warning('Khoảng thời gian này đã có khuyến mãi khác.');
                     return false;
                 }
             }
         }
+
+        // if (
+        //     selectedKMLine &&
+        //     isUpdateKMLine &&
+        //     statusOption === 0
+        //     //   && dayjs().isAfter(dayjs(selectedStatusKMLine?.endDate), 'day')
+        // ) {
+        //     const { data } = await axios.get(
+        //         `api/promotion-details/checkPromotionInPromotionResult/${selectedKMLine?.code}`,
+        //     );
+
+        //     if (data) {
+        //         toast.warning('Đã có hóa đơn áp dụng không thể ngừng cập nhật!');
+        //         return false;
+        //     }
+        // }
 
         return true; // Trả về true nếu không có lỗi
     };
@@ -615,7 +681,7 @@ const Promotion = () => {
     //action KM
     const handleAddKM = async () => {
         if (!validateKM()) return;
-        if (!checkPromotionAddAndUpdate(promotions, selectedStartDateKM, selectedEndDateKM)) return;
+        // if (!checkPromotionAddAndUpdate(promotions, selectedStartDateKM, selectedEndDateKM)) return;
         const promotion = {
             description: descriptionKM,
             startDate: selectedStartDateKM,
@@ -670,15 +736,6 @@ const Promotion = () => {
         if (!validateKMLine()) return;
 
         const type = optionKMLines.find((item) => item.name === selectedOptionKMLine).value;
-        if (
-            !checkPromotionLineAddAndUpdate(
-                selectedKM?.promotionLines,
-                selectedStartDateKMLine,
-                selectedEndDateKMLine,
-                type,
-            )
-        )
-            return;
 
         const promotion = {
             promotionCode: selectedKM?.code,
@@ -703,26 +760,27 @@ const Promotion = () => {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
         }
     };
-
     const handleUpdateKMLine = async () => {
         if (!validateKMLine()) return;
-        if (!selectedKM) return;
+
         const type = optionKMLines.find((item) => item.name === selectedOptionKMLine).value;
         const status = optionStatusKMLine.find((item) => item.name === selectedStatusKMLine).value;
+
+        if (!selectedKM) return;
+
+        const isValidate = await checkPromotionLineAddAndUpdate(
+            selectedKM?.promotionLines,
+            selectedStartDateKMLine,
+            selectedEndDateKMLine,
+            type,
+            status,
+        );
+        if (!isValidate) return;
+
         if (status === 1 && promotionDetails.length === 0) {
             toast.warning('Phải có ít nhất một chi tiêt khuyến mãi');
             return;
         }
-
-        if (
-            !checkPromotionLineAddAndUpdate(
-                selectedKM?.promotionLines,
-                selectedStartDateKMLine,
-                selectedEndDateKMLine,
-                type,
-            )
-        )
-            return;
 
         const promotionLine = {
             description: descriptionKMLine,
@@ -737,11 +795,11 @@ const Promotion = () => {
             handleCloseKMLine();
 
             if (response.data) {
-                toast.success('Thêm suất thành công');
+                toast.success('Cập nhật thành công');
                 refetchKM();
                 cleanTextKMLine();
             } else {
-                toast.error('Thêm thất bại');
+                toast.error('Cập nhật thất bại');
             }
         } catch (error) {
             toast.error('Lỗi: ' + (error.response.data.message || error.message));
@@ -750,8 +808,11 @@ const Promotion = () => {
 
     const mutation = useMutation(handleUpdateKMLine, {
         onSuccess: () => {
-            // Refetch dữ liệu cần thiết
+            // Refetch dữ liệu cần thiết sau khi cập nhật thành công
             queryClient.refetchQueries('fetchKMDetail');
+        },
+        onError: (error) => {
+            toast.error('Lỗi: ' + (error.response?.data?.message || error.message));
         },
     });
 
@@ -963,7 +1024,7 @@ const Promotion = () => {
             setMaxDiscountAmount(0); // Hoặc giá trị mặc định khác nếu cần
         }
     };
-    function disableStartDatePromotion(promotions) {
+    function disableStartDatePromotion(promotions, isUpdate = false, selectedKM = null) {
         const currentDate = dayjs().add(1, 'day'); // Ngày hiện tại dưới dạng dayjs
 
         return (current) => {
@@ -976,17 +1037,28 @@ const Promotion = () => {
 
             // Vô hiệu hóa ngày hiện tại hoặc ngày trước ngày hiện tại
             if (currentDayjs.isBefore(currentDate, 'day')) {
-                return true; // Disable the current date and any past dates
+                return true; // Vô hiệu hóa ngày hiện tại và các ngày quá khứ
             }
 
             // Kiểm tra nếu ngày nằm trong bất kỳ khoảng thời gian khuyến mãi nào
             for (let i = 0; i < promotions.length; i++) {
-                const promotionStartDate = dayjs(promotions[i].startDate);
-                const promotionEndDate = dayjs(promotions[i].endDate);
+                const promotion = promotions[i];
+                const promotionStartDate = dayjs(promotion.startDate);
+                const promotionEndDate = dayjs(promotion.endDate);
 
-                // Vô hiệu hóa ngày nếu nó nằm trong khoảng thời gian của khuyến mãi
+                // Nếu đang cập nhật và khuyến mãi hiện tại là selectedKM, bỏ qua kiểm tra cho khoảng thời gian này
+                if (
+                    isUpdate &&
+                    selectedKM &&
+                    promotion.startDate === selectedKM.startDate &&
+                    promotion.endDate === selectedKM.endDate
+                ) {
+                    continue; // Bỏ qua kiểm tra selectedKM
+                }
+
+                // Vô hiệu hóa ngày nếu nó nằm trong khoảng thời gian của bất kỳ khuyến mãi nào khác
                 if (!currentDayjs.isBefore(promotionStartDate) && !currentDayjs.isAfter(promotionEndDate)) {
-                    return true; // Disable the date within the promotion range
+                    return true; // Vô hiệu hóa ngày trong khoảng thời gian của khuyến mãi khác
                 }
             }
 
@@ -994,7 +1066,7 @@ const Promotion = () => {
         };
     }
 
-    function disableEndDatePromotion(promotions, selectedStartDate) {
+    function disableEndDatePromotion(promotions, selectedStartDate, selectedKM, isUpdate) {
         const currentDate = dayjs(); // Ngày hiện tại dưới dạng dayjs
 
         return (current) => {
@@ -1005,18 +1077,33 @@ const Promotion = () => {
             const currentDayjs = dayjs(current);
             const startDayjs = dayjs(selectedStartDate); // Ngày bắt đầu đã chọn
 
+            // Vô hiệu hóa ngày hiện tại và các ngày trước ngày hiện tại
             if (currentDayjs.isBefore(currentDate, 'day')) {
-                return true; // Disable the current date and any past dates
+                return true;
             }
 
+            // Vô hiệu hóa các ngày trước ngày bắt đầu đã chọn
             if (currentDayjs.isBefore(startDayjs, 'day')) {
-                return true; // Disable dates before selected start date
+                return true;
             }
 
+            // Bỏ qua khoảng thời gian của selectedKM nếu đang cập nhật
             let nextPromotionStartDate = null;
 
             for (let i = 0; i < promotions.length; i++) {
-                const promotionStartDate = dayjs(promotions[i].startDate);
+                const promotion = promotions[i];
+                const promotionStartDate = dayjs(promotion.startDate);
+                // const promotionEndDate = dayjs(promotion.endDate);
+
+                // Nếu đang ở chế độ cập nhật và selectedKM trùng với promotion hiện tại, bỏ qua khoảng thời gian này
+                if (
+                    isUpdate &&
+                    selectedKM &&
+                    selectedKM.startDate === promotion.startDate &&
+                    selectedKM.endDate === promotion.endDate
+                ) {
+                    continue;
+                }
 
                 // Tìm ngày bắt đầu khuyến mãi tiếp theo lớn hơn ngày bắt đầu đã chọn
                 if (promotionStartDate.isAfter(startDayjs)) {
@@ -1081,7 +1168,7 @@ const Promotion = () => {
         };
     };
 
-    let isDateDisabledTest = isDateDisabled(selectedKM, selectedKM?.promotionLines, selectedOptionKMLine);
+    let isDisableStartDateKMLine = isDateDisabled(selectedKM, selectedKM?.promotionLines);
 
     const isEndDateDisabled = (current, selectedStartDateKMLine, selectedKM, promotionLines, selectedOptionKMLine) => {
         const startDate = dayjs(selectedStartDateKMLine);
@@ -1125,11 +1212,20 @@ const Promotion = () => {
     };
 
     // Xử lý khi đang loading hoặc có lỗi
-    if (isLoadingPromotions || isLoadingPromotionDetail || isLoadingProduct) return <Loading />;
-    if (errorProduct || PromotionError || PromotionDetailError)
+    if (
+        isLoadingPromotions ||
+        isLoadingPromotionDetail ||
+        isLoadingProduct ||
+        isFetchingPromotions ||
+        isFetchingPromotionDetail ||
+        isLoadingCheck
+    )
+        return <Loading />;
+    if (errorProduct || PromotionError || PromotionDetailError || errorCheck)
         return (
             <div>
-                Error loading data: {PromotionError.message || errorProduct.message || PromotionDetailError.message}
+                Error loading data:{' '}
+                {PromotionError.message || errorProduct.message || PromotionDetailError.message || errorCheck.message}
             </div>
         );
 
@@ -1174,15 +1270,16 @@ const Promotion = () => {
                         </button>
 
                         <button
-                            className={`grid ${
-                                promotion.promotionLines.length > 0 ? 'pointer-events-none opacity-50' : ''
-                            }`}
+                            disabled={promotion.promotionLines.some((item) => item.status === 1)}
                             onClick={() => {
                                 handleOpenDelete();
                                 setSelectedKM(promotion);
                             }}
                         >
-                            <MdOutlineDeleteOutline color="black" fontSize={23} />
+                            <MdOutlineDeleteOutline
+                                color={promotion.promotionLines.some((item) => item.status === 1) ? 'gray' : 'black'}
+                                fontSize={23}
+                            />
                         </button>
                     </div>
                 </div>
@@ -1211,7 +1308,7 @@ const Promotion = () => {
                                         onClick={() => {
                                             handleOpenKMLine(false);
                                             setSelectedKM(promotion);
-                                            setSelectedStatusKMLine('Chưa hoạt động');
+                                            setSelectedStatusKMLine('Ngưng hoạt động');
                                         }}
                                     >
                                         <IoIosAddCircleOutline color="white" size={20} />
@@ -1262,7 +1359,7 @@ const Promotion = () => {
                                                     }`}
                                                 >
                                                     {item.status === 0
-                                                        ? 'Chưa hoạt động'
+                                                        ? 'Ngưng hoạt động'
                                                         : item.status === 1
                                                         ? 'Hoạt động'
                                                         : 'Ngừng hoạt động'}
@@ -1295,7 +1392,10 @@ const Promotion = () => {
 
                                                 <div
                                                     className={
-                                                        item?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                        (item.status === 0 && dayjs().isAfter(dayjs(item.endDate))) ||
+                                                        (item.status === 1 && dayjs().isAfter(dayjs(item.startDate)))
+                                                            ? 'pointer-events-none opacity-50'
+                                                            : ''
                                                     }
                                                 >
                                                     <button
@@ -1358,7 +1458,7 @@ const Promotion = () => {
                     />
 
                     <div className="grid col-span-2 ">
-                        <h1 className="text-[16px] truncate mb-1">Khoảng thời gian</h1>
+                        <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                         <RangePicker
                             value={rangePickerValue}
                             onChange={onChangeRanger}
@@ -1382,10 +1482,10 @@ const Promotion = () => {
                     <h1 className="uppercase grid justify-center items-center">Ngày kết thúc</h1>
                     <div className="flex justify-center">
                         <button
-                            className="border px-4 py-1 rounded-[40px] gradient-button"
+                            className="border px-4 py-1 rounded-[40px] bg-white"
                             onClick={() => handleOpenKM(false)}
                         >
-                            <IoIosAddCircleOutline color="white" size={20} />
+                            <IoIosAddCircleOutline color="orange" size={20} />
                         </button>
                     </div>
                 </div>
@@ -1424,7 +1524,8 @@ const Promotion = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
-                            disabled={isUpdateKM}
+                            disabled={dayjs().isAfter(dayjs(selectedKM?.startDate), 'day')}
+                            // disabled={selectedKM?.promotionLines?.some((line) => line.status === 1) && isUpdateKM}
                         />
                     </div>
 
@@ -1434,12 +1535,15 @@ const Promotion = () => {
                                 <h1 className="text-[16px] truncate mb-1">Ngày bắt đầu</h1>
                                 <DatePicker
                                     value={selectedStartDateKM ? dayjs(selectedStartDateKM) : null}
-                                    disabledDate={disableStartDatePromotion(promotions)} // Hàm vô hiệu hóa ngày
+                                    disabledDate={disableStartDatePromotion(promotions, isUpdateKM, selectedKM)} // Hàm vô hiệu hóa ngày
                                     onChange={onChangeSelectedStartDateKM}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
-                                    disabled={isUpdateKM}
+                                    disabled={dayjs().isAfter(dayjs(selectedKM?.startDate), 'day')}
+                                    // disabled={
+                                    //     selectedKM?.promotionLines?.some((line) => line.status === 1) && isUpdateKM
+                                    // }
                                     className="border py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black]"
                                 />
                             </div>
@@ -1448,7 +1552,12 @@ const Promotion = () => {
                                 <h1 className="text-[16px] truncate mb-1">Ngày kết thúc</h1>
                                 <DatePicker
                                     value={selectedEndDateKM ? dayjs(selectedEndDateKM) : null}
-                                    disabledDate={disableEndDatePromotion(promotions, selectedStartDateKM)} // Hàm vô hiệu hóa ngày
+                                    disabledDate={disableEndDatePromotion(
+                                        promotions,
+                                        selectedStartDateKM,
+                                        selectedKM,
+                                        isUpdateKM,
+                                    )} // Hàm vô hiệu hóa ngày
                                     onChange={setSelectedEndDateKM}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     disabled={!selectedStartDateKM}
@@ -1496,7 +1605,7 @@ const Promotion = () => {
                             disableClearable={false}
                             placeholder="Nhập ..."
                             heightSelect={200}
-                            disabled={selectedKMLine?.status === 1 || selectedKMLine?.status === 2}
+                            disabled={dayjs().isAfter(dayjs(selectedKMLine?.startDate)) || dataCheck}
                         />
 
                         <AutoInputComponent
@@ -1508,7 +1617,11 @@ const Promotion = () => {
                             disableClearable={true}
                             placeholder="Chọn"
                             heightSelect={200}
-                            disabled={selectedKMLine?.status === 1 || selectedKMLine?.status === 2}
+                            disabled={
+                                dayjs().isAfter(dayjs(selectedKMLine?.startDate)) ||
+                                promotionDetails.length > 0 ||
+                                dataCheck
+                            }
                         />
                     </div>
 
@@ -1519,16 +1632,16 @@ const Promotion = () => {
 
                                 <DatePicker
                                     value={selectedStartDateKMLine}
-                                    disabledDate={selectedOptionKMLine && isDateDisabledTest} // Gọi hàm với promotionLines và selectedOptionKMLine
+                                    disabledDate={selectedOptionKMLine && isDisableStartDateKMLine} // Gọi hàm với promotionLines và selectedOptionKMLine
                                     onChange={onChangeSelectedStartDateKMLine}
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     format="DD-MM-YYYY"
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
                                     disabled={
-                                        selectedKMLine?.status === 1 ||
-                                        selectedKMLine?.status === 2 ||
-                                        !selectedOptionKMLine
+                                        dayjs().isAfter(dayjs(selectedKMLine?.startDate), 'day') ||
+                                        !selectedOptionKMLine ||
+                                        dataCheck
                                     }
                                 />
                             </div>
@@ -1543,6 +1656,8 @@ const Promotion = () => {
                                             selectedKM,
                                             selectedKM.promotionLines,
                                             selectedOptionKMLine,
+                                            selectedKMLine,
+                                            isUpdateKMLine,
                                         )
                                     } // Gọi hàm với promotionLines và selectedOptionKMLine
                                     value={selectedEndDateKMLine ? dayjs(selectedEndDateKMLine) : null}
@@ -1550,9 +1665,8 @@ const Promotion = () => {
                                     getPopupContainer={(trigger) => trigger.parentNode}
                                     placeholder="Chọn ngày"
                                     disabled={
-                                        !selectedStartDateKMLine ||
-                                        optionStatusKMLine.find((item) => item.name === selectedStatusKMLine)?.value ===
-                                            2
+                                        dayjs().isAfter(dayjs(selectedKMLine?.endDate), 'day') ||
+                                        !selectedStartDateKMLine
                                     }
                                     format="DD-MM-YYYY"
                                     className="border  py-[6px] z-50 px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[5px] hover:border-[black] "
@@ -1560,27 +1674,21 @@ const Promotion = () => {
                             </div>
                         </div>
                         <AutoInputComponent
-                            options={
-                                selectedKMLine?.status === 0
-                                    ? optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : selectedKMLine?.status === 1 && isDisabled(selectedEndDateKMLine)
-                                    ? optionStatusKMLine.filter((item) => item.value !== 0).map((item) => item.name)
-                                    : selectedKMLine?.status === 1 && !isDisabled(selectedEndDateKMLine)
-                                    ? optionStatusKMLine.filter((item) => item.value === 1).map((item) => item.name)
-                                    : optionStatusKMLine.filter((item) => item.value !== 2).map((item) => item.name)
-                            }
+                            options={optionStatusKMLine.map((option) => option.name)}
                             value={selectedStatusKMLine}
                             onChange={setSelectedStatusKMLine}
                             title="Trạng thái"
                             freeSolo={false}
                             disableClearable={true}
                             placeholder="Chọn"
-                            heightSelect={200}
                             disabled={
-                                (selectedKMLine?.status === 1 && !isDisabled(selectedKMLine.endDate)) ||
+                                (dayjs().isAfter(dayjs(selectedKMLine?.startDate), 'day') &&
+                                    dayjs().isBefore(dayjs(selectedKMLine?.endDate), 'day')) ||
+                                dayjs().isSame(dayjs(selectedKMLine?.endDate), 'day') ||
                                 !isUpdateKMLine ||
-                                selectedKMLine?.status === 2
+                                dataCheck
                             }
+                            heightSelect={200}
                         />
                     </div>
                     <div className="justify-end flex space-x-3 border-t pt-1 ">
@@ -1726,7 +1834,10 @@ const Promotion = () => {
 
                                             <div
                                                 className={`grid justify-around  items-center  grid-cols-2 gap-7  ${
-                                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                    selectedKMLine?.status !== 0 ||
+                                                    dayjs().isAfter(dayjs(selectedKMLine?.endDate), 'day')
+                                                        ? 'pointer-events-none opacity-50'
+                                                        : ''
                                                 }`}
                                             >
                                                 <button
@@ -1770,7 +1881,10 @@ const Promotion = () => {
                                             </h1>
                                             <div
                                                 className={`grid justify-around  items-center  grid-cols-2 gap-7  ${
-                                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                    selectedKMLine?.status !== 0 ||
+                                                    dayjs().isAfter(dayjs(selectedKMLine?.endDate), 'day')
+                                                        ? 'pointer-events-none opacity-50'
+                                                        : ''
                                                 }`}
                                             >
                                                 <button
@@ -1815,7 +1929,10 @@ const Promotion = () => {
                                             </h1>
                                             <div
                                                 className={`grid justify-around  items-center  grid-cols-2 gap-7  ${
-                                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                                    selectedKMLine?.status !== 0 ||
+                                                    dayjs().isAfter(dayjs(selectedKMLine?.endDate), 'day')
+                                                        ? 'pointer-events-none opacity-50'
+                                                        : ''
                                                 }`}
                                             >
                                                 <button

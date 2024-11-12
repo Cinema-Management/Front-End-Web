@@ -53,15 +53,13 @@ const Cinema = () => {
     const [wardData, setWardData] = useState([]);
 
     const optionStatusCinema = [
-        { value: 0, name: 'Chưa hoạt động' },
+        { value: 0, name: 'Ngưng hoạt động' },
         { value: 1, name: 'Hoạt động' },
-        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const optionStatusRoom = [
-        { value: 0, name: 'Chưa hoạt động' },
+        { value: 0, name: 'Ngưng hoạt động' },
         { value: 1, name: 'Hoạt động' },
-        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const optionsSort = [
@@ -158,8 +156,8 @@ const Cinema = () => {
             const sortedData = data.sort((a, b) => b.code.localeCompare(a.code));
 
             const arrayNameCinema = data.map((cinema) => ({
-                name: cinema.name, 
-                code: cinema.code, 
+                name: cinema.name,
+                code: cinema.code,
             }));
 
             return { cinemas: sortedData, optionNameCinema: arrayNameCinema };
@@ -179,11 +177,11 @@ const Cinema = () => {
             const response = await axios.get('api/room-types');
             const data = response.data;
             const optionRomTypes = data.map((roomType) => ({
-                label: roomType.name, 
-                value: roomType.code, 
+                label: roomType.name,
+                value: roomType.code,
             }));
 
-            return optionRomTypes; 
+            return optionRomTypes;
         } catch (error) {
             if (error.response) {
                 throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
@@ -207,7 +205,6 @@ const Cinema = () => {
 
             return optionRomSize;
         } catch (error) {
-      
             if (error.response) {
                 throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
             } else if (error.request) {
@@ -244,7 +241,6 @@ const Cinema = () => {
 
             const roomSizeCode = optionRoomSizes.find((option) => option.name === selectedOptionRoomSize)?.value;
 
-       
             const roomData = {
                 name: nameRoom,
                 cinemaCode: selectedCinema?.code,
@@ -252,7 +248,6 @@ const Cinema = () => {
                 roomSizeCode: roomSizeCode,
             };
 
-        
             const responseRoom = await axios.post('api/rooms', roomData);
 
             const seatData = {
@@ -270,7 +265,6 @@ const Cinema = () => {
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
-          
             toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -283,8 +277,8 @@ const Cinema = () => {
             const status = optionStatusRoom.find((option) => option.name === selectedStatusRoom).value;
 
             const check = await axios.get(`api/schedules/checkRoomHasSchedules/${selectedRoom?.code}`);
-            if (check.data.hasSchedules === true && status === 2) {
-                toast.warning('Phòng đang có lịch chiếu không thể ngừng hoạt động!');
+            if (check.data.hasSchedules === true && status === 0) {
+                toast.warning('Phòng đang có lịch chiếu không thể ngưng hoạt động!');
                 return;
             }
 
@@ -426,7 +420,7 @@ const Cinema = () => {
             let loadingId;
 
             const status = optionStatusCinema.find((option) => option.name === selectedStatusCinema).value;
-            if (rooms.some((room) => room.status === 1) && status === 2) {
+            if (rooms.some((room) => room.status === 1) && status === 0) {
                 toast.warning('Các phòng đang hoạt động không thể ngùng hoạt động !');
                 return;
             }
@@ -583,6 +577,7 @@ const Cinema = () => {
         data: { cinemas = [], optionNameCinema = [] } = {},
         isLoading: isLoadingCinemas,
         error: CinemaError,
+        isRefetching: isRefetchingCinemas,
         refetch,
     } = useQuery(['cinemasFullAddress', user], fetchCinemasFullAddress, {
         enabled: !!user,
@@ -706,7 +701,14 @@ const Cinema = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDistrict]);
 
-    if (isLoadingCinemas || isLoadingProvinces || isLoadingRoomSize || isLoadingRoomType || isLoadingDistricts) {
+    if (
+        isLoadingCinemas ||
+        isLoadingProvinces ||
+        isLoadingRoomSize ||
+        isLoadingRoomType ||
+        isLoadingDistricts ||
+        isRefetchingCinemas
+    ) {
         return <Loading />;
     }
 
@@ -846,7 +848,7 @@ const Cinema = () => {
                                 item.status === 0 ? 'bg-gray-400' : item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                             }`}
                         >
-                            {item.status === 0 ? 'Chưa hoạt động' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
+                            {item.status === 0 ? 'Ngưng hoạt động' : 'Hoạt động'}
                         </button>
                     </div>
                     <div className={` grid justify-center col-span-3 grid-cols-2 items-center `}>
@@ -858,22 +860,18 @@ const Cinema = () => {
                                 setSelectedCinema(item);
                                 getAddress(item.code);
                                 setNameCinema(item.name);
-                                setSelectedStatusCinema(
-                                    item.status === 1
-                                        ? 'Hoạt động'
-                                        : item.status === 2
-                                        ? 'Ngừng hoạt động'
-                                        : 'Chưa hoạt động',
-                                );
+                                setSelectedStatusCinema(item.status === 1 ? 'Hoạt động' : 'Ngưng hoạt động');
                             }}
                         >
                             <FaRegEdit color="black" size={20} />
                         </button>
 
                         <button
-                            className={`grid  ${item.status !== 0  || item.roomsCount > 0 ? 'pointer-events-none opacity-50' : ''}`}
+                            className={`grid  ${
+                                item.status !== 0 || item.roomsCount > 0 ? 'pointer-events-none opacity-50' : ''
+                            }`}
                             onClick={() => {
-                                handleOpenDelete(true);             
+                                handleOpenDelete(true);
                                 setSelectedCinema(item);
                             }}
                         >
@@ -970,7 +968,7 @@ const Cinema = () => {
                                 className="flex justify-center col-span-3   "
                                 onClick={() => {
                                     handleOpenCinema(false);
-                                    setSelectedStatusCinema('Chưa hoạt động');
+                                    setSelectedStatusCinema('Ngưng hoạt động');
                                 }}
                             >
                                 <button className="border px-4 py-1 rounded-[40px] gradient-button">
@@ -1075,11 +1073,7 @@ const Cinema = () => {
                         <AutoInputComponent
                             value={selectedStatusCinema}
                             onChange={setSelectedStatusCinema}
-                            options={
-                                selectedCinema?.status === 0
-                                    ? optionStatusCinema.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : optionStatusCinema.filter((item) => item.value !== 0).map((item) => item.name)
-                            }
+                            options={optionStatusCinema.map((item) => item.name)}
                             freeSolo={false}
                             disableClearable={true}
                             title="Trạng thái"
@@ -1137,7 +1131,7 @@ const Cinema = () => {
                                     onClick={() => {
                                         clearTextModalRoom();
                                         handleOpenRoom(false);
-                                        setSelectedStatusRoom('Chưa hoạt động');
+                                        setSelectedStatusRoom('Ngưng hoạt động');
                                     }}
                                 >
                                     <IoIosAddCircleOutline color="white" size={20} />
@@ -1189,11 +1183,7 @@ const Cinema = () => {
                                                 item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                                             }`}
                                         >
-                                            {item.status === 0
-                                                ? 'Chưa hoạt động'
-                                                : item.status === 1
-                                                ? 'Hoạt động'
-                                                : 'Ngừng hoạt động'}
+                                            {item.status === 0 ? 'Ngưng hoạt động' : 'Hoạt động'}
                                         </button>
                                     </div>
 
@@ -1207,11 +1197,7 @@ const Cinema = () => {
                                                 setSelectedOptionRoomSize(item.roomSizeCode.name);
 
                                                 setSelectedStatusRoom(
-                                                    item?.status === 0
-                                                        ? 'Chưa hoạt động'
-                                                        : item?.status === 1
-                                                        ? 'Hoạt động'
-                                                        : 'Ngừng hoạt động',
+                                                    item?.status === 0 ? 'Ngưng hoạt động' : 'Hoạt động',
                                                 );
 
                                                 setSelectedOptionRoomType(
@@ -1318,11 +1304,7 @@ const Cinema = () => {
                         <AutoInputComponent
                             value={selectedStatusRoom}
                             onChange={setSelectedStatusRoom}
-                            options={
-                                selectedRoom?.status === 0
-                                    ? optionStatusRoom.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : optionStatusRoom.filter((item) => item.value !== 0).map((item) => item.name)
-                            }
+                            options={optionStatusRoom.map((item) => item.name)}
                             freeSolo={false}
                             disableClearable={true}
                             title="Trạng thái"
