@@ -16,7 +16,6 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FormatSchedule, getFormatteNgay } from '~/utils/dateUtils';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import Loading from '../LoadingComponent/Loading';
 const Avatar = React.memo(() => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -283,7 +282,7 @@ const Avatar = React.memo(() => {
     if (error || CinemaError) return <p>error: {error.message || CinemaError.message}</p>;
 
     return (
-        <div className="flex  justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[90px] ">
+        <div className="flex justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[90px] ">
             <div
                 className={`flex justify-center items-center relative h-[40px] w-[40px] mr-3 bg-gray-300 rounded-[50%] ${
                     user?.isAdmin ? '' : 'hidden'

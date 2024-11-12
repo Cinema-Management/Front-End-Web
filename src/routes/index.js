@@ -16,6 +16,11 @@ const Room = lazy(() => import('~/pages/RoomPage/Room'));
 const SaleInvoice = lazy(() => import('~/pages/SaleInvoicePage/SaleInvoice'));
 const ReturnInvoice = lazy(() => import('~/pages/ReturnInvoicePage/ReturnInvoice'));
 const Login = lazy(() => import('~/pages/LoginPage/Login'));
+const StatisticStaff = lazy(() => import('~/pages/StatisticPage/StatisticStaff'));
+const StatisticCustomer = lazy(() => import('~/pages/StatisticPage/StatisticCustomer'));
+const StatisticReturnInvoice = lazy(() => import('~/pages/StatisticPage/StatisticReturnInvoice'));
+const StatisticPromotion = lazy(() => import('~/pages/StatisticPage/StatisticPromotion'));
+const StatisticFilm = lazy(() => import('~/pages/StatisticPage/StatisticFilm'));
 const Register = lazy(() => import('~/pages/RegisterPage/Register'));
 const ForgotPassword = lazy(() => import('~/pages/ForgotPasswordPage/ForgotPassword'));
 
@@ -88,6 +93,31 @@ export const routes = [
     {
         path: '/return-invoice',
         page: withAdminCheck(ReturnInvoice),
+        isShowSidebar: true,
+    },
+    {
+        path: '/statistics',
+        page: withAdminCheck(StatisticStaff),
+        isShowSidebar: true,
+    },
+    {
+        path: '/statistics-customer',
+        page: withAdminCheck(StatisticCustomer),
+        isShowSidebar: true,
+    },
+    {
+        path: '/statistics-return-invoice',
+        page: withAdminCheck(StatisticReturnInvoice),
+        isShowSidebar: true,
+    },
+    {
+        path: '/statistics-promotion',
+        page: withAdminCheck(StatisticPromotion),
+        isShowSidebar: true,
+    },
+    {
+        path: '/statistics-film',
+        page: withAdminCheck(StatisticFilm),
         isShowSidebar: true,
     },
     {
