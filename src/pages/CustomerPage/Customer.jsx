@@ -18,9 +18,8 @@ import { FaRegEdit } from 'react-icons/fa';
 import ky from 'ky';
 import { DatePicker } from 'antd';
 const optionStatusForm = [
-    { value: 0, name: 'Chưa hoạt động' },
+    { value: 0, name: 'Ngưng hoạt động' },
     { value: 1, name: 'Hoạt động' },
-    { value: 2, name: 'Ngừng hoạt động' },
 ];
 const optionGender = [
     { value: 0, name: 'Nam' },
@@ -28,8 +27,8 @@ const optionGender = [
 ];
 const optionStatus = [
     { value: 2, name: 'Tất cả' },
-    { value: 0, name: 'Hoạt động' },
-    { value: 1, name: 'Ngừng hoạt động' },
+    { value: 1, name: 'Hoạt động' },
+    { value: 0, name: 'Ngưng hoạt động' },
 ];
 const optionCustomerType = [
     { value: 3, name: 'Tất cả' },
@@ -304,10 +303,10 @@ const Customer = () => {
         setSelectedStatus(option);
         let sortedStatus = [];
         if (option.value === 0) {
-            sortedStatus = customers.filter((item) => item.status === 1);
+            sortedStatus = customers.filter((item) => item.status === 0);
             setCustomerFilter(sortedStatus);
         } else if (option.value === 1) {
-            sortedStatus = customers.filter((item) => item.status === 0);
+            sortedStatus = customers.filter((item) => item.status === 1);
             setCustomerFilter(sortedStatus);
         } else if (option.value === 2) {
             sortedStatus = customers;
@@ -460,7 +459,13 @@ const Customer = () => {
             loadingId = toast.loading('Đang cập nhật !');
             let parentCode = '';
             const fullAddress = `${addressDetail}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince}`;
-            if (fullAddress !== selectedCustomer?.fullAddress) {
+            if (
+                fullAddress !== selectedCustomer?.fullAddress &&
+                selectedWard &&
+                selectedDistrict &&
+                selectedProvince &&
+                addressDetail
+            ) {
                 const hierarchyValues = [
                     { name: selectedProvince, level: 0 },
                     { name: selectedDistrict, parentCode: '', level: 1 },
@@ -519,9 +524,15 @@ const Customer = () => {
             if (!code) {
                 return;
             }
-            handleCloseDelete();
-            await axios.patch(`api/users/${code}`);
-            toast.success('Xóa thành công!');
+            const { data } = await axios.get('api/users/checkUserForSalesInvoice/' + code);
+            if (data) {
+                toast.warning('Khách hàng này đã có dữ liệu trong hóa đơn không thể xóa!');
+                return;
+            } else {
+                handleCloseDelete();
+                await axios.patch(`api/users/${code}`);
+                toast.success('Xóa thành công!');
+            }
 
             refetch();
         } catch (error) {
@@ -553,7 +564,7 @@ const Customer = () => {
                             item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
                     >
-                        {item.status === 0 ? 'Chưa hoạt động' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
+                        {item.status === 0 ? 'Ngưng hoạt động' : 'Hoạt động'}
                     </button>
                 </div>
                 <div className="  items-center grid ">
@@ -678,7 +689,7 @@ const Customer = () => {
                                 onClick={() => {
                                     handleOpen(false);
 
-                                    setStatus('Chưa hoạt động');
+                                    setStatus('Ngưng hoạt động');
                                 }}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
@@ -945,15 +956,11 @@ const Customer = () => {
                             />
                         </div>
                     </div>
-                    <div className="grid p-3 grid-cols-2 gap-5">
+                    <div className={`grid p-3  gap-5 ${isUpdate ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         <AutoInputComponent
                             value={status}
                             onChange={setStatus}
-                            options={
-                                selectedCustomer?.status === 0
-                                    ? optionStatusForm.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : optionStatusForm.filter((item) => item.value !== 0).map((item) => item.name)
-                            }
+                            options={optionStatusForm.map((item) => item.name)}
                             freeSolo={false}
                             disableClearable={true}
                             title="Trạng thái"

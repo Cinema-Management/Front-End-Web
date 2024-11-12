@@ -491,8 +491,10 @@ const Price = () => {
     };
 
 
+    console.log("selecPriceendDate", selectedPrice?.endDate)
     const handleUpdate = async () => {
         try {
+            
             if (!dayjs(selectedPrice?.startDate).isSame(startDate, 'day') && endDate === null) {
                 toast.warn('Vui lòng chọn ngày kết thúc');
                 return;
@@ -535,7 +537,6 @@ const Price = () => {
                         return;
                     }
                 }
-
                 const startDateToCheck = startDate ? new Date(startDate) : new Date(selectedPrice.startDate);
                 const descriptionExists = prices.some((price) => {
                     return (
@@ -670,10 +671,18 @@ const Price = () => {
     });
     const handleDeletePrice = async () => {
         try {
-            await axios.delete(`api/prices/deletePrice/${selectedPrice.code}`);
-            toast.success('Xóa bảng giá thành công');
-            setOpenDelete(false);
-            refetchPrice();
+            const {data} = await axios.get('api/prices/checkPriceDetailForSaleInvoice/'+selectedPrice.code);
+            if(data){
+                toast.warning('Bảng giá này đã được sử dụng không thể xóa!');
+                return
+            }else{
+                await axios.delete(`api/prices/deletePrice/${selectedPrice.code}`);
+                toast.success('Xóa bảng giá thành công');
+                setOpenDelete(false);
+                refetchPrice();
+            }
+
+   
         } catch (error) {
             toast.error('Xóa bảng giá thất bại');
         }
@@ -681,10 +690,21 @@ const Price = () => {
 
     const handleDeletePriceDetail = async () => {
         try {
-            await axios.delete(`api/prices/deletePriceDetail/${selectDetail.code}`);
-            toast.success('Xóa chi tiết bảng giá thành công');
-            setOpenDelete(false);
-            refetchPrice();
+            
+
+            const {data} = await axios.get('api/prices/checkPriceDetailForSaleInvoice/'+selectDetail?.priceCode?.code);
+
+            if (data){
+                toast.warning('Đã được sử dụng không thể xóa');
+                return;
+            }else{
+                // await axios.delete(`api/prices/deletePriceDetail/${selectDetail.code}`);
+                toast.success('Xóa chi tiết bảng giá thành công');
+                setOpenDelete(false);
+                refetchPrice();
+                return;
+            }
+           
         } catch (error) {
             toast.error('Xóa chi tiết bảng giá thất bại');
         }
@@ -797,6 +817,15 @@ const Price = () => {
                     return;
                 }
 
+
+                const {data} = await axios.get('api/prices/checkPriceDetailForSaleInvoice/'+selectDetail?.priceCode?.code);
+                
+                if(data ){
+                    toast.warning('Đã được sử dụng không thể cập nhật!');
+                    return;
+                }
+
+
                 await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
                     description: detailDescription,
                     productTypeCode: selectedProductTypeCode,
@@ -812,9 +841,10 @@ const Price = () => {
 
                 const price = prices.find((item) => item.code === selectDetail.priceCode.code);
                 const codeProduct = !selectedProduct ? selectDetail.productCode.code : productCode;
+                
                 const checkExitsPriceDetail = () => {
                     return price.priceDetails.some((detail) => {
-                        return detail.productCode.code === codeProduct;
+                        return detail.productCode.code === codeProduct  && detail.code !== selectDetail.code;
                     });
                 };
 
@@ -823,6 +853,11 @@ const Price = () => {
                     return;
                 }
 
+                const {data} = await axios.get('api/prices/checkPriceDetailForSaleInvoice/'+selectDetail?.priceCode?.code);
+                if(data ){
+                    toast.warning('Đã được sử dụng không thể cập nhật!');
+                    return;
+                }
                 await axios.post(`api/prices/updateDetail/${selectDetail.code}`, {
                     description: detailDescription,
                     price: detailPrice,
@@ -875,7 +910,7 @@ const Price = () => {
         { value: 2, label: 'Trước 17h' },
         { value: 3, label: 'Sau 17h' },
     ];
-    const isEndDatePassed = !!selectedPrice && dayjs().isAfter(dayjs(selectedPrice.endDate));
+    const isEndDatePassed = !!selectedPrice && dayjs().isAfter(dayjs(selectedPrice.endDate),'day');
 
     const isStartDatePassed = !!selectedPrice && dayjs().isBefore(dayjs(selectedPrice.startDate));
     const getTimeSlotLabel = (timeSlot) => {
@@ -1221,7 +1256,7 @@ const Price = () => {
                                                                     setSelectDetail(item);
                                                                     setSelectedPrice(
                                                                         prices.find(
-                                                                            (price) => price.code === item.priceCode,
+                                                                            (price) => price.code === item.priceCode.code,
                                                                         ),
                                                                     );
                                                                 }}
@@ -1232,7 +1267,7 @@ const Price = () => {
                                                                         item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     size={20}
-                                                                />
+                                                                />11
                                                             </button>
 
                                                             <button
