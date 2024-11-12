@@ -440,7 +440,7 @@ const SaleInvoice = () => {
                             options={optionStaff.map((item) => item.name)}
                             value={staffFilter}
                             onChange={(newValue) => handleStaff(newValue)}
-                            title="Nhân viên lập"
+                            title="Nhân viên trả"
                             freeSolo={true}
                             disableClearable={false}
                             placeholder="Nhập"
@@ -483,7 +483,7 @@ const SaleInvoice = () => {
                             <h1 className="grid justify-center items-center ">STT</h1>
                             <h1 className="grid justify-center items-center col-span-2  ">Mã HĐ Trả</h1>
                         </div>
-                        <h1 className="grid justify-center items-center">Nhân viên lập</h1>
+                        <h1 className="grid justify-center items-center">Nhân viên trả</h1>
                         <h1 className="grid col-span-1 justify-center items-center">Khách hàng</h1>
                         <h1 className="grid justify-center items-center">Rạp</h1>
                         <h1 className="grid justify-center items-center">Tên phim</h1>
@@ -546,7 +546,7 @@ const SaleInvoice = () => {
                         <div className="grid text-[15px] items-center px-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="grid grid-cols-2 gap-2">
-                                    <h1 className="font-bold">Nhân viên lập:</h1>
+                                    <h1 className="font-bold">Nhân viên trả:</h1>
                                     <h1 className="font-normal">
                                         {selectedInvoice?.staffCode === null ? 'App' : selectedInvoice?.staffCode.name}
                                     </h1>

@@ -18,6 +18,8 @@ import { FixedSizeList as List } from 'react-window';
 import HeightInVoiceComponent from '~/components/HeightComponent/HeightInVoiceComponent';
 import { useSelector } from 'react-redux';
 import Barcode from 'react-barcode';
+import dayjs from 'dayjs';
+
 const fetchAddressCinemaCode = async (code) => {
     try {
         const response = await axios.get(`api/hierarchy-values/${code}`);
@@ -51,6 +53,7 @@ const SaleInvoice = () => {
     const height = HeightInVoiceComponent();
     const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
     const optionStatus = [
         { value: 2, name: 'Tất cả' },
         { value: 1, name: 'Đã thanh toán' },
@@ -147,20 +150,20 @@ const SaleInvoice = () => {
         }
     };
     const getActiveFilter = () => {
-        if (searchCodeHD !== "") return { invoiceCode: searchCodeHD };
-        if (staffCode !== "") return { staffCode: staffCode };
-        if (movieCodeFilter !=="") return { movieCode: movieCodeFilter };
-        if (searchSDT !== "") return { customerCode: searchSDT };
-        if (selectOptionCinemaCode !== "") return { cinemaCode: selectOptionCinemaCode };
+        if (searchCodeHD !== '') return { invoiceCode: searchCodeHD };
+        if (staffCode !== '') return { staffCode: staffCode };
+        if (movieCodeFilter !== '') return { movieCode: movieCodeFilter };
+        if (searchSDT !== '') return { customerCode: searchSDT };
+        if (selectOptionCinemaCode !== '') return { cinemaCode: selectOptionCinemaCode };
         if (selectedStatus.value !== 2) return { status: selectedStatus.value };
-        if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== "" && rangePickerValue[1] !== "") {
+        if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== '' && rangePickerValue[1] !== '') {
             return {
                 fromDate: FormatDate(rangePickerValue[0]),
                 toDate: FormatDate(rangePickerValue[1]),
             };
         }
-        
-        return {}; 
+
+        return {};
     };
     const {
         data: { invoices = [], totalPages = 1 } = {},
@@ -168,10 +171,7 @@ const SaleInvoice = () => {
         isFetched,
         isError,
         refetch: refetchInvoice,
-    } = useQuery(
-        ['fetchSaleInvoice', page, getActiveFilter()],
-        () => fetchSaleInvoice(page, getActiveFilter()),
-        {
+    } = useQuery(['fetchSaleInvoice', page, getActiveFilter()], () => fetchSaleInvoice(page, getActiveFilter()), {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -215,10 +215,10 @@ const SaleInvoice = () => {
         isLoading: isLoadingPromotionResult,
         error: errorPromotionResult,
     } = useQuery(['fetchPromotionResult', selectedInvoice?.code], () => fetchPromotionResult(selectedInvoice?.code), {
-        staleTime: 1000 * 60 * 7, 
-        cacheTime: 1000 * 60 * 10, 
-        refetchInterval: 1000 * 60 * 7, 
-        enabled: !!selectedInvoice?.code, 
+        staleTime: 1000 * 60 * 7,
+        cacheTime: 1000 * 60 * 10,
+        refetchInterval: 1000 * 60 * 7,
+        enabled: !!selectedInvoice?.code,
     });
 
     const {
@@ -237,15 +237,30 @@ const SaleInvoice = () => {
         },
     );
 
-    
+    const canRefund = () => {
+        const startTime = dayjs(selectedInvoice?.scheduleCode?.startTime);
+        const currentTime = dayjs();
+
+        // Kiểm tra nếu thời gian hiện tại trước giờ chiếu ít nhất 1 giờ
+        return currentTime.isBefore(startTime.subtract(1, 'hour'));
+    };
 
     const handleReturnInvoice = async () => {
         if (!descriptionRef.current || descriptionRef.current.trim() === '') {
-            toast.error('Vui lòng nhập lý do trả hóa đơn!');
+            toast.warning('Vui lòng nhập lý do trả hóa đơn!');
             return;
         }
 
         try {
+            if (!canRefund()) {
+                toast.warning('Hóa đơn chỉ trả trong ngày và trước 1 giờ của suất chiếu !');
+                return;
+            }
+            setLoading(true);
+            if (dayjs().isBefore(dayjs(selectedInvoice?.scheduleCode?.date))) {
+                toast.error('Không thể trả hóa đơn trước ngày chiếu!');
+                return;
+            }
             await axios.post('api/return-invoices', {
                 staffCode: user.code,
                 customerCode: selectedInvoice.customerCode?.code,
@@ -255,12 +270,13 @@ const SaleInvoice = () => {
                 salesInvoiceCode: selectedInvoice.code,
                 returnReason: descriptionRef.current,
             });
-
+            setLoading(false);
             toast.success('Trả hóa đơn thành công!');
             refetchInvoice();
             descriptionRef.current = '';
             handleCloseDelete();
         } catch (error) {
+            setLoading(false);
             toast.error('Trả hóa đơn thất bại!');
         }
     };
@@ -268,6 +284,7 @@ const SaleInvoice = () => {
     const mutation = useMutation(handleReturnInvoice, {
         onSuccess: () => {
             queryClient.refetchQueries('fetchReturnInvoice');
+            queryClient.refetchQueries('fetchSeatByRoomCode');
         },
     });
     const onChangeRanger = (dates) => {
@@ -281,7 +298,6 @@ const SaleInvoice = () => {
         setSelectedOptionFilterCinema('');
         setSelectedStatus(optionStatus[0]);
         setRangePickerValue(dates);
-        
     };
 
     const sortedStatus = (option) => {
@@ -296,7 +312,6 @@ const SaleInvoice = () => {
         setRangePickerValue(['', '']);
         setSelectedStatus(option);
     };
-
 
     const handleSearch = (value) => {
         setSearchCodeHD('');
@@ -323,7 +338,6 @@ const SaleInvoice = () => {
         setStaffFilter(value);
         const staffCode = optionStaff.find((item) => item.name === value);
         setStaffCode(staffCode?.code);
-       
     };
     const handleSearchSDT = (value) => {
         setStaffCode('');
@@ -349,7 +363,6 @@ const SaleInvoice = () => {
         setRangePickerValue(['', '']);
         setSelectedStatus(optionStatus[0]);
         setSearchCodeHD(value);
-        
     };
 
     const handleEnterPress = (newValue) => {
@@ -370,12 +383,20 @@ const SaleInvoice = () => {
         setRangePickerValue(['', '']);
         setSelectedOptionFilterCinema(value);
         const cinemaCode = optionNameCinema.find((item) => item.name === value);
-       setSelectOptionCinemaCode(cinemaCode?.code);
+        setSelectOptionCinemaCode(cinemaCode?.code);
     };
     useEffect(() => {
-        setPage(1); 
-    }, [staffFilter, inputSearch, movieCodeFilter, searchSDT, searchCodeHD, selectOptionCinemaCode, selectedStatus, rangePickerValue]);
-    
+        setPage(1);
+    }, [
+        staffFilter,
+        inputSearch,
+        movieCodeFilter,
+        searchSDT,
+        searchCodeHD,
+        selectOptionCinemaCode,
+        selectedStatus,
+        rangePickerValue,
+    ]);
 
     const calculateTotal = (details) => {
         return details?.reduce((acc, item) => acc + item.totalAmount, 0);
@@ -465,7 +486,6 @@ const SaleInvoice = () => {
         totalPrice: food.totalAmount,
     }));
 
-
     const combinedPrint = [freeProductPrint, ...foodPrint].filter((item) => item.quantity > 0);
 
     const calculateTotalPriceForCombos = (foodItems = []) => {
@@ -488,16 +508,18 @@ const SaleInvoice = () => {
                     <h1 className="grid pl-[10px] items-center ">{index + 1}</h1>
                     <h1 className="grid justify-center items-center col-span-2 pl-1 ">{item?.code}</h1>
                 </div>
-                <h1 className="grid items-center pl-[5px]">{item?.staffCode === null ? 'App' : item?.staffCode.name}</h1>
+                <h1 className="grid items-center pl-[5px]">
+                    {item?.staffCode === null ? 'App' : item?.staffCode?.name}
+                </h1>
                 <h1 className="grid items-center pl-[5px] ">
                     {' '}
-                    {item?.customerCode === null ? 'Tại quầy' : item?.customerCode.name}
+                    {item?.customerCode === null ? 'Tại quầy' : item?.customerCode?.name}
                 </h1>
                 <h1 className="grid items-center ">{item?.scheduleCode?.roomCode?.cinemaCode?.name}</h1>
                 <h1 className="grid items-center uppercase">
                     {item?.scheduleCode?.movieCode?.name.length > 45
-                        ? item?.scheduleCode.movieCode.name.slice(0, 45) + '...'
-                        : item?.scheduleCode.movieCode.name}
+                        ? item?.scheduleCode.movieCode?.name.slice(0, 45) + '...'
+                        : item?.scheduleCode.movieCode?.name}
                 </h1>
 
                 <div className=" grid grid-cols-12 col-span-3 gap-4 ml-2 ">
@@ -546,7 +568,8 @@ const SaleInvoice = () => {
         isLoadingCinemas ||
         isLoadingStaff ||
         isLoadingPromotionResult ||
-        isLoadingAddressCinema
+        isLoadingAddressCinema ||
+        loading
     )
         return <Loading />;
     if (!isFetched || !isFetchedMovies || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
@@ -690,21 +713,19 @@ const SaleInvoice = () => {
 
                     <div className="py-1 min-w-[1200px]">
                         <List
-                            itemCount={invoices?.length }
+                            itemCount={invoices?.length}
                             itemSize={80}
                             height={height}
                             width={1200}
                             style={{ minWidth: '1200px' }}
                         >
-                            {({ index, style }) =>
-                                rowRenderer({ index, style },invoices )
-                            }
+                            {({ index, style }) => rowRenderer({ index, style }, invoices)}
                         </List>
                     </div>
                 </div>
             </div>
             {totalPages > 0 && (
-                <div className="justify-end flex items-center mr-7 mt-2">
+                <div className="justify-end flex items-center mr-7 mt-1">
                     <Button
                         onClick={() => setPage(page - 1)}
                         disabled={page === 1}
@@ -725,16 +746,22 @@ const SaleInvoice = () => {
                                 <span className="text-[13px] mx-1">...</span>
                             </>
                         )}
-                        {[Math.max(1, page - 2),
+                        {[
+                            Math.max(1, page - 2),
                             Math.max(1, page - 1),
                             page,
                             Math.min(totalPages, page + 1),
-                            Math.min(totalPages, page + 2)]
+                            Math.min(totalPages, page + 2),
+                        ]
                             .filter((pageNumber, index, self) => self.indexOf(pageNumber) === index)
                             .map((pageNumber) => (
                                 <span
                                     key={pageNumber}
-                                    className={`page-number text-[13px] mx-1 cursor-pointer px-2 py-1 rounded ${page === pageNumber ? 'font-bold border-2 border-blue-500 bg-blue-500 text-white' : 'border bg-white hover:bg-gray-400'}`}
+                                    className={`page-number text-[13px] mx-1 cursor-pointer px-2 py-1 rounded ${
+                                        page === pageNumber
+                                            ? 'font-bold border-2 border-blue-500 bg-blue-500 text-white'
+                                            : 'border bg-white hover:bg-gray-400'
+                                    }`}
                                     onClick={() => setPage(pageNumber)}
                                 >
                                     {pageNumber}
@@ -752,7 +779,7 @@ const SaleInvoice = () => {
                             </>
                         )}
                     </div>
-                    
+
                     <Button
                         onClick={() => setPage(page + 1)}
                         disabled={page === totalPages}
@@ -803,7 +830,7 @@ const SaleInvoice = () => {
                                         <h1 className="font-normal">
                                             {selectedInvoice?.staffCode === null
                                                 ? 'App'
-                                                : selectedInvoice?.staffCode.name}
+                                                : selectedInvoice?.staffCode?.name}
                                         </h1>
                                     </div>
                                     <div className="grid grid-cols-8 gap-2">

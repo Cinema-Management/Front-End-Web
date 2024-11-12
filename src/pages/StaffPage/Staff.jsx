@@ -65,16 +65,15 @@ const Staff = () => {
     ];
 
     const optionStatus = [
-        { value: 3, name: 'Tất cả' },
-        { value: 0, name: 'Chưa hoạt động' },
+        { value: 2, name: 'Tất cả' },
         { value: 1, name: 'Hoạt động' },
-        { value: 2, name: 'Ngừng hoạt động' },
+
+        { value: 0, name: 'Ngưng hoạt động' },
     ];
 
     const optionStatusForm = [
-        { value: 0, name: 'Chưa hoạt động' },
+        { value: 0, name: 'Ngưng hoạt động' },
         { value: 1, name: 'Hoạt động' },
-        { value: 2, name: 'Ngừng hoạt động' },
     ];
 
     const clearText = () => {
@@ -379,9 +378,6 @@ const Staff = () => {
             sortedStatus = staffs.filter((item) => item.status === 1);
             setStaffFilter(sortedStatus);
         } else if (value === 2) {
-            sortedStatus = staffs.filter((item) => item.status === 2);
-            setStaffFilter(sortedStatus);
-        } else if (value === 3) {
             sortedStatus = staffs;
         }
         if (sortedStatus.length === 0) {
@@ -550,30 +546,40 @@ const Staff = () => {
 
             if (!validate()) return;
             loadingId = toast.loading('Đang cập nhật !');
-
-            const hierarchyValues = [
-                { name: selectedProvince, level: 0 },
-                { name: selectedDistrict, parentCode: '', level: 1 },
-                { name: selectedWard, parentCode: '', level: 2 },
-                { name: addressDetail, parentCode: '', level: 3 },
-            ];
             let parentCode = '';
 
-            for (let i = 0; i < hierarchyValues.length; i++) {
-                const { name, level } = hierarchyValues[i];
-                const hierarchyValue = {
-                    name,
-                    parentCode: i > 0 ? parentCode : undefined,
-                    level,
-                    hierarchyStructureCode: 'PHANCAP01',
-                };
+            const fullAddress = `${addressDetail}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince}`;
 
-                const response = await axios.post('api/hierarchy-values', hierarchyValue);
+            if (
+                fullAddress !== selectedStaff?.fullAddress &&
+                selectedWard &&
+                selectedDistrict &&
+                selectedProvince &&
+                addressDetail
+            ) {
+                const hierarchyValues = [
+                    { name: selectedProvince, level: 0 },
+                    { name: selectedDistrict, parentCode: '', level: 1 },
+                    { name: selectedWard, parentCode: '', level: 2 },
+                    { name: addressDetail, parentCode: '', level: 3 },
+                ];
 
-                if (response.data) {
-                    parentCode = response.data.code;
-                } else {
-                    throw new Error('Không thể thêm giá trị cấp bậc.');
+                for (let i = 0; i < hierarchyValues.length; i++) {
+                    const { name, level } = hierarchyValues[i];
+                    const hierarchyValue = {
+                        name,
+                        parentCode: i > 0 ? parentCode : undefined,
+                        level,
+                        hierarchyStructureCode: 'PHANCAP01',
+                    };
+
+                    const response = await axios.post('api/hierarchy-values', hierarchyValue);
+
+                    if (response.data) {
+                        parentCode = response.data.code;
+                    } else {
+                        throw new Error('Không thể thêm giá trị cấp bậc.');
+                    }
                 }
             }
             const cinemaCode = optionNameCinema.find((item) => item.name === selectedOptionCinema)?.code;
@@ -618,11 +624,17 @@ const Staff = () => {
             if (!code) {
                 return;
             }
-            handleCloseDelete();
-            await axios.patch(`api/users/${code}`);
-            toast.success('Xóa thành công!');
+            const { data } = await axios.get('api/users/checkUserForSalesInvoice/' + code);
+            if (data) {
+                toast.warning('Nhân viên này đã có dữ liệu trong hóa đơn không thể xóa!');
+                return;
+            } else {
+                handleCloseDelete();
+                await axios.patch(`api/users/${code}`);
+                toast.success('Xóa thành công!');
 
-            refetch();
+                refetch();
+            }
         } catch (error) {
             toast.error('Xóa thất bại!');
         }
@@ -654,7 +666,7 @@ const Staff = () => {
                             item.status === 1 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
                     >
-                        {item.status === 0 ? 'Chưa hoạt động' : item.status === 1 ? 'Hoạt động' : 'Ngừng hoạt động'}
+                        {item.status === 0 ? 'Ngưng hoạt động' : 'Hoạt động'}
                     </button>
                 </div>
                 <div className="  items-center grid ">
@@ -792,7 +804,7 @@ const Staff = () => {
                                 onClick={() => {
                                     handleOpen(false);
                                     setSelectedRole('Nhân viên');
-                                    setStatus('Chưa hoạt động');
+                                    setStatus('Ngưng hoạt động');
                                 }}
                             >
                                 <IoIosAddCircleOutline color="white" size={20} />
@@ -972,11 +984,7 @@ const Staff = () => {
                         <AutoInputComponent
                             value={status}
                             onChange={setStatus}
-                            options={
-                                selectedStaff?.status === 0
-                                    ? optionStatusForm.filter((item) => item.value !== 2).map((item) => item.name)
-                                    : optionStatusForm.filter((item) => item.value !== 0).map((item) => item.name)
-                            }
+                            options={optionStatusForm.map((item) => item.name)}
                             freeSolo={false}
                             disableClearable={true}
                             title="Trạng thái"
@@ -1086,7 +1094,7 @@ const Staff = () => {
                                 <div className="grid col-span-2  grid-cols-2 gap-2">
                                     <h1 className="font-bold">Trạng thái:</h1>
                                     <h1 className="grid  font-normal">
-                                        {selectedStaff?.status === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                                        {selectedStaff?.status === 1 ? 'Hoạt động' : 'Ngưng hoạt động'}
                                     </h1>
                                 </div>
                                 <div className="grid col-span-3 grid-cols-3 gap-2">

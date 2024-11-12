@@ -14,7 +14,6 @@ import dayjs from 'dayjs';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import Loading from '~/components/LoadingComponent/Loading';
 import { updateUser } from '~/redux/authSlice';
-import { update } from 'lodash';
 
 const Home = () => {
     const user = useSelector((state) => state.auth.login?.currentUser);
@@ -336,30 +335,39 @@ const Home = () => {
 
             if (!validate()) return;
             loadingId = toast.loading('Đang cập nhật !');
-
-            const hierarchyValues = [
-                { name: selectedProvince, level: 0 },
-                { name: selectedDistrict, parentCode: '', level: 1 },
-                { name: selectedWard, parentCode: '', level: 2 },
-                { name: addressDetail, parentCode: '', level: 3 },
-            ];
             let parentCode = '';
+            const fullAddress = `${addressDetail}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince}`;
 
-            for (let i = 0; i < hierarchyValues.length; i++) {
-                const { name, level } = hierarchyValues[i];
-                const hierarchyValue = {
-                    name,
-                    parentCode: i > 0 ? parentCode : undefined,
-                    level,
-                    hierarchyStructureCode: 'PHANCAP01',
-                };
+            if (
+                fullAddress !== fullAddressStaff &&
+                selectedWard &&
+                selectedDistrict &&
+                selectedProvince &&
+                addressDetail
+            ) {
+                const hierarchyValues = [
+                    { name: selectedProvince, level: 0 },
+                    { name: selectedDistrict, parentCode: '', level: 1 },
+                    { name: selectedWard, parentCode: '', level: 2 },
+                    { name: addressDetail, parentCode: '', level: 3 },
+                ];
 
-                const response = await axios.post('api/hierarchy-values', hierarchyValue);
+                for (let i = 0; i < hierarchyValues.length; i++) {
+                    const { name, level } = hierarchyValues[i];
+                    const hierarchyValue = {
+                        name,
+                        parentCode: i > 0 ? parentCode : undefined,
+                        level,
+                        hierarchyStructureCode: 'PHANCAP01',
+                    };
 
-                if (response.data) {
-                    parentCode = response.data.code;
-                } else {
-                    throw new Error('Không thể thêm giá trị cấp bậc.');
+                    const response = await axios.post('api/hierarchy-values', hierarchyValue);
+
+                    if (response.data) {
+                        parentCode = response.data.code;
+                    } else {
+                        throw new Error('Không thể thêm giá trị cấp bậc.');
+                    }
                 }
             }
             const staff = {
@@ -367,7 +375,7 @@ const Home = () => {
                 birthDate: birthDate,
                 gender: gender,
                 email: email,
-                address: parentCode,
+                address: parentCode || user?.address,
                 type: 1,
             };
 
