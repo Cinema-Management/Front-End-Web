@@ -8,19 +8,24 @@ import { LuTicket } from 'react-icons/lu';
 import { FcStatistics } from 'react-icons/fc';
 import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { BsTag } from 'react-icons/bs';
-import { ImSpoonKnife } from 'react-icons/im';
+import { ImSpoonKnife, ImStatsBars, ImStatsDots } from 'react-icons/im';
 import { MdOutlineAttachMoney, MdOutlineRealEstateAgent } from 'react-icons/md';
 import { FaMoneyBills } from 'react-icons/fa6';
 import { useSelector } from 'react-redux';
+import { IoMdStats } from 'react-icons/io';
 
 const HeaderComponent = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isDropdownStaticOpen, setIsDropdownStaticOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation(); // Get the current route
     const user = useSelector((state) => state.auth.login?.currentUser);
 
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
+    };
+    const toggleDropdownStatic = () => {
+        setIsDropdownStaticOpen(!isDropdownStaticOpen);
     };
 
     const handleNavigate = (path) => {
@@ -49,7 +54,7 @@ const HeaderComponent = () => {
                 </div>
             </div>
             {user?.isAdmin !== null && (
-                <div className="text-center ">
+                <div className="text-center h-[610px] overflow-x-hidden overflow-auto custom-height-sm29">
                     <ul className="bg-white border rounded shadow-sm text-[18px] leading-[22px] cursor-pointer">
                        {user?.isAdmin ===true &&(
                         <li className="w-full">
@@ -188,19 +193,88 @@ const HeaderComponent = () => {
                                 Hóa đơn trả
                             </button>
                         </li>
-                        <li className={`hover:bg-orange-500 w-full ${isActive('/seat')}`}>
-                            <button
-                                className="flex max-xl:ml-16 max-lg:ml-3 ml-12 items-center py-2 w-full"
-                                // onClick={() => handleNavigate('/seat')}
+                        <li className="w-full">
+                            <div
+                                className={`hover:bg-orange-500 relative max-xl:pl-16 max-lg:pl-3 pl-12 ${isParentActive(
+                                    [
+                                        '/statistics',
+                                        '/statistics-customer',
+                                        '/statistics-return-invoice',
+                                        '/statistics-promotion',
+                                        '/statistics-film',
+                                    ],
+                                )}`}
                             >
-                                <FcStatistics className="mr-2" />
-                                Thống kê
-                            </button>
+                                <button onClick={toggleDropdownStatic} className="flex items-center py-2 w-full">
+                                    <ImStatsBars color='orange'  className="mr-2" /> Thống kê{' '}
+                                    {isDropdownStaticOpen ? (
+                                        <FaChevronUp
+                                            fontSize={15}
+                                            className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16"
+                                        />
+                                    ) : (
+                                        <FaChevronDown
+                                            fontSize={15}
+                                            className="transition-transform duration-300 absolute max-xl:right-20 max-lg:right-8 right-16"
+                                        />
+                                    )}
+                                </button>
+                            </div>
+
+                            {isDropdownStaticOpen && (
+                                <ul className="border-t border-gray-400">
+                                    <li
+                                        className={`hover:bg-orange-500 ${isActive('/statistics')}`}
+                                        onClick={() => handleNavigate('/statistics')}
+                                    >
+                                        <button className="flex max-lg:ml-9 ml-20 items-center py-2 w-full">
+                                            <FcStatistics className="mr-2" color="green" />
+                                            Doanh số bán
+                                        </button>
+                                    </li>
+                                    <li
+                                        className={`hover:bg-orange-500 ${isActive('/statistics-customer')}`}
+                                        onClick={() => handleNavigate('/statistics-customer')}
+                                    >
+                                        <button className="flex max-lg:ml-9 ml-20 items-center py-2 w-full ">
+                                            <IoMdStats className="mr-2" color="#66FFFF" />
+                                            Khách hàng
+                                        </button>
+                                    </li>
+                                    <li className={`hover:bg-orange-500 ${isActive('/statistics-return-invoice')}`}>
+                                        <button
+                                            className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                            onClick={() => handleNavigate('/statistics-return-invoice')}
+                                        >
+                                            <IoMdStats className="mr-2" color="#009933" />
+                                            Hóa đơn trả
+                                        </button>
+                                    </li>
+                                    <li className={`hover:bg-orange-500 ${isActive('/statistics-promotion')}`}>
+                                        <button
+                                            className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                            onClick={() => handleNavigate('/statistics-promotion')}
+                                        >
+                                            <IoMdStats color='black' className="mr-2" />
+                                            Khuyến mãi
+                                        </button>
+                                    </li>
+                                    <li className={`hover:bg-orange-500 ${isActive('/statistics-film')}`}>
+                                        <button
+                                            className="flex max-lg:ml-9 ml-20 items-center py-2 w-full"
+                                            onClick={() => handleNavigate('/statistics-film')}
+                                        >
+                                            <ImStatsDots color='red' className="mr-2" />
+                                            Phim
+                                        </button>
+                                    </li>
+                                </ul>
+                            )}
                         </li>
                     </ul>
                 </div>
             )}
-            ;
+            
         </div>
     );
 };
