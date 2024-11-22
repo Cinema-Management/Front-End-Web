@@ -16,6 +16,8 @@
         "date-fns": "^4.1.0",
         "exceljs": "^4.4.0",
         "firebase": "^11.0.1",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^2.5.2",
         "jwt-decode": "^3.1.2",
         "ky": "^1.7.2",
         "lodash": "^4.17.21",
