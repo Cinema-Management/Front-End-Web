@@ -13,98 +13,66 @@ import 'react-toastify/dist/ReactToastify.css';
 import ExcelJS from 'exceljs';
 
 const StatisticPromotion = () => {
-    const [selectedOptionFilterCinema, setSelectedOptionFilterCinema] = useState('');
-    const [selectOptionCinemaCode, setSelectOptionCinemaCode] = useState('');
-    const [addressCinema, setAddressCinema] = useState('');
-    const [staffFilter, setStaffFilter] = useState('');
-    const [customerCode, setCustomerCode] = useState('');
+
+    const [promotionFilter, setPromotionFilter] = useState('');
+    const [promotionCode, setPromotionCode] = useState('');
     const [rangePickerValue, setRangePickerValue] = useState(["", ""]);
     const [page, setPage] = useState(1);
     const [activeFilters, setActiveFilters] = useState({});
     const { RangePicker } = DatePicker;
     
-    const fetchStaff = async () => {
-        const staffResponse = await axios.get('api/users');
-        const arrayCustomer = staffResponse.data.map((item) => ({
+    const fetchPromotions = async () => {
+        const promotionResponse = await axios.get('api/promotions/getPromotionsWithLines');
+        const arrayPromotion = promotionResponse.data.map((item) => ({
             code: item.code,
-            name: item.name,
+            name: item.description,
         }));
-        return { optionCustomer: arrayCustomer };
+        return { optionPromotion: arrayPromotion };
     };
-    const fetchSaleInvoice = async (page, filter = {}) => {
+    const fetchPromotionResultStatistic = async (page, filter = {}) => {
         try {
-            const response = await axios.get('api/sales-invoices/getStatisticsByCustomer', { params: { page, ...filter } });
+            const response = await axios.get('api/statistics/getPromotionResult', { params: { page, ...filter } });
             const data = response.data;
 
-            return { invoices: data.items,data: data, totalPages: data.totalPages };
+            return { promotions: data.promotions,data: data, totalPages: data.totalPages };
         } catch (error) {
             console.log('error', error);
         }
     };
 
-    const fetchCinemasFullAddress = async () => {
-        try {
-            const response = await axios.get('/api/cinemas/getAllFullAddress');
-
-            const data = response.data;
-            const arrayNameCinema = data.map((cinema) => ({
-                name: cinema.name,
-                code: cinema.code,
-                address: cinema.fullAddress,
-            }));
-            return { optionNameCinema: arrayNameCinema };
-        } catch (error) {
-            if (error.response) {
-                throw new Error(`Error: ${error.response.status} - ${error.response.data.message}`);
-            } else if (error.request) {
-                throw new Error('Error: No response received from server');
-            } else {
-                throw new Error('Error: ' + error.message);
-            }
-        }
-    };
+   
     const {
-        data: { optionCustomer = [] } = {},
-        isError: isErrorStaff,
-        isLoading: isLoadingStaff,
-        isFetched: isFetchedStaff,
-    } = useQuery('staffInvoice', fetchStaff, {
+        data: { optionPromotion = [] } = {},
+        isError: isErrorPromotion,
+        isLoading: isLoadingPromotion,
+        isFetched: isFetchedPromotion,
+    } = useQuery('promotionStatistic', fetchPromotions, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
     });
 
-    const {
-        data: { optionNameCinema = [] } = {},
-        isLoading: isLoadingCinemas,
-        error: CinemaError,
-        isFetched: isFetchedCinemas,
-    } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
-        staleTime: 1000 * 60 * 7,
-        cacheTime: 1000 * 60 * 10,
-        refetchInterval: 1000 * 60 * 7,
-    });
     const getActiveFilter = () => {
         const filters = {};
-        if (customerCode !== "") filters.customerCode = customerCode;
-
-        if (selectOptionCinemaCode !== "") filters.cinemaCode = selectOptionCinemaCode;
-        if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== "" && rangePickerValue[1] !== "") {
+        if (promotionCode !== "") {
+            filters.promotionCode = promotionCode;
+        }
+        else if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== "" && rangePickerValue[1] !== "") {
             filters.fromDate = FormatDate(rangePickerValue[0]);
             filters.toDate = FormatDate(rangePickerValue[1]);
         }
-        
-        return filters; 
+    
+        return filters;
     };
     const {
-        data: { invoices = [],data = [], totalPages = 0 } = {},
+        data: { promotions = [],data = [], totalPages = 0 } = {},
         isLoading,
         isFetched,
         isError,
         // refetch: refetchInvoice,
     } = useQuery(
-        ['fetchStatisticCustomer', page,activeFilters],
-        () => fetchSaleInvoice(page,activeFilters),
+        ['fetchStatisticPromotion', page,activeFilters],
+        () => fetchPromotionResultStatistic(page,activeFilters),
         {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
@@ -113,10 +81,6 @@ const StatisticPromotion = () => {
 
     const handleFilterClick = () => {
         const filters = getActiveFilter();
-        if (!filters.cinemaCode || !filters.fromDate || !filters.toDate) {
-            toast.warning('Vui lòng chọn rạp và ngày bán để thống kê!');
-            return; 
-        }
         setActiveFilters(filters);  
     };
 
@@ -124,33 +88,33 @@ const StatisticPromotion = () => {
         return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
     const onChangeRanger = (dates) => {
+        setPromotionFilter('');
+        setPromotionCode('');
         setRangePickerValue(dates);
         
     };
-    const handleStaff = (value) => {
-        setStaffFilter(value);
-        const customerCode = optionCustomer.find((item) => item.name === value);
-        setCustomerCode(customerCode?.code);
+    const handlePromotion = (value) => {
+        setRangePickerValue(["", ""]);
+        setPromotionFilter(value);
+        const promotionCode = optionPromotion.find((item) => item.name === value);
+        setPromotionCode(promotionCode?.code);
        
     };
 
-    const handleOptionCinemas = (value) => {
-        setSelectedOptionFilterCinema(value);
-        const cinemaCode = optionNameCinema.find((item) => item.name === value);
-        setAddressCinema(cinemaCode?.address);
-       setSelectOptionCinemaCode(cinemaCode?.code);
-    };
     useEffect(() => {
         setPage(1); 
-    }, [staffFilter, selectOptionCinemaCode, rangePickerValue]);
+    }, [promotionFilter, rangePickerValue]);
 
-    const exportToExcel = () => {
-        if(data.length === 0){
-            toast.warning('Không có dữ liệu để xuất file Excel');
-            return;
-        }
+    const exportToExcel = async() => {
+        let loadingId;
+  
+        const filters = getActiveFilter();
+        filters.isExportAllData = 'true';
+        loadingId = toast.loading('Đang xuất file...');
+        const { promotions = []} = await fetchPromotionResultStatistic(1, filters);
+
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('DSBH_TheoKH');
+        const sheet = workbook.addWorksheet('Tổng kết KM', { views: [{ showGridLines: false }] });
         const defaultFont = {
             name: 'Times New Roman',
             size: 12,
@@ -164,22 +128,21 @@ const StatisticPromotion = () => {
             color: { argb: '000000' }
         };
         const currencyFormat = '#,##0;[Red]"-"#,##0';
-        
-       
-    
-        sheet.addRow(['Tên rạp: ' + selectedOptionFilterCinema ]);
+        const numberFormat = '#.##0';
+
+        sheet.addRow(['Tên rạp: Tất cả rạp']);
         sheet.mergeCells('A1:C1');
-        sheet.addRow(['Địa chỉ rạp: ' + addressCinema]);
-        sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit', 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric'
+        sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
         })]);
         sheet.mergeCells('A2:D2');
         sheet.mergeCells('A3:C3');
+    
         sheet.eachRow((row) => {
             row.eachCell((cell) => {
                 if (!cell.font || cell.font.bold !== true) {
@@ -188,44 +151,132 @@ const StatisticPromotion = () => {
                 }
             });
         });
-        const titleRow = sheet.addRow(['DOANH SỐ THEO KHÁCH HÀNG']);
+    
+        const titleRow = sheet.addRow(['BÁO CÁO TỔNG KẾT KHUYẾN MÃI']);
         titleRow.eachCell((cell) => {
-        cell.font = boldFont; 
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.font = boldFont;
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
         });
-        sheet.mergeCells('A4:K4');
-
+        sheet.mergeCells('A4:I4');
         const date = sheet.addRow(['Từ ngày: ' + getFormatteNgay(rangePickerValue[0]) + '      Đến ngày ' + getFormatteNgay(rangePickerValue[1])]);
         date.eachCell((cell) => {
             cell.font = defaultFont; 
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
             });
-        sheet.mergeCells('A5:K5');
-        sheet.addRow([]); 
+        sheet.mergeCells('A5:I5');
+        sheet.addRow([]);
     
-           const headerRow = sheet.addRow([
+        const headerRow = sheet.addRow([
             'STT',
-            'Mã KH',
-            'Tên KH',
-            'Địa chỉ',
-            'Phường/Xã',
-            'Quận/Huyện',
-            'Tỉnh/Thành',
-            'Loại sản phẩm',
-            'Doanh Số Trước CK',
-            'Chiết Khấu',
-            'Doanh Số Sau CK'
+            'Mã CTKM',
+            'Tên CTKM',
+            'Ngày bắt đầu',
+            'Ngày kết thúc',
+            'Mã SP tặng',
+            'Tên SP tặng',
+            'SL tặng',
+            'Số tiền chiết khấu',
         ]);
         headerRow.height = 35;
         headerRow.eachCell((cell) => {
-            cell.font = boldFont; 
+            cell.font = boldFont;
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
-
             cell.fill = {
-                type: 'pattern', 
-                pattern: 'solid', 
-                fgColor: { argb: 'DDEBF7' }
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'DDEBF7' },
             };
+            cell.border = {
+                top: { style: 'thin', color: { argb: '000000' } },
+                left: { style: 'thin', color: { argb: '000000' } },
+                bottom: { style: 'thin', color: { argb: '000000' } },
+                right: { style: 'thin', color: { argb: '000000' } },
+            };
+        });
+        let previousSTT = null;  
+        let promotionRows = {};
+        promotions.forEach((promotion, index) => {
+            promotion.products.forEach((product, productIndex) => {
+                const row = sheet.addRow([
+                    previousSTT === promotion.promotionCode ? '' : index + 1,
+                    productIndex === 0 ? promotion.promotionCode : '', 
+                    productIndex === 0 ? promotion.description : '',
+                    productIndex === 0 ? getFormatteNgay(promotion.startDate) : '', 
+                    productIndex === 0 ? getFormatteNgay(promotion.endDate) : '', 
+                    product.productCode || '', 
+                    product.productName || '', 
+                    product.totalQuantity || '', 
+                    product.totalDiscountAmount || '', 
+                ]);
+        
+                if (!promotionRows[promotion.promotionCode]) {
+                    promotionRows[promotion.promotionCode] = [];
+                }
+                promotionRows[promotion.promotionCode].push(row.number);
+        
+                row.eachCell((cell, colNumber) => {
+                    cell.font = defaultFont;
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    if (colNumber === 1 || colNumber === 2 || colNumber === 3 || colNumber === 6 || colNumber === 7) {
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
+                    if (typeof cell.value === 'number') {
+                        if (colNumber === 9 ) {
+                            cell.numFmt = currencyFormat;
+                            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                        }
+                        if (colNumber === 8 ) {
+                            cell.numberFormat = numberFormat;
+                            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                        }
+                    }
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } },
+                    };
+                });
+                previousSTT = promotion.promotionCode;
+            });
+        });
+        
+        for (const promotionCode in promotionRows) {
+            const rows = promotionRows[promotionCode];
+            const startRow = rows[0];
+            const endRow = rows[rows.length - 1];
+            sheet.mergeCells(`A${startRow}:A${endRow}`);  
+            sheet.mergeCells(`B${startRow}:B${endRow}`); 
+            sheet.mergeCells(`C${startRow}:C${endRow}`);  
+            sheet.mergeCells(`D${startRow}:D${endRow}`); 
+            sheet.mergeCells(`E${startRow}:E${endRow}`);  
+        }
+
+        const totalRow = sheet.addRow([
+            'Tổng CTKM', 
+            '', 
+            '', 
+            '',
+            '', 
+            '', 
+            '',
+            data.overallTotalQuantity, 
+            data.overallTotalDiscountAmount, 
+        ]);
+    
+        totalRow.eachCell((cell,colNumber) => {
+            cell.font = boldFont;
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (typeof cell.value === 'number') {
+                if (colNumber === 9 ) {
+                    cell.numFmt = currencyFormat;
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                }
+                if (colNumber === 8 ) {
+                    cell.numberFormat = numberFormat;
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                }
+            }
             cell.border = {
                 top: { style: 'thin', color: { argb: '000000' } },
                 left: { style: 'thin', color: { argb: '000000' } },
@@ -234,106 +285,46 @@ const StatisticPromotion = () => {
             };
         });
 
-        let previousSTT = null;
-        let startRow = null;
-        let staffRows = [];
-        
-        invoices.forEach((item, index) => {
-            Object.keys(item.totalsByType).forEach((key, subIndex) => {
-                const { totalAmount, discountAmount, totalAfterDiscount } = item.totalsByType[key];
-                const typeLabel = key === '0' ? 'Vé' : 'Đồ ăn và nước';
-                const row = sheet.addRow([
-                    previousSTT === item.customer.code ? '' : index + 1,
-                    item.customer.code,
-                    item.customer.name,
-                    item.customer.addressDetail,
-                    item.customer.ward,
-                    item.customer.district,
-                    item.customer.province,
-                    typeLabel,
-                    totalAmount,
-                    discountAmount,
-                    totalAfterDiscount
-                ]);
-                staffRows.push(row.number); 
-        
-                if (previousSTT !== item.customer.code) {
-                    startRow = row.number;
-                } else {
-                    sheet.mergeCells(`A${startRow}:A${row.number}`);  
-                }
-    
-                if (subIndex === Object.keys(item.totalsByType).length - 1) { 
-                    for (let col = 1; col <= 11; col++) {  
-                        const cell = row.getCell(col);
-                        cell.border = {
-                            bottom: { style: 'thin', color: { argb: '000000' } },
-                           
-                        };
-                    }
-                }
-                row.eachCell((cell, colNumber) => {
-                    cell.font = defaultFont;
-                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
-                    
-                    if (typeof cell.value === 'number') {
-                        if (colNumber === 9 || colNumber === 10 || colNumber === 11) {
-                            cell.numFmt = currencyFormat;
-                            cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                        }
-                    }
-                  
-                });
-        
-                previousSTT = item.customer.code; 
-            });
-        });
-        
         sheet.columns = [
-            { width: 10 }, 
+            { width: 17 },
             { width: 18 },
-            { width: 28 },
+            { width: 38 },
+            { width: 17 },
+            { width: 17 },
+            { width: 17 },
+            { width: 35 },
+            { width: 15 },
             { width: 25 },
-            { width: 20 },
-            { width: 20 },
-            { width: 25 },
-            { width: 20 },
-            { width: 25 },
-            { width: 20 },
-            { width: 25 }
         ];
     
-        // Xuất file Excel
         workbook.xlsx.writeBuffer()
             .then((buffer) => {
                 const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                const fileName = `BaoCaoThongKeTheoKH ${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
+                const fileName = `TongKetKM_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
                 link.download = fileName;
                 link.click();
             })
             .catch((error) => {
                 console.error('Có lỗi xảy ra khi tạo file Excel:', error);
             });
+
+        toast.dismiss(loadingId);
     };
-    
-    
       
     if (
         isLoading ||
-        isLoadingCinemas ||
-        isLoadingStaff
+        isLoadingPromotion
     )
         return <Loading />;
-    if (!isFetched || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
-    if (isError || CinemaError || isErrorStaff )
+    if (!isFetched || !isFetchedPromotion) return <div>Fetching...</div>;
+    if (isError || isErrorPromotion)
         return (
             <div>
                 Error loading data:{' '}
                 {isError.message ||
-                    CinemaError.message ||
-                    isErrorStaff.message 
+                    isErrorPromotion.message 
                    }
             </div>
         );
@@ -344,8 +335,8 @@ const StatisticPromotion = () => {
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Thống kê chương trình khuyến mãi</h1>
                 <div className="min-w-[900px]">
                     <div className="grid grid-cols-10 gap-5 mb-2 items-center w-full h-16 px-3">
-                        <div className='grid col-span-8 grid-cols-7 gap-5'>
-                            <div className="col-span-3">
+                        <div className='grid col-span-8 grid-cols-9 gap-5'>
+                            <div className="col-span-4">
                                 <h1 className="text-[16px] truncate mb-1">Ngày bán</h1>
                                 <RangePicker
                                     value={rangePickerValue}
@@ -357,52 +348,43 @@ const StatisticPromotion = () => {
                                 />
                             </div>
                             <AutoInputComponent
-                                options={optionCustomer.map((item) => item.name)}
-                                value={staffFilter}
-                                onChange={(newValue) => handleStaff(newValue)}
-                                title="Tên khách hàng"
+                                options={optionPromotion.map((item) => item.name)}
+                                value={promotionFilter}
+                                onChange={(newValue) => handlePromotion(newValue)}
+                                title="Mã CTKM"
                                 freeSolo={true}
                                 disableClearable={false}
                                 placeholder="Nhập"
                                 heightSelect={200}
                                 borderRadius="10px"
-                                className1="col-span-2"
+                                className1="col-span-3"
                             />
-                            <AutoInputComponent
-                                options={optionNameCinema.map((option) => option.name)}
-                                value={selectedOptionFilterCinema}
-                                onChange={(newValue) => handleOptionCinemas(newValue)}
-                                title="Rạp"
-                                freeSolo={true}
-                                disableClearable={false}
-                                placeholder="Chọn"
-                                heightSelect={200}
-                                borderRadius="10px"
-                                className1="col-span-2"
-                            />
+                            <div className='col-span-2 gap-5 grid grid-cols-2 mt-7'>
+                                <Button type='primary' className='font-bold text-white bg-blue-500' onClick={handleFilterClick}>
+                                    Thống kê
+                                </Button>
+                                <Button icon={ <RiFileExcel2Fill size={22} color='#107C41'/>}
+                                 className='font-bold text-black bg-gray-300' onClick={exportToExcel}>
+                                    Xuất
+                                </Button>
+                            </div>
                         </div>
-                        <div className='col-span-2 gap-5 grid grid-cols-2 mt-7'>
-                            <Button type='primary' className='font-bold text-white bg-blue-500' onClick={handleFilterClick}>
-                                Thống kê
-                            </Button>
-                            <Button icon={ <RiFileExcel2Fill size={22} color='#107C41'/>}
-                             className='font-bold text-black bg-gray-300' onClick={exportToExcel}>
-                                Xuất
-                            </Button>
-                    </div>
+                       
                    </div>
                 </div>
             </div>
             <div className="bg-white border shadow-md rounded-[10px] box-border h-[490px] custom-height-xs2 max-h-screen custom-height-sm27 custom-height-md7 custom-height-lg6 custom-height-xl5 custom-hubmax5">
                 <div className="overflow-auto overflow-y-hidden h-[100%]">
-                    <div className="gradient-button py-3 text-[13px] rounded-ss-md rounded-se-md uppercase font-semibold text-white grid grid-cols-10 items-center min-w-[1200px]">
-                        <div className='grid col-span-2 grid-cols-3'>
-                            <h1 className="grid justify-center items-center">STT</h1>
-                            <h1 className="grid justify-center items-center col-span-2">Mã CTKM</h1>
+                    <div className="gradient-button py-3 text-[13px] rounded-ss-md rounded-se-md uppercase font-semibold text-white grid grid-cols-9 items-center min-w-[1200px]">
+                        <div className='grid col-span-5 grid-cols-6 items-center '>
+                            <div className='grid col-span-2 grid-cols-3'>
+                                <h1 className="grid justify-center items-center">STT</h1>
+                                <h1 className="grid justify-center items-center col-span-2">Mã CTKM</h1>
+                            </div>
+                            <h1 className="grid justify-center items-center col-span-2">Tên CTKM</h1>
+                            <h1 className="grid justify-center items-center ">Ngày bắt đầu</h1>
+                            <h1 className="grid justify-center items-center">Ngày kết thúc</h1>
                         </div>
-                        <h1 className="grid justify-center items-center col-span-2">Tên CTKM</h1>
-                        <h1 className="grid justify-center items-center ">Ngày bắt đầu</h1>
-                        <h1 className="grid justify-center items-center">Ngày kết thúc</h1>
                         <div className='grid col-span-2 grid-cols-3'>
                             <h1 className="grid justify-center items-center ">Mã SP tặng</h1>
                             <h1 className="grid justify-center items-center col-span-2">Tên SP tặng</h1>
@@ -414,36 +396,45 @@ const StatisticPromotion = () => {
                     </div>
 
                     <div className="border-b border-t border-black py-2 text-[14px] uppercase font-semibold text-black items-center min-w-[1200px]">
-                        <div className='grid grid-cols-10'>
-                            <h1 className="grid justify-end items-center col-span-8">Tổng cộng</h1>
+                        <div className='grid grid-cols-9'>
+                            <h1 className="grid justify-center items-center col-span-5">{""}</h1>
+                            <h1 className="grid justify-end items-center col-span-2">Tổng cộng</h1>
                             <div className='grid col-span-2 grid-cols-3'>
-                                <h1 className="grid justify-end items-center ">11</h1>
-                            <h1 className="grid justify-end pr-4 items-center col-span-2">5,000,000</h1>
+                                <h1 className="grid justify-end items-center ">{data.overallTotalQuantity}</h1>
+                            <h1 className="grid justify-end pr-4 items-center col-span-2">{formatCurrency(data.overallTotalDiscountAmount)}</h1>
                             </div>
-                            </div>
+                        </div>
                     </div>
                     <div className=" min-w-[1200px] h-[430px] overflow-auto custom-height-sm30 custom-height-md9 custom-height-lg8 custom-height-xl7 custom-hubmax7">
-                    {invoices.map((item, index) => (
+                    {promotions.map((promotion, index) => (
                     <div
-                        className="border-b py-2 border-black text-[14px] font-normal text-slate-500 grid  grid-cols-10 items-center"
+                        className="border-b border-black text-[14px] font-normal text-slate-500 grid  grid-cols-9 "
                         key={index}
                     >
-                         <div className='grid col-span-2 grid-cols-3'>
-                            <h1 className="grid ml-2 items-center break-all">1</h1>
-                            <h1 className="grid items-center col-span-2">HDB2024
-                            -10-09-01</h1>
+                       <div className='grid col-span-5 grid-cols-6 border-r items-center py-2'>
+                            <div className='grid col-span-2 grid-cols-3'>
+                                <h1 className="grid ml-2 items-center break-all">{index+1}</h1>
+                                <h1 className="grid items-center col-span-2">{promotion.promotionCode}</h1>
+                            </div>
+                            <h1 className="grid items-center col-span-2">{promotion.description}</h1>
+                            <h1 className="grid justify-center items-center">{getFormatteNgay(promotion.startDate)}</h1>
+                            <h1 className="grid justify-center items-center">{getFormatteNgay(promotion.endDate)}</h1>
+                       </div>
+                       <div className='grid col-span-4 grid-cols-4 '>
+                        {promotion.products.map((product, index) => (
+                           <div className='grid col-span-4 grid-cols-4 border-b py-2' key={index}>
+                                <div className='grid col-span-2 grid-cols-3'>
+                                    <h1 className="grid pl-2 items-center break-all">{product.productCode}</h1>
+                                    <h1 className="grid pl-2 items-center col-span-2">{product.productName} </h1>
+                                </div>
+                                <div className='grid col-span-2 grid-cols-3'>
+                                    <h1 className="grid justify-end items-center ">{product.totalQuantity}</h1>
+                                    <h1 className="grid justify-end pr-4 items-center col-span-2">{formatCurrency(product.totalDiscountAmount)}</h1>
+                                </div>
+                           </div>
+                        ))}
                         </div>
-                        <h1 className="grid items-center col-span-2">Khuyến mãi tháng 10 </h1>
-                        <h1 className="grid justify-center items-center ">16/09/2002</h1>
-                        <h1 className="grid justify-center items-center">16/09/2002</h1>
-                        <div className='grid col-span-2 grid-cols-3'>
-                            <h1 className="grid pl-2 items-center break-all">SP0121222221</h1>
-                            <h1 className="grid pl-2 items-center col-span-2">Combo tri ân khách hàng</h1>
-                        </div>
-                        <div className='grid col-span-2 grid-cols-3'>
-                            <h1 className="grid justify-end items-center ">11</h1>
-                            <h1 className="grid justify-end pr-4 items-center col-span-2">5,000,000</h1>
-                        </div>
+                        
                     </div>
                     ))}
 

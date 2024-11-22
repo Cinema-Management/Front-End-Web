@@ -31,7 +31,7 @@ const StatisticStaff = () => {
         }));
         return { optionStaff: arrayStaff };
     };
-    const fetchSaleInvoice = async (page, filter = {}) => {
+    const fetchStatisticStaff = async (page, filter = {}) => {
         try {
             const response = await axios.get('api/statistics/getStatisticsByStaff', { params: { page, ...filter } });
             const data = response.data;
@@ -68,7 +68,7 @@ const StatisticStaff = () => {
         isError: isErrorStaff,
         isLoading: isLoadingStaff,
         isFetched: isFetchedStaff,
-    } = useQuery('staffInvoice', fetchStaff, {
+    } = useQuery('staffInvoiceStatistic', fetchStaff, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -79,7 +79,7 @@ const StatisticStaff = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
         isFetched: isFetchedCinemas,
-    } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
+    } = useQuery('cinemasFullAddressStatistic', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -104,7 +104,7 @@ const StatisticStaff = () => {
         // refetch: refetchInvoice,
     } = useQuery(
         ['fetchStatisticStaff', page,activeFilters],
-        () => fetchSaleInvoice(page,activeFilters),
+        () => fetchStatisticStaff(page,activeFilters),
         {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
@@ -113,8 +113,8 @@ const StatisticStaff = () => {
 
     const handleFilterClick = () => {
         const filters = getActiveFilter();
-        if (!filters.cinemaCode || !filters.fromDate || !filters.toDate) {
-            toast.warning('Vui lòng chọn rạp và ngày bán để thống kê!');
+        if (!filters.fromDate || !filters.toDate) {
+            toast.warning('Vui lòng chọn ngày bán để thống kê!');
             return; 
         }
         setActiveFilters(filters);  
@@ -153,9 +153,9 @@ const StatisticStaff = () => {
         const filters = getActiveFilter();
         filters.isExportAllData = 'true';
         loadingId = toast.loading('Đang xuất file...');
-        const { invoices = []} = await fetchSaleInvoice(1, filters);
+        const { invoices = []} = await fetchStatisticStaff(1, filters);
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('DSBH_TheoNgay');
+        const sheet = workbook.addWorksheet('DSBH_TheoNgay', { views: [{ showGridLines: false }] });
         const defaultFont = {
             name: 'Times New Roman',
             size: 12,
@@ -172,9 +172,9 @@ const StatisticStaff = () => {
         
        
     
-        sheet.addRow(['Tên rạp: ' + selectedOptionFilterCinema ]);
+        sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || 'Tất cả rạp')]);
         sheet.mergeCells('A1:C1');
-        sheet.addRow(['Địa chỉ rạp: ' + addressCinema]);
+        sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || '')]);
         sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -274,6 +274,12 @@ const StatisticStaff = () => {
                             cell.alignment = { horizontal: 'right', vertical: 'middle' };
                         }
                     }
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } }
+                    };
                 });
             });
             const totalStaffData = data.totalAmountByStaff
@@ -304,7 +310,10 @@ const StatisticStaff = () => {
                         }
                     }
                     cell.border = {
-                        bottom: { style: 'thin', color: { argb: '000000' } }  
+                        top: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } }
                     };
                     
                 });
@@ -315,7 +324,10 @@ const StatisticStaff = () => {
             }
             const firstCellInMergedSTT = sheet.getCell(`A${startRow}`); 
             firstCellInMergedSTT.border = {
-                bottom: { style: 'thin', color: { argb: '000000' } }
+                top: { style: 'thin', color: { argb: '000000' } },
+                left: { style: 'thin', color: { argb: '000000' } },
+                bottom: { style: 'thin', color: { argb: '000000' } },
+                right: { style: 'thin', color: { argb: '000000' } }
             };
         });
         
@@ -353,7 +365,10 @@ const StatisticStaff = () => {
                
             }
             cell.border = {
-                bottom: { style: 'thin', color: { argb: '000000' } }  
+                top: { style: 'thin', color: { argb: '000000' } },
+                left: { style: 'thin', color: { argb: '000000' } },
+                bottom: { style: 'thin', color: { argb: '000000' } },
+                right: { style: 'thin', color: { argb: '000000' } }
             };
         });
     

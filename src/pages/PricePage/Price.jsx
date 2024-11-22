@@ -441,14 +441,12 @@ const Price = () => {
                 toast.warn('Đã có bảng giá trong thời gian này đang hoạt động!');
                 return;
             }
-            const response  = await axios.post('api/prices/addPriceFood', {
+            await axios.post('api/prices/addPriceFood', {
                 description: description,
                 startDate: startDate,
                 endDate: endDate,
                 type: String(typePrice),
             });
-
-            console.log('re', response.data);
             toast.success('Thêm bảng giá thành công');
             clearText();
             setOpen(false);
@@ -485,13 +483,10 @@ const Price = () => {
                 toast.success('Thêm bảng giá thành công!');
             
         } catch (error) {
-            console.log('error', error);
+
             toast.error('Thêm bảng giá thất bại!');
         }
     };
-
-
-    console.log("selecPriceendDate", selectedPrice?.endDate)
     const handleUpdate = async () => {
         try {
             
@@ -1267,7 +1262,7 @@ const Price = () => {
                                                                         item?.priceCode?.status !== 0 ? 'gray' : 'black'
                                                                     }`}
                                                                     size={20}
-                                                                />11
+                                                                />
                                                             </button>
 
                                                             <button
