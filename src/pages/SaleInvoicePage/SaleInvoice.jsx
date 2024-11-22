@@ -19,7 +19,8 @@ import HeightInVoiceComponent from '~/components/HeightComponent/HeightInVoiceCo
 import { useSelector } from 'react-redux';
 import Barcode from 'react-barcode';
 import dayjs from 'dayjs';
-
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 const fetchAddressCinemaCode = async (code) => {
     try {
         const response = await axios.get(`api/hierarchy-values/${code}`);
@@ -60,6 +61,43 @@ const SaleInvoice = () => {
         { value: 0, name: 'Đã hoàn trả' },
     ];
     const [openPrint, setOpenPrint] = useState(false);
+    const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
+
+    const handlePrint = async () => {
+        let loadingId;
+        if (printRef.current) {
+            toast.loading('Đang in vé...');
+            setOpenPrint(false);
+
+            printRef.current.classList.remove('hidden');
+
+            try {
+                const canvas = await html2canvas(printRef.current, {
+                    scale: 2,
+                    useCORS: true,
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+
+                const pdfWidth = 80;
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight],
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                pdf.save(`${selectedInvoice?.code}.pdf`);
+                printRef.current.classList.add('hidden');
+                toast.dismiss(loadingId);
+            } catch (error) {
+                toast.dismiss(loadingId);
+                console.error('Lỗi khi in hoặc lưu PDF:', error);
+            }
+        }
+    };
 
     const handleOpenPrint = () => {
         setOpenPrint(true);
@@ -1226,12 +1264,12 @@ const SaleInvoice = () => {
                     {/* Nút hành động */}
                     <div className="flex justify-end space-x-3 border-t  mx-2  p-3">
                         <ButtonComponent text="Hủy" className="bg-gray-400" onClick={handleClosePrint} />
-                        <ButtonComponent text="In Vé" className="bg-blue-500 text-white" onClick={handleClosePrint} />
+                        <ButtonComponent text="In Vé" className="bg-blue-500 text-white" onClick={handlePrint} />
                     </div>
                 </div>
 
                 {/* Phần in ẩn */}
-                <div className="hidden print:block">
+                <div className="hidden print:block" ref={printRef}>
                     {salesInvoiceTicketPrint?.map((ticket, index) => (
                         <div
                             key={index}
