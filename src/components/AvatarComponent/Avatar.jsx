@@ -89,7 +89,6 @@ const Avatar = React.memo(() => {
             handleLogout();
             toast.success('Đổi mật khẩu thành công. Vui lòng đăng nhập lại!');
         } catch (error) {
-            console.log(error);
             toast.error('Mật khẩu cũ không đúng!');
         }
     };
@@ -282,7 +281,7 @@ const Avatar = React.memo(() => {
     if (error || CinemaError) return <p>error: {error.message || CinemaError.message}</p>;
 
     return (
-        <div className="flex justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[90px] ">
+        <div className="flex justify-end mt-1 items-end h-[50px]  custom-nest-hub-max1 max-lg:pr-[80px] ">
             <div
                 className={`flex justify-center items-center relative h-[40px] w-[40px] mr-3 bg-gray-300 rounded-[50%] ${
                     user?.isAdmin ? '' : 'hidden'

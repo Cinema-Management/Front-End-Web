@@ -41,8 +41,12 @@ const HeaderComponent = () => {
 
     useEffect(() => {
         const dropdownPaths = ['/film', '/cinema', '/schedule', '/price', '/promotion', '/food', '/staff', '/customer'];
+        const dropdownStaticPaths = [ '/statistics', '/statistics-customer', '/statistics-return-invoice', '/statistics-promotion', '/statistics-film'];
         if (dropdownPaths.some((path) => location.pathname.startsWith(path))) {
             setIsDropdownOpen(true);
+        }
+        if (dropdownStaticPaths.some((path) => location.pathname.startsWith(path))) {
+            setIsDropdownStaticOpen(true);
         }
     }, [location.pathname]);
     return (

@@ -31,7 +31,7 @@ const StatisticStaff = () => {
         }));
         return { optionCustomer: arrayCustomer };
     };
-    const fetchSaleInvoice = async (page, filter = {}) => {
+    const fetchStatisticSaleInvoice = async (page, filter = {}) => {
         try {
             const response = await axios.get('api/statistics/getStatisticsByCustomer', { params: { page, ...filter } });
             const data = response.data;
@@ -68,7 +68,7 @@ const StatisticStaff = () => {
         isError: isErrorStaff,
         isLoading: isLoadingStaff,
         isFetched: isFetchedStaff,
-    } = useQuery('staffInvoice', fetchStaff, {
+    } = useQuery('staffInvoiceStatistic', fetchStaff, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -79,7 +79,7 @@ const StatisticStaff = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
         isFetched: isFetchedCinemas,
-    } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
+    } = useQuery('cinemasFullAddressInvoiceStatistic', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -104,7 +104,7 @@ const StatisticStaff = () => {
         // refetch: refetchInvoice,
     } = useQuery(
         ['fetchStatisticCustomer', page,activeFilters],
-        () => fetchSaleInvoice(page,activeFilters),
+        () => fetchStatisticSaleInvoice(page,activeFilters),
         {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
@@ -113,8 +113,8 @@ const StatisticStaff = () => {
 
     const handleFilterClick = () => {
         const filters = getActiveFilter();
-        if (!filters.cinemaCode || !filters.fromDate || !filters.toDate) {
-            toast.warning('Vui lòng chọn rạp và ngày bán để thống kê!');
+        if (!filters.fromDate || !filters.toDate) {
+            toast.warning('Vui lòng ngày bán để thống kê!');
             return; 
         }
         setActiveFilters(filters);  
@@ -153,9 +153,9 @@ const StatisticStaff = () => {
         const filters = getActiveFilter();
         filters.isExportAllData = 'true';
         loadingId = toast.loading('Đang xuất file...');
-        const { invoices = []} = await fetchSaleInvoice(1, filters);
+        const { invoices = []} = await fetchStatisticSaleInvoice(1, filters);
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('DSBH_TheoKH');
+        const sheet = workbook.addWorksheet('DSBH_TheoKH', { views: [{ showGridLines: false }] });
         const defaultFont = {
             name: 'Times New Roman',
             size: 12,
@@ -172,9 +172,9 @@ const StatisticStaff = () => {
         
        
     
-        sheet.addRow(['Tên rạp: ' + selectedOptionFilterCinema ]);
+        sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || 'Tất cả rạp')]);
         sheet.mergeCells('A1:C1');
-        sheet.addRow(['Địa chỉ rạp: ' + addressCinema]);
+        sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || '')]);
         sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -240,9 +240,7 @@ const StatisticStaff = () => {
         });
 
         let previousSTT = null;
-        let startRow = null;
-        let staffRows = [];
-        
+        let customerRows = {};
         invoices.forEach((item, index) => {
             Object.keys(item.totalsByType).forEach((key, subIndex) => {
                 const { totalAmount, discountAmount, totalAfterDiscount } = item.totalsByType[key];
@@ -260,19 +258,20 @@ const StatisticStaff = () => {
                     discountAmount,
                     totalAfterDiscount
                 ]);
-                staffRows.push(row.number); 
         
-                if (previousSTT !== item.customer.code) {
-                    startRow = row.number;
-                } else {
-                    sheet.mergeCells(`A${startRow}:A${row.number}`);  
+                if (!customerRows[item.customer.code]) {
+                    customerRows[item.customer.code] = [];
                 }
+                customerRows[item.customer.code].push(row.number);
     
                 if (subIndex === Object.keys(item.totalsByType).length - 1) { 
                     for (let col = 1; col <= 11; col++) {  
                         const cell = row.getCell(col);
                         cell.border = {
                             bottom: { style: 'thin', color: { argb: '000000' } },
+                            left: { style: 'thin', color: { argb: '000000' } },
+                            right: { style: 'thin', color: { argb: '000000' } },
+                            top: { style: 'thin', color: { argb: '000000' } }
                            
                         };
                     }
@@ -280,7 +279,12 @@ const StatisticStaff = () => {
                 row.eachCell((cell, colNumber) => {
                     cell.font = defaultFont;
                     cell.alignment = { horizontal: 'left', vertical: 'middle' };
-                    
+                    cell.border = {
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } },
+                        top: { style: 'thin', color: { argb: '000000' } }
+                    };
                     if (typeof cell.value === 'number') {
                         if (colNumber === 9 || colNumber === 10 || colNumber === 11) {
                             cell.numFmt = currencyFormat;
@@ -293,13 +297,24 @@ const StatisticStaff = () => {
                 previousSTT = item.customer.code; 
             });
         });
-        
+        for (const customerCode in customerRows) {
+            const rows = customerRows[customerCode];
+            const startRow = rows[0];
+            const endRow = rows[rows.length - 1];
+            sheet.mergeCells(`A${startRow}:A${endRow}`);  
+            sheet.mergeCells(`B${startRow}:B${endRow}`); 
+            sheet.mergeCells(`C${startRow}:C${endRow}`);  
+            sheet.mergeCells(`D${startRow}:D${endRow}`); 
+            sheet.mergeCells(`E${startRow}:E${endRow}`);  
+            sheet.mergeCells(`F${startRow}:F${endRow}`);
+            sheet.mergeCells(`G${startRow}:G${endRow}`);
+        }
         sheet.columns = [
             { width: 10 }, 
-            { width: 18 },
-            { width: 28 },
+            { width: 13 },
             { width: 25 },
-            { width: 20 },
+            { width: 25 },
+            { width: 17 },
             { width: 20 },
             { width: 25 },
             { width: 20 },

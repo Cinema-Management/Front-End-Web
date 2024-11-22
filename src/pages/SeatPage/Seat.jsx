@@ -5,13 +5,14 @@ import { IoIosArrowBack } from 'react-icons/io';
 import { ImSpoonKnife } from 'react-icons/im';
 import { Box, Button, Tab, Tabs } from '@mui/material';
 import { GrFormNext } from 'react-icons/gr';
-import { styled } from '@mui/system';
+import { height, styled } from '@mui/system';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCustomer, getIsSchedule } from '~/redux/apiRequest';
 import { resetSeats, resetCombo } from '~/redux/seatSlice';
-
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { increment, decrement, resetValue } from '~/redux/valueSlice';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -174,8 +175,6 @@ const Seat = () => {
             return toast.warning('Vui lòng chọn ghế');
         }
         if (value === 0) {
-            const code = arraySeat.map((item) => item.code);
-            console.log(code);
             handleUpdateStatusSeat(2);
             dispatch(increment());
             return;
@@ -285,23 +284,46 @@ const Seat = () => {
     }
     const printRef = useRef(); // Tạo ref để tham chiếu đến phần in
 
-    const handlePrint = () => {
-        setTimeout(() => {
+    const handlePrint = async () => {
+        let loadingId;
+        if (printRef.current) {
             setOpenPrint(false);
-            dispatch(resetCombo());
-            dispatch(resetSeats());
-            dispatch(resetValue());
-            getIsSchedule(dispatch, false);
-        }, 1000);
-        const printContent = printRef.current.innerHTML;
-        const originalContent = document.body.innerHTML;
+            toast.loading('Đang in vé...');
+            printRef.current.classList.remove('hidden');
 
-        document.body.innerHTML = printContent; // Chỉ hiển thị phần in
+            try {
+                const canvas = await html2canvas(printRef.current, {
+                    scale: 2,
+                    useCORS: true,
+                });
 
-        window.print(); // Thực hiện lệnh in
-        document.body.innerHTML = originalContent; // Khôi phục nội dung ban đầu
+                const imgData = canvas.toDataURL('image/png');
 
-        document.location.reload(); // Tải lại trang
+                const pdfWidth = 80;
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight],
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                pdf.save(`${salesInvoiceCode}.pdf`);
+                toast.dismiss(loadingId);
+
+                dispatch(resetCombo());
+                dispatch(resetSeats());
+                dispatch(resetValue());
+                getIsSchedule(dispatch, false);
+
+                printRef.current.classList.add('hidden');
+            } catch (error) {
+                toast.dismiss(loadingId);
+                console.error('Lỗi khi in hoặc lưu PDF:', error);
+            }
+        }
     };
 
     const {
@@ -376,7 +398,6 @@ const Seat = () => {
 
                         // Gửi yêu cầu POST tới API
                         await axios.post('api/sales-invoices-details', salesInvoiceDetail);
-                        console.log(`Đã gửi hóa đơn cho sản phẩm: ${seat.productCode}`);
                     }
 
                     if (groupedCombos.length > 0) {
@@ -390,7 +411,6 @@ const Seat = () => {
 
                             // Gửi yêu cầu POST tới API
                             await axios.post('api/sales-invoices-details', salesInvoiceDetail);
-                            console.log(`Đã gửi hóa đơn cho sản phẩm: ${combo.productCode}`);
                         }
                     }
                     if (promotionDetailCode) {
@@ -543,8 +563,8 @@ const Seat = () => {
     if (errorAddressCinema) return <div>Error loading data: {errorAddressCinema.message}</div>;
 
     return (
-        <div className="max-h-screen">
-            <div className=" rounded-[10px] px-4 h-[675px] custom-height-xxl2 max-h-screen custom-height-sm3 custom-height-md1 custom-height-lg1 custom-height-xl1">
+        <div className="max-h-screen ">
+            <div className=" rounded-[10px] px-4 h-[675px] custom-height-xxl2 max-h-screen custom-height-sm33 custom-height-md1 custom-height-lg1 custom-height-xl1">
                 <div className="flex mb-1">
                     <Button
                         variant="contained"
@@ -574,14 +594,14 @@ const Seat = () => {
                     )}
                 </div>
                 <div
-                    className="grid grid-cols-4 max-lg:grid-rows-5 custom-height-sm13 custom-height-sm4 
-                        max-lg:grid-cols-3 max-lg:gap-3 gap-2 h-[94%] "
+                    className="grid grid-cols-4 max-lg:grid-cols-3 custom-height-sm13 custom-height-sm4 
+                         gap-2 max-lg:gap-0 h-[94%] custom-mini2"
                 >
                     <div
-                        className=" text-white max-lg:row-span-2 max-lg:w-[300px] max-lg:mx-[50%] custom-height-sm5 custom-height-sm8
-                      bg-[#334767] text-[13px] rounded-[10px]  grid grid-rows-10"
+                        className=" text-white max-lg:h-[400px] max-lg:w-[300px] custom-air-pro1 max-lg:ml-[60%] custom-height-sm5 custom-height-sm8
+                      bg-[#334767] text-[13px] rounded-[10px] custom-height-sm31  grid grid-rows-10"
                     >
-                        <div className="  row-span-6 grid grid-rows-5 p-2">
+                        <div className=" row-span-6 grid grid-rows-5 p-2">
                             <div className="grid grid-cols-5 row-span-3 gap-3 max-lg:gap-0">
                                 <div className="col-span-2 ">
                                     <img
@@ -688,7 +708,7 @@ const Seat = () => {
                         </div>
                     </div>
 
-                    <div className=" bg-white  flex rounded-[10px] col-span-3 max-lg:row-span-3 custom-height-sm9">
+                    <div className=" bg-white rounded-[10px] col-span-3 max-lg:row-span-4 custom-height-sm9">
                         <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
                             <Box sx={{ borderBottom: 1, borderColor: 'gray' }}>
                                 <Tabs

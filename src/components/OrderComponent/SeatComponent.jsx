@@ -5,9 +5,9 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Loading from '../LoadingComponent/Loading';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleSeat } from '~/redux/seatSlice';
+import LoadingSeat from '../LoadingComponent/LoadingSeat';
 const SeatComponent = memo(({ setSetGhe }) => {
     const schedule = useSelector((state) => state.schedule.schedule?.currentSchedule);
     const fetchSeatByRoomCode = async (code) => {
@@ -53,7 +53,7 @@ const SeatComponent = memo(({ setSetGhe }) => {
             dispatch(toggleSeat(savedSeats)); // Khôi phục trạng thái ghế trong Redux (nếu cần)
         }
     }, [dispatch]);
-    if (isLoading || isFetching) return <Loading />;
+    if (isLoading || isFetching) return <LoadingSeat />;
     if (error) return <h1>{error.message}</h1>;
 
     const handleSelectSeat = (seat) => {
@@ -111,18 +111,16 @@ const SeatComponent = memo(({ setSetGhe }) => {
         }
     };
 
-    // console.log('priceDetails', priceDetails);
-
     const totalSeat = seat1.length; // Kích thước phòng có thể là nhỏ, vừa, lớn
 
     const gridColumns = totalSeat === 48 ? 'grid-cols-8' : totalSeat === 75 ? 'grid-cols-10' : 'grid-cols-12'; // Số cột tuỳ vào kích thước phòng
     if (seat1.length === 0) return <div className="p-5 ">Bảng giá ghế không có trong ngày này! </div>;
     return (
         <div className="grid grid-rows-5 max-lg:grid-rows-7 h-[550px] custom-height-md2 custom-height-sm15 ">
-            <div className=" grid max-lg:row-span-2  ">
+            <div className=" grid max-lg:row-span-2 ">
                 <div className=" grid grid-cols-4 max-lg:grid-cols-3  h-[100px]">
                     <div className="grid grid-rows-3  text-[13px] gap-1 pt-3 pl-3">
-                        <div className="flex ">
+                        <div className="flex">
                             <img
                                 src="https://td-cinemas.s3.ap-southeast-1.amazonaws.com/Seat.png"
                                 alt="seat"
@@ -149,7 +147,8 @@ const SeatComponent = memo(({ setSetGhe }) => {
                     </div>
 
                     <div className=" items-center grid justify-center col-span-2 max-lg:col-span-1">
-                        <img src={screen} alt="screen" className="object-contain h-[80px] " />
+                        <img src={screen} alt="screen" className="object-contain h-[80px]" />
+                        
                     </div>
                     <div className=" grid-rows-4 custom-height-sm10 text-[13px] justify-end grid gap-1 pt-2 items-center  pr-3">
                         <div className="flex">
@@ -171,58 +170,19 @@ const SeatComponent = memo(({ setSetGhe }) => {
                     </div>
                 </div>
             </div>
-            <div className="row-span-4 max-lg:row-span-5 mt-3 custom-height-sm12  ">
-                {/* <div className="grid grid-cols-10 px-40 max-lg:px-5 max-air:gap-[6px] gap-3 custom-height-sm14 mt-2">
-                    {seats.map((seat) => (
-                        <div
-                            key={seat.id}
-                            className={`relative flex text-[13px] justify-center items-center 
-                             ${seat.ten_san_pham === 'Ghế Thường' ? 'h-[22px]' : 'h-[35px]'} 
-                            ${seat.ten_san_pham === 'Ghế Thường' ? ' custom-height-md3 ' : ' custom-height-md4'} 
-                          ${seat.ten_san_pham === 'Ghế Thường' ? 'custom-height-sm6 ' : ' custom-height-sm7'} 
-                            w-full cursor-pointer`}
-                            onClick={() => handleSeatClick(seat.id)}
-                            style={{
-                                gridColumn: seat.ten_san_pham === 'Ghế Đôi' ? 'span 2' : 'span 1', // Ghế VIP chiếm 2 cột
-                            }}
-                        >
-                            <div className="relative w-full h-full">
-                                <img
-                                    src={seat.anh_san_pham}
-                                    alt={seat.ten_san_pham}
-                                    className="object-cover w-full h-full"
-                                />
-                                <div
-                                    className={`absolute inset-0 ${
-                                        seat.trang_thai === 1
-                                            ? 'bg-[#3ad3f6]'
-                                            : seat.trang_thai === 4
-                                            ? 'bg-[#f4bd33]'
-                                            : seat.trang_thai === 3
-                                            ? 'bg-[#ec3a3a]'
-                                            : seat.trang_thai === 2
-                                            ? 'bg-[#3c3cf4]'
-                                            : 'bg-transparent'
-                                    } opacity-99 mix-blend-overlay`}
-                                />
-                            </div>
-                            <div className="absolute text-[12px] text-center">{seat.so_ghe}</div>
-                        </div>
-                    ))}
-                </div> */}
-
+            <div className="row-span-4 max-lg:row-span-5 mt-3 max-lg:mt-[-10px] custom-height-sm32 custom-height-sm12">
                 <div className=" justify-center items-center flex ">
                     <div
-                        className={`grid ${gridColumns} px-40 max-lg:px-5 max-air:gap-[6px] gap-[7px] custom-height-sm14  `}
+                        className={`grid ${gridColumns} px-32 max-lg:px-5 max-air:gap-[6px] gap-[7px] custom-height-sm14  `}
                     >
                         {seat1.map((seat) => {
                             return (
                                 <div
                                     key={seat.code}
                                     className={` flex text-[13px] justify-center items-center 
-                                        ${seat.name === 'Ghế thường' ? 'h-[25px]' : 'h-[38px]'} 
-                                        ${seat.name === 'Ghế thường' ? 'custom-height-md3' : 'custom-height-md4'} 
-                                        ${seat.name === 'Ghế thường' ? 'custom-height-sm18' : 'custom-height-sm19'} 
+                                        ${seat.name === 'Ghế Thường' ? 'h-[25px]' : 'h-[38px]'} 
+                                        ${seat.name === 'Ghế Thường' ? 'custom-height-md3' : 'custom-height-md4'} 
+                                        ${seat.name === 'Ghế Thường' ? 'custom-height-sm18' : 'custom-height-sm19'} 
                                         w-full ${
                                             seat.status === 1 && seat.statusSeat !== 0
                                                 ? 'cursor-pointer'
@@ -246,7 +206,7 @@ const SeatComponent = memo(({ setSetGhe }) => {
                                             )} opacity-99 mix-blend-overlay`}
                                         />
                                     </div>
-                                    <div className="absolute text-[12px] text-center">{seat.seatNumber}</div>
+                                    <div className="absolute text-[12px] text-center custom-height-sm35 custom-mini3 ">{seat.seatNumber}</div>
                                 </div>
                             );
                         })}

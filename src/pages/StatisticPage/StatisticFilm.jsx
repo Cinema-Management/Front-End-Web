@@ -3,8 +3,7 @@ import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import 'react-toastify/dist/ReactToastify.css';
 import { RiFileExcel2Fill } from 'react-icons/ri';
 import AutoInputComponent from '~/components/AutoInputComponent/AutoInputComponent';
-import { Button, DatePicker } from 'antd';
-import { FormatDate, getFormatteNgay} from '~/utils/dateUtils';
+import { Button } from 'antd';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import Loading from '~/components/LoadingComponent/Loading';
@@ -16,27 +15,25 @@ const StatisticFilm = () => {
     const [selectedOptionFilterCinema, setSelectedOptionFilterCinema] = useState('');
     const [selectOptionCinemaCode, setSelectOptionCinemaCode] = useState('');
     const [addressCinema, setAddressCinema] = useState('');
-    const [staffFilter, setStaffFilter] = useState('');
-    const [customerCode, setCustomerCode] = useState('');
-    const [rangePickerValue, setRangePickerValue] = useState(["", ""]);
+    const [movieFilter, setMovieFilter] = useState('');
+    const [movieCode, setMovieCode] = useState('');
     const [page, setPage] = useState(1);
     const [activeFilters, setActiveFilters] = useState({});
-    const { RangePicker } = DatePicker;
     
-    const fetchStaff = async () => {
-        const staffResponse = await axios.get('api/users');
-        const arrayCustomer = staffResponse.data.map((item) => ({
+    const fetchMovie = async () => {
+        const movieResponse = await axios.get('api/movies');
+        const arrayMovie = movieResponse.data.map((item) => ({
             code: item.code,
             name: item.name,
         }));
-        return { optionCustomer: arrayCustomer };
+        return { optionMovie: arrayMovie };
     };
-    const fetchSaleInvoice = async (page, filter = {}) => {
+    const fetchStatisticMovie = async (page, filter = {}) => {
         try {
-            const response = await axios.get('api/sales-invoices/getStatisticsByCustomer', { params: { page, ...filter } });
+            const response = await axios.get('api/statistics/getTotalByMovie', { params: { page, ...filter } });
             const data = response.data;
 
-            return { invoices: data.items,data: data, totalPages: data.totalPages };
+            return { invoices: data.data,data: data, totalPages: data.totalPages };
         } catch (error) {
             console.log('error', error);
         }
@@ -64,11 +61,11 @@ const StatisticFilm = () => {
         }
     };
     const {
-        data: { optionCustomer = [] } = {},
-        isError: isErrorStaff,
-        isLoading: isLoadingStaff,
-        isFetched: isFetchedStaff,
-    } = useQuery('staffInvoice', fetchStaff, {
+        data: { optionMovie = [] } = {},
+        isError: isErrorMovie,
+        isLoading: isLoadingMovie,
+        isFetched: isFetchedMovie,
+    } = useQuery('statisticMovie', fetchMovie, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -79,32 +76,26 @@ const StatisticFilm = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
         isFetched: isFetchedCinemas,
-    } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
+    } = useQuery('cinemasFullAddressInvoiceStatisticMovie', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
     });
     const getActiveFilter = () => {
         const filters = {};
-        if (customerCode !== "") filters.customerCode = customerCode;
-
+        if (movieCode !== "") filters.movieCode = movieCode;
         if (selectOptionCinemaCode !== "") filters.cinemaCode = selectOptionCinemaCode;
-        if (Array.isArray(rangePickerValue) && rangePickerValue[0] !== "" && rangePickerValue[1] !== "") {
-            filters.fromDate = FormatDate(rangePickerValue[0]);
-            filters.toDate = FormatDate(rangePickerValue[1]);
-        }
-        
         return filters; 
     };
     const {
-        data: { invoices = [],data = [], totalPages = 0 } = {},
+        data: { invoices = [], totalPages = 0 } = {},
         isLoading,
         isFetched,
         isError,
         // refetch: refetchInvoice,
     } = useQuery(
-        ['fetchStatisticCustomer', page,activeFilters],
-        () => fetchSaleInvoice(page,activeFilters),
+        ['fetchStatisticMovies', page,activeFilters],
+        () => fetchStatisticMovie(page,activeFilters),
         {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
@@ -113,24 +104,17 @@ const StatisticFilm = () => {
 
     const handleFilterClick = () => {
         const filters = getActiveFilter();
-        if (!filters.cinemaCode || !filters.fromDate || !filters.toDate) {
-            toast.warning('Vui lòng chọn rạp và ngày bán để thống kê!');
-            return; 
-        }
         setActiveFilters(filters);  
     };
 
     function formatCurrency(amount) {
         return amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
-    const onChangeRanger = (dates) => {
-        setRangePickerValue(dates);
-        
-    };
+
     const handleStaff = (value) => {
-        setStaffFilter(value);
-        const customerCode = optionCustomer.find((item) => item.name === value);
-        setCustomerCode(customerCode?.code);
+        setMovieFilter(value);
+        const movieCode = optionMovie.find((item) => item.name.toUpperCase() === value);
+        setMovieCode(movieCode?.code);
        
     };
 
@@ -142,15 +126,17 @@ const StatisticFilm = () => {
     };
     useEffect(() => {
         setPage(1); 
-    }, [staffFilter, selectOptionCinemaCode, rangePickerValue]);
+    }, [movieFilter, selectOptionCinemaCode]);
 
-    const exportToExcel = () => {
-        if(data.length === 0){
-            toast.warning('Không có dữ liệu để xuất file Excel');
-            return;
-        }
+    const exportToExcel = async() => {
+        let loadingId;
+        const filters = getActiveFilter();
+        filters.isExportAllData = 'true';
+        loadingId = toast.loading('Đang xuất file...');
+        const { invoices = []} = await fetchStatisticMovie(1, filters);
+
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('DSBH_TheoKH');
+        const sheet = workbook.addWorksheet('Doanh Thu Theo Phim', { views: [{ showGridLines: false }] });
         const defaultFont = {
             name: 'Times New Roman',
             size: 12,
@@ -164,12 +150,12 @@ const StatisticFilm = () => {
             color: { argb: '000000' }
         };
         const currencyFormat = '#,##0;[Red]"-"#,##0';
-        
+        const numberFormat = '#.##0';
        
     
-        sheet.addRow(['Tên rạp: ' + selectedOptionFilterCinema ]);
+        sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || "Tất cả rạp") ]);
         sheet.mergeCells('A1:C1');
-        sheet.addRow(['Địa chỉ rạp: ' + addressCinema]);
+        sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || "")]);
         sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -188,33 +174,19 @@ const StatisticFilm = () => {
                 }
             });
         });
-        const titleRow = sheet.addRow(['DOANH SỐ THEO KHÁCH HÀNG']);
+        const titleRow = sheet.addRow(['DOANH SỐ THEO PHIM']);
         titleRow.eachCell((cell) => {
         cell.font = boldFont; 
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         });
-        sheet.mergeCells('A4:K4');
-
-        const date = sheet.addRow(['Từ ngày: ' + getFormatteNgay(rangePickerValue[0]) + '      Đến ngày ' + getFormatteNgay(rangePickerValue[1])]);
-        date.eachCell((cell) => {
-            cell.font = defaultFont; 
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            });
-        sheet.mergeCells('A5:K5');
-        sheet.addRow([]); 
-    
+        sheet.mergeCells('A4:E4');
+        sheet.addRow([""]);
            const headerRow = sheet.addRow([
             'STT',
-            'Mã KH',
-            'Tên KH',
-            'Địa chỉ',
-            'Phường/Xã',
-            'Quận/Huyện',
-            'Tỉnh/Thành',
-            'Loại sản phẩm',
-            'Doanh Số Trước CK',
-            'Chiết Khấu',
-            'Doanh Số Sau CK'
+            'Mã Phim',
+            'Tên Phim',
+            'Số lượng vé bán',
+            'Doanh thu',
         ]);
         headerRow.height = 35;
         headerRow.eachCell((cell) => {
@@ -233,74 +205,49 @@ const StatisticFilm = () => {
                 right: { style: 'thin', color: { argb: '000000' } }
             };
         });
-
-        let previousSTT = null;
-        let startRow = null;
-        let staffRows = [];
         
         invoices.forEach((item, index) => {
-            Object.keys(item.totalsByType).forEach((key, subIndex) => {
-                const { totalAmount, discountAmount, totalAfterDiscount } = item.totalsByType[key];
-                const typeLabel = key === '0' ? 'Vé' : 'Đồ ăn và nước';
+            
                 const row = sheet.addRow([
-                    previousSTT === item.customer.code ? '' : index + 1,
-                    item.customer.code,
-                    item.customer.name,
-                    item.customer.addressDetail,
-                    item.customer.ward,
-                    item.customer.district,
-                    item.customer.province,
-                    typeLabel,
-                    totalAmount,
-                    discountAmount,
-                    totalAfterDiscount
+                    index + 1,
+                    item.movieCode,
+                    item.movieName,
+                    item.totalQuantity,
+                    item.totalRevenue,
+
                 ]);
-                staffRows.push(row.number); 
-        
-                if (previousSTT !== item.customer.code) {
-                    startRow = row.number;
-                } else {
-                    sheet.mergeCells(`A${startRow}:A${row.number}`);  
-                }
-    
-                if (subIndex === Object.keys(item.totalsByType).length - 1) { 
-                    for (let col = 1; col <= 11; col++) {  
-                        const cell = row.getCell(col);
-                        cell.border = {
-                            bottom: { style: 'thin', color: { argb: '000000' } },
-                           
-                        };
-                    }
-                }
+                
                 row.eachCell((cell, colNumber) => {
                     cell.font = defaultFont;
                     cell.alignment = { horizontal: 'left', vertical: 'middle' };
                     
                     if (typeof cell.value === 'number') {
-                        if (colNumber === 9 || colNumber === 10 || colNumber === 11) {
+                        if (colNumber === 5 ) {
                             cell.numFmt = currencyFormat;
                             cell.alignment = { horizontal: 'right', vertical: 'middle' };
                         }
+                        if (colNumber === 4 ) {
+                            cell.numberFormat = numberFormat;
+                            cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                        }
                     }
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } }
+                    };
                   
                 });
-        
-                previousSTT = item.customer.code; 
-            });
+       
         });
         
         sheet.columns = [
             { width: 10 }, 
             { width: 18 },
-            { width: 28 },
-            { width: 25 },
-            { width: 20 },
+            { width: 65 },
             { width: 20 },
             { width: 25 },
-            { width: 20 },
-            { width: 25 },
-            { width: 20 },
-            { width: 25 }
         ];
     
         // Xuất file Excel
@@ -309,13 +256,15 @@ const StatisticFilm = () => {
                 const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                const fileName = `BaoCaoThongKeTheoKH ${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
+                const fileName = `BaoCaoThongKeDoanhThuTheoPhim ${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
                 link.download = fileName;
                 link.click();
             })
             .catch((error) => {
                 console.error('Có lỗi xảy ra khi tạo file Excel:', error);
             });
+
+        toast.dismiss(loadingId);
     };
     
     
@@ -323,17 +272,17 @@ const StatisticFilm = () => {
     if (
         isLoading ||
         isLoadingCinemas ||
-        isLoadingStaff
+        isLoadingMovie
     )
         return <Loading />;
-    if (!isFetched || !isFetchedCinemas || !isFetchedStaff) return <div>Fetching...</div>;
-    if (isError || CinemaError || isErrorStaff )
+    if (!isFetched || !isFetchedCinemas || !isFetchedMovie) return <div>Fetching...</div>;
+    if (isError || CinemaError || isErrorMovie )
         return (
             <div>
                 Error loading data:{' '}
                 {isError.message ||
                     CinemaError.message ||
-                    isErrorStaff.message 
+                    isErrorMovie.message 
                    }
             </div>
         );
@@ -343,30 +292,19 @@ const StatisticFilm = () => {
             <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[125px] mb-5">
                 <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Thống kê doanh thu theo phim</h1>
                 <div className="min-w-[900px]">
-                    <div className="grid grid-cols-10 gap-5 mb-2 items-center w-full h-16 px-3">
-                        <div className='grid col-span-8 grid-cols-7 gap-5'>
-                            <div className="col-span-3">
-                                <h1 className="text-[16px] truncate mb-1">Ngày bán</h1>
-                                <RangePicker
-                                    value={rangePickerValue}
-                                    onChange={onChangeRanger}
-                                    placeholder={['Từ ngày', 'Đến ngày']}
-                                    placement="bottomLeft"
-                                    format={'DD-MM-YYYY'}
-                                    className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "
-                                />
-                            </div>
+                    <div className="grid grid-cols-11 gap-5 mb-2 items-center w-full h-16 px-3">
+                        <div className='grid col-span-9 grid-cols-8 gap-5'>
                             <AutoInputComponent
-                                options={optionCustomer.map((item) => item.name)}
-                                value={staffFilter}
+                                options={optionMovie.map((item) => item.name.toUpperCase())} 
+                                value={movieFilter}
                                 onChange={(newValue) => handleStaff(newValue)}
-                                title="Tên khách hàng"
+                                title="Tên Phim"
                                 freeSolo={true}
                                 disableClearable={false}
                                 placeholder="Nhập"
                                 heightSelect={200}
                                 borderRadius="10px"
-                                className1="col-span-2"
+                                className1="col-span-3"
                             />
                             <AutoInputComponent
                                 options={optionNameCinema.map((option) => option.name)}
@@ -378,18 +316,19 @@ const StatisticFilm = () => {
                                 placeholder="Chọn"
                                 heightSelect={200}
                                 borderRadius="10px"
-                                className1="col-span-2"
+                                className1="col-span-3"
                             />
+                            <div className='col-span-2 gap-5 grid grid-cols-2 mt-7'>
+                                <Button type='primary' className='font-bold text-white bg-blue-500' onClick={handleFilterClick}>
+                                    Thống kê
+                                </Button>
+                                <Button icon={ <RiFileExcel2Fill size={22} color='#107C41'/>}
+                                 className='font-bold text-black bg-gray-300' onClick={exportToExcel}>
+                                    Xuất
+                                </Button>
+                            </div>
                         </div>
-                        <div className='col-span-2 gap-5 grid grid-cols-2 mt-7'>
-                            <Button type='primary' className='font-bold text-white bg-blue-500' onClick={handleFilterClick}>
-                                Thống kê
-                            </Button>
-                            <Button icon={ <RiFileExcel2Fill size={22} color='#107C41'/>}
-                             className='font-bold text-black bg-gray-300' onClick={exportToExcel}>
-                                Xuất
-                            </Button>
-                    </div>
+                      
                    </div>
                 </div>
             </div>
@@ -411,13 +350,12 @@ const StatisticFilm = () => {
                         key={index}
                         >
                             <div className='grid col-span-2 grid-cols-3'>
-                                <h1 className="grid pl-3 items-center">199</h1>
-                                <h1 className="grid pl-3 items-center col-span-2">Phim01</h1>
+                                <h1 className="grid pl-3 items-center">{index + 1}</h1>
+                                <h1 className="grid pl-3 items-center col-span-2">{item.movieCode}</h1>
                             </div>
-                            <h1 className="grid pl-3 items-center col-span-3">THÁM TỬ LỪNG DOANH C0NAN MOVIE 7:
-                            THÁM TỬ VỚI ĐÔI CÁNH BẠC</h1>
-                            <h1 className="grid justify-end items-center pr-3">10000</h1>
-                            <h1 className="grid justify-end pr-4 items-center col-span-2">100,000,000đ</h1>
+                            <h1 className="grid pl-3 items-center col-span-3">{item.movieName}</h1>
+                            <h1 className="grid justify-end items-center pr-3">{new Intl.NumberFormat('vi-VN').format(item.totalQuantity)} vé</h1>
+                            <h1 className="grid justify-end pr-4 items-center col-span-2">{(formatCurrency(item.totalRevenue))}</h1>
                         </div>
                     ))}
                     </div>
