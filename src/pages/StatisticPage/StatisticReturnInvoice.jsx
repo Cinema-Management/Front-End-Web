@@ -22,7 +22,7 @@ const StatisticReturnInvoice = () => {
     const { RangePicker } = DatePicker;
     
  
-    const fetchSaleInvoice = async (page, filter = {}) => {
+    const fetchStatisticReturn = async (page, filter = {}) => {
         try {
             const response = await axios.get('api/statistics/getReturnInvoiceDetailsByCinemaCode', { params: { page, ...filter } });
             const data = response.data;
@@ -60,7 +60,7 @@ const StatisticReturnInvoice = () => {
         isLoading: isLoadingCinemas,
         error: CinemaError,
         isFetched: isFetchedCinemas,
-    } = useQuery('cinemasFullAddressInvoice', fetchCinemasFullAddress, {
+    } = useQuery('cinemasFullAddressStatisticReturn', fetchCinemasFullAddress, {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
         refetchInterval: 1000 * 60 * 7,
@@ -84,7 +84,7 @@ const StatisticReturnInvoice = () => {
         isError,
     } = useQuery(
         ['fetchStatisticInvoiceReturn', page,activeFilters,],
-        () => fetchSaleInvoice(page,activeFilters),
+        () => fetchStatisticReturn(page,activeFilters),
         {
         staleTime: 1000 * 60 * 7,
         cacheTime: 1000 * 60 * 10,
@@ -94,8 +94,8 @@ const StatisticReturnInvoice = () => {
 
     const handleFilterClick = () => {
         const filters = getActiveFilter();
-        if (!filters.cinemaCode || !filters.fromDate || !filters.toDate) {
-            toast.warning('Vui lòng chọn rạp và ngày bán để thống kê!');
+        if (!filters.fromDate || !filters.toDate) {
+            toast.warning('Vui lòng chọn ngày bán để thống kê!');
             return; 
         }
         setActiveFilters(filters);  
@@ -129,11 +129,11 @@ const StatisticReturnInvoice = () => {
         const filters = getActiveFilter();
         filters.isExportAllData = 'true';
         loadingId = toast.loading('Đang xuất file...');
-        const { invoices = []} = await fetchSaleInvoice(1, filters);
+        const { invoices = []} = await fetchStatisticReturn(1, filters);
         
-            const workbook = new ExcelJS.Workbook();
-            const sheet = workbook.addWorksheet('DSBH_TheoKH');
-            const defaultFont = {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('BangKeTraHang', { views: [{ showGridLines: false }] });
+        const defaultFont = {
                 name: 'Times New Roman',
                 size: 12,
                 bold: false,
@@ -149,9 +149,9 @@ const StatisticReturnInvoice = () => {
             
            
         
-            sheet.addRow(['Tên rạp: ' + selectedOptionFilterCinema ]);
+            sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || 'Tất cả rạp')]);
             sheet.mergeCells('A1:C1');
-            sheet.addRow(['Địa chỉ rạp: ' + addressCinema]);
+            sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || '')]);
             sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
                 hour: '2-digit', 
                 minute: '2-digit', 
@@ -175,14 +175,14 @@ const StatisticReturnInvoice = () => {
             cell.font = boldFont; 
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
             });
-            sheet.mergeCells('A4:K4');
+            sheet.mergeCells('A4:J4');
     
             const date = sheet.addRow(['Từ ngày: ' + getFormatteNgay(rangePickerValue[0]) + '      Đến ngày ' + getFormatteNgay(rangePickerValue[1])]);
             date.eachCell((cell) => {
                 cell.font = defaultFont; 
                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 });
-            sheet.mergeCells('A5:K5');
+            sheet.mergeCells('A5:J5');
             sheet.addRow([]); 
         
                const headerRow = sheet.addRow([
@@ -216,35 +216,71 @@ const StatisticReturnInvoice = () => {
                 };
             });
             
+
+            let promotionRows = {};       
+            let previousReturnInvoiceCode = null; 
+            let stt = 0; 
+            
             invoices.forEach((item, index) => {
-                    const row = sheet.addRow([
-                        index + 1,
-                        item.salesInvoiceCode,
-                        getFormatteNgay(item.salesInvoiceCreatedAt),
-                        item.returnInvoiceCode,
-                        getFormatteNgay(item.returnInvoiceCreatedAt),
-                        item.productType === 0 ? 'Ghế' : 'Đồ ăn & nước',
-                        item.productCode,
-                        item.productName,
-                        item.productQuantity,
-                        item.totalAmount,
-    
-                    ]);
-        
-                  
-                    row.eachCell((cell, colNumber) => {
-                        cell.font = defaultFont;
-                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-                        
-                        if (typeof cell.value === 'number') {
-                            if (colNumber === 9 || colNumber === 10 || colNumber === 11) {
-                                cell.numFmt = currencyFormat;
-                                cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                            }
+                if (item.returnInvoiceCode !== previousReturnInvoiceCode) {
+                    stt++; 
+                }
+            
+                const row = sheet.addRow([
+                    stt, 
+                    item.salesInvoiceCode,
+                    getFormatteNgay(item.salesInvoiceCreatedAt),
+                    item.returnInvoiceCode,
+                    getFormatteNgay(item.returnInvoiceCreatedAt),
+                    item.productType === 0 ? 'Ghế' : 'Đồ ăn & nước',
+                    item.productCode,
+                    item.productName,
+                    item.productQuantity,
+                    item.totalAmount,
+                ]);
+            
+                if (!promotionRows[item.returnInvoiceCode]) {
+                    promotionRows[item.returnInvoiceCode] = [];
+                }
+                promotionRows[item.returnInvoiceCode].push(row.number);
+            
+                // Apply formatting to cells
+                row.eachCell((cell, colNumber) => {
+                    cell.font = defaultFont;
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            
+                    if (colNumber === 3 || colNumber === 5) {
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    }
+            
+                    if (typeof cell.value === 'number') {
+                        if (colNumber === 9 || colNumber === 10 || colNumber === 11) {
+                            cell.numFmt = currencyFormat;
+                            cell.alignment = { horizontal: 'right', vertical: 'middle' };
                         }
-                      
-                    });
+                    }
+            
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: '000000' } },
+                        left: { style: 'thin', color: { argb: '000000' } },
+                        bottom: { style: 'thin', color: { argb: '000000' } },
+                        right: { style: 'thin', color: { argb: '000000' } }
+                    };
+                });
+                previousReturnInvoiceCode = item.returnInvoiceCode;
             });
+            
+            for (const promotionCode in promotionRows) {
+                const rows = promotionRows[promotionCode];
+                const startRow = rows[0];
+                const endRow = rows[rows.length - 1];
+                sheet.mergeCells(`A${startRow}:A${endRow}`);  
+                sheet.mergeCells(`B${startRow}:B${endRow}`); 
+                sheet.mergeCells(`C${startRow}:C${endRow}`);  
+                sheet.mergeCells(`D${startRow}:D${endRow}`); 
+                sheet.mergeCells(`E${startRow}:E${endRow}`);  
+            }
+
             const row = sheet.addRow([
                 "", 
                 "", 
@@ -267,6 +303,12 @@ const StatisticReturnInvoice = () => {
                         cell.alignment = { horizontal: 'right', vertical: 'middle' };
                     }
                 }
+                cell.border = {
+                    top: { style: 'thin', color: { argb: '000000' } },
+                    left: { style: 'thin', color: { argb: '000000' } },
+                    bottom: { style: 'thin', color: { argb: '000000' } },
+                    right: { style: 'thin', color: { argb: '000000' } }
+                };
             });
             sheet.columns = [
                 { width: 10 }, 
@@ -275,14 +317,12 @@ const StatisticReturnInvoice = () => {
                 { width: 25 },
                 { width: 20 },
                 { width: 20 },
-                { width: 25 },
+                { width: 17 },
                 { width: 30 },
-                { width: 25 },
-                { width: 10 },
+                { width: 18 },
                 { width: 25 }
             ];
         
-            // Xuất file Excel
             workbook.xlsx.writeBuffer()
                 .then((buffer) => {
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

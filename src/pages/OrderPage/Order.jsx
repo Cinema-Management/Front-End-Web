@@ -331,12 +331,12 @@ const Order = () => {
     };
 
     return (
-        <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
+        <div className="max-h-screen">
             {!selectedIsSchedule ? (
                 <>
                     <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[135px] mb-5">
                         <h1 className="font-bold text-[20px] uppercase pl-3 mb-3">Bán vé</h1>
-                        <div className="grid grid-cols-3  gap-12 items-center w-full h-16 px-3 min-w-[900px]">
+                        <div className="grid grid-cols-3  gap-6 items-center w-full h-16 px-3">
                             <AutoInputComponent
                                 options={optionNameCinema.map((option) => option.name)}
                                 value={selectedOptionFilterCinema}
@@ -368,6 +368,7 @@ const Order = () => {
                                     value={selectedDate}
                                     allowClear={false}
                                     minDate={dayjs()}
+                                    placement="bottomLeft"
                                     placeholder="Chọn ngày"
                                     format="DD/MM/YYYY"
                                     className="border py-[6px] px-4 truncate border-[black] h-[35px] w-full  placeholder:text-red-600 focus:border-none rounded-[10px] hover:border-[black] "

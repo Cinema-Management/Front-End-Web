@@ -96,6 +96,9 @@ code {
     .custom-height-sm3 {
         height: 300px;
     }
+    .custom-height-sm33 {
+        height: 540px;
+    }
     .custom-height-sm4 {
         grid-template-columns: repeat(5, 1fr) !important;
         height: 400px;
@@ -143,10 +146,10 @@ code {
         height: 540px;
     }
     .custom-height-sm18 {
-        height: 22px !important;
+        height: 17px !important;
     }
     .custom-height-sm19 {
-        height: 32px !important;
+        height: 25px !important;
     }
     .custom-height-sm21 {
         min-width: 260px;
@@ -181,6 +184,16 @@ code {
     .custom-height-sm30 {
         height: 295px;
     }
+    .custom-height-sm31 {
+        height: 100% !important;
+        margin-right: 10px !important;
+    }
+    .custom-height-sm32 {
+        margin-top: 30px !important;
+    }
+    .custom-height-sm35 {
+        font-size: 10px;
+    }
 }
 
 @media (min-height: 780px) and (max-height: 850px) {
@@ -214,10 +227,10 @@ code {
         height: 430px;
     }
     .custom-height-md3 {
-        height: 17px;
+        height: 19px;
     }
     .custom-height-md4 {
-        height: 30px;
+        height: 28px;
     }
     .custom-height-md5 {
         height: 740px;
@@ -239,6 +252,12 @@ code {
     }
     .custom-mini1 {
         width: 88%;
+    }
+    .custom-mini2 {
+        height: 920px;
+    }
+    .custom-mini3 {
+        font-size: 10px;
     }
 }
 @media (min-height: 1025px) and (max-height: 1299px) {
@@ -307,6 +326,10 @@ code {
     }
     .custom-air-pro {
         width: 90%;
+    }
+    .custom-air-pro1 {
+        height: 480px !important;
+        margin-left: 85% !important;
     }
 }
 
@@ -377,7 +400,15 @@ code {
     font-size: 24px;
     color: #000;
 }
-
+.loading-container1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 20vh;
+    font-size: 24px;
+    color: #000;
+}
 .spinner {
     border: 8px solid #f3f3f3;
     border-top: 8px solid #3498db;
