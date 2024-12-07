@@ -635,9 +635,7 @@ const PayComponent = () => {
                                                 disabled={!promotion?.isApplicable} // Disable the radio input if not applicable
                                             /> */}
                                             <div
-                                                className={`w-6 h-6   rounded-full flex items-center justify-center transition ${
-                                                    promotion?.isApplicable ? 'bg-white' : 'bg-gray-200'
-                                                }
+                                                className={`w-6 h-6   rounded-full flex items-center justify-center transition 
                                                 ${
                                                     selectedPromotion === promotion.code
                                                         ? 'bg-orange-500'
