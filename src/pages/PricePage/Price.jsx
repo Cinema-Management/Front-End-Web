@@ -1510,7 +1510,8 @@ const Price = () => {
                 maxHeightScreenWidth="45%"
                 heightScreen={typePrice === 0 ? '46%' : '35%'}
                 widthScreen="45%"
-                title={ isUpdate ? 'Chỉnh sửa bảng giá' : 'Thêm bảng giá'}
+                title={ isUpdate ? 'Chỉnh sửa bảng giá' :
+                    typePrice === 0 ? 'Thêm bảng giá ghế' :'Thêm bảng giá đồ ăn và nước uống'}
             >
                 <div className={`h-[80%] grid ${typePrice === 0 ? 'grid-rows-4' : 'grid-rows-3'} gap-2`}>
                     <div className="grid">

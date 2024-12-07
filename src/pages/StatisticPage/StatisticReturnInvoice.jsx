@@ -361,7 +361,7 @@ const StatisticReturnInvoice = () => {
     return (
         <div className="max-h-screen custom-mini1 custom-air2 custom-air-pro custom-nest-hub custom-nest-hub-max">
             <div className="bg-white border overflow-x-auto  xl:overflow-hidden overflow-y-hidden shadow-md rounded-[10px] my-1 py-3 h-[125px] mb-5">
-                <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Thống kê chi tiết hàng hóa đơn trả</h1>
+                <h1 className="font-bold text-[20px] uppercase pl-3 mb-1">Thống kê chi tiết hàng hóa đơn trả hàng</h1>
                 <div className="min-w-[900px]">
                     <div className="grid grid-cols-10 gap-5 mb-2 items-center w-full h-16 px-3">
                         <div className='grid col-span-7 grid-cols-7 gap-5'>

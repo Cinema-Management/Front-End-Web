@@ -83,6 +83,7 @@ const Room = () => {
         data: seat1 = [],
         isLoading,
         error,
+        isRefetching,
         refetch,
     } = useQuery(['fetchSeatByRoomCode1', room?.code], () => fetchSeatByRoomCode(room?.code), {
         staleTime: 1000 * 60 * 3,
@@ -91,7 +92,7 @@ const Room = () => {
         refetchInterval: 1000 * 60 * 3,
     });
 
-    if (isLoading) return <Loading />;
+    if (isLoading || isRefetching) return <Loading />;
 
     if (error) {
         return <div>Lỗi khi tải danh sách ghế: {error.message}</div>;

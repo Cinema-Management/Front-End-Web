@@ -5,7 +5,7 @@ import { IoIosArrowBack } from 'react-icons/io';
 import { ImSpoonKnife } from 'react-icons/im';
 import { Box, Button, Tab, Tabs } from '@mui/material';
 import { GrFormNext } from 'react-icons/gr';
-import { height, styled } from '@mui/system';
+import { styled } from '@mui/system';
 import ButtonComponent from '~/components/ButtonComponent/Buttoncomponent';
 import ModalComponent from '~/components/ModalComponent/ModalComponent';
 import { useDispatch, useSelector } from 'react-redux';
@@ -440,6 +440,7 @@ const Seat = () => {
             queryClient.refetchQueries('fetchSaleInvoice');
             queryClient.refetchQueries('fetchSeatByRoomCode');
             queryClient.refetchQueries('dataCheck');
+            queryClient.refetchQueries('fetchSeatByRoomCode1');
         },
     });
     const handleZaloPay = async () => {
