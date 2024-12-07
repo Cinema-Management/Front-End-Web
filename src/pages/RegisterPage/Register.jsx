@@ -21,7 +21,7 @@ const Register = () => {
     const [otp, setOtp] = useState(['', '', '', '']);
     const otpRefs = useRef([]);
     const [timer, setTimer] = useState(60);
-    const [newUser, setNewUser] = useState('');
+    const [newUser] = useState('');
     // const [isSendOtp, setIsSendOtp] = useState(true);
 
     function onCaptchaVerify() {
@@ -169,11 +169,22 @@ const Register = () => {
                     type: 1,
                 };
 
-                setNewUser(user);
-                setStep1(false);
-                setStep2(true);
+                // setNewUser(user);
+                const error = await registerUser(user, dispatch, navigate);
+
+                if (error) {
+                    toast.error('Thất bại!');
+                    return;
+                } else {
+                    toast.success('Đăng ký thành công!');
+                }
+
+                // setStep1(false);
+                // setStep2(true);
             }
-        } catch (e) {}
+        } catch (e) {
+            toast.error('Lỗi hệ thống!');
+        }
     };
 
     const handleRegister = async () => {

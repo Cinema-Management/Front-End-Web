@@ -956,6 +956,10 @@ const Promotion = () => {
     function formatCurrency(amount) {
         return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
     }
+    const formatCurrencyInput = (value) => {
+        if (!value) return '';
+        return new Intl.NumberFormat('vi-VN').format(value); // Định dạng số theo kiểu Việt Nam
+    };
     // type = 0
     const handleOnChangeMinQuantity = (e) => {
         const value = e.target.value;
@@ -976,7 +980,7 @@ const Promotion = () => {
     };
     // type =1
     const handleOnChangeMinPurchaseAmount = (e) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/\./g, '');
 
         if (!isNaN(value) && value >= 0) {
             const quantity = Number(value);
@@ -985,7 +989,7 @@ const Promotion = () => {
     };
 
     const handleOnChangeDiscountAmount = (e) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/\./g, '');
         const quantity = parseFloat(value);
 
         if (!isNaN(value) && value >= 0) {
@@ -998,7 +1002,7 @@ const Promotion = () => {
     //type == 3
 
     const handleOnChangeDiscountPercentage = (e) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/\./g, '');
 
         // Chuyển đổi giá trị thành số
         const quantity = parseFloat(value);
@@ -1011,7 +1015,7 @@ const Promotion = () => {
     };
 
     const handleOnChangeMaxDiscountAmount = (e) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/\./g, '');
 
         // Chuyển đổi giá trị thành số
         const quantity = parseFloat(value);
@@ -1270,14 +1274,24 @@ const Promotion = () => {
                         </button>
 
                         <button
-                            disabled={promotion.promotionLines.some((item) => item.status === 1)}
+                            disabled={
+                                promotion.promotionLines.some((item) => item.status === 1) ||
+                                dayjs().isAfter(dayjs(promotion.endDate), 'day') ||
+                                dayjs().isSame(dayjs(promotion.endDate), 'day')
+                            }
                             onClick={() => {
                                 handleOpenDelete();
                                 setSelectedKM(promotion);
                             }}
                         >
                             <MdOutlineDeleteOutline
-                                color={promotion.promotionLines.some((item) => item.status === 1) ? 'gray' : 'black'}
+                                color={
+                                    promotion.promotionLines.some((item) => item.status === 1) ||
+                                    dayjs().isAfter(dayjs(promotion.endDate), 'day') ||
+                                    dayjs().isSame(dayjs(promotion.endDate), 'day')
+                                        ? 'gray'
+                                        : 'black'
+                                }
                                 fontSize={23}
                             />
                         </button>
@@ -1717,7 +1731,7 @@ const Promotion = () => {
                 largeScreenWidth="60%"
                 maxHeightScreenHeight="70%"
                 maxHeightScreenWidth="50%"
-                title="Chi tiết khuyến mãi"
+                title={`Chi tiết khuyến mãi ${type === 0 ? 'sản phẩm' : type === 1 ? 'tiền' : 'chiết khấu hóa đơn'}`}
             >
                 <div className=" h-90p grid grid-rows-12 ">
                     <div
@@ -1783,7 +1797,10 @@ const Promotion = () => {
                         <div className="flex justify-center">
                             <button
                                 className={`border px-4 py-1 rounded-[40px] bg-orange-400 ${
-                                    selectedKMLine?.status !== 0 ? 'pointer-events-none opacity-50' : ''
+                                    selectedKMLine?.status !== 0 ||
+                                    dayjs().isAfter(dayjs(selectedKMLine?.endDate), 'day')
+                                        ? 'pointer-events-none opacity-50'
+                                        : ''
                                 }`}
                                 onClick={() => {
                                     handleOpenKMDetailAction(false);
@@ -2082,7 +2099,7 @@ const Promotion = () => {
                             <input
                                 className="border border-black rounded-sm p-1 w-full text-base  pl-3"
                                 type="text"
-                                value={minPurchaseAmount}
+                                value={formatCurrencyInput(minPurchaseAmount)}
                                 onChange={handleOnChangeMinPurchaseAmount}
                                 placeholder="Nhập số"
                                 required
@@ -2096,7 +2113,7 @@ const Promotion = () => {
                             <input
                                 className="border border-black rounded-sm p-1 w-full text-base  pl-3"
                                 type="text"
-                                value={discountAmount}
+                                value={formatCurrencyInput(discountAmount)}
                                 onChange={handleOnChangeDiscountAmount}
                                 placeholder="Nhập số"
                                 required
@@ -2136,7 +2153,7 @@ const Promotion = () => {
                             <input
                                 className="border border-black rounded-sm p-1 w-full text-base  pl-3"
                                 type="text"
-                                value={minPurchaseAmount}
+                                value={formatCurrencyInput(minPurchaseAmount)}
                                 onChange={handleOnChangeMinPurchaseAmount}
                                 placeholder="Nhập số"
                                 required
@@ -2163,7 +2180,7 @@ const Promotion = () => {
                             <input
                                 className="border border-black rounded-sm p-1 w-full text-base  pl-3"
                                 type="text"
-                                value={maxDiscountAmount}
+                                value={formatCurrencyInput(maxDiscountAmount)}
                                 onChange={handleOnChangeMaxDiscountAmount}
                                 placeholder="nhập số"
                                 required
