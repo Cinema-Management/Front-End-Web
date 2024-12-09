@@ -295,10 +295,6 @@ const SaleInvoice = () => {
                 return;
             }
             setLoading(true);
-            if (dayjs().isBefore(dayjs(selectedInvoice?.scheduleCode?.date))) {
-                toast.error('Không thể trả hóa đơn trước ngày chiếu!');
-                return;
-            }
             await axios.post('api/return-invoices', {
                 staffCode: user.code,
                 customerCode: selectedInvoice.customerCode?.code,
@@ -449,7 +445,7 @@ const SaleInvoice = () => {
         }
 
         return details.reduce((acc, item) => {
-            const productName = item.productCode.name;
+            const productName = item.productCode?.name;
             if (!acc[productName]) {
                 acc[productName] = [];
             }
@@ -467,7 +463,7 @@ const SaleInvoice = () => {
 
         const result = details.reduce(
             (acc, item) => {
-                const productType = item.productCode.type;
+                const productType = item.productCode?.type;
 
                 if (productType === 0) {
                     // Thêm sản phẩm loại ghế vào mảng type0
@@ -992,8 +988,8 @@ const SaleInvoice = () => {
                                     >
                                         <h1 className="grid items-center col-span-2">{productName}</h1>
                                         <h1 className="grid items-center">
-                                            {items.map((item) => item.productCode.seatNumber).join(', ')}
-                                            {items.map((item) => item.productCode.description)}
+                                            {items.map((item) => item.productCode?.seatNumber).join(', ')}
+                                            {items.map((item) => item.productCode?.description)}
                                         </h1>
                                         <h1 className="grid justify-center items-center">{totalQuantity}</h1>
                                         <h1 className="justify-center grid items-center">
