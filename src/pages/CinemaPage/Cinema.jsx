@@ -265,6 +265,7 @@ const Cinema = () => {
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
+            toast.dismiss(loadingToastId);
             toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -493,10 +494,15 @@ const Cinema = () => {
 
     const handleDeleteRoom = async (code) => {
         try {
+            const {data} = await axios.get(`api/rooms/checkRoomHasSchedule/${code}`);
+            if(data.hasSchedule === true){
+                toast.warning('Phòng đang có lịch chiếu không thể xóa!');
+                return;
+            }
             handleCloseDelete();
 
-            await axios.delete(`api/rooms/${code}`);
-            await axios.delete(`api/products/deleteSeatByRoomCode/${code}`);
+            // await axios.delete(`api/rooms/${code}`);
+            // await axios.delete(`api/products/deleteSeatByRoomCode/${code}`);
             toast.success('Xóa thành công!');
             getRoomByCinemaCode(selectedCinema?.code);
         } catch (error) {
