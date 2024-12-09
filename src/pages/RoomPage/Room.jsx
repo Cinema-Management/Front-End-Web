@@ -99,7 +99,7 @@ const Room = () => {
     }
     const totalSeat = seat1.length; // Kích thước phòng có thể là nhỏ, vừa, lớn
 
-    const gridColumns = totalSeat === 48 ? 'grid-cols-8' : totalSeat === 75 ? 'grid-cols-10' : 'grid-cols-12'; // Số cột tuỳ vào kích thước phòng
+    const gridColumns = totalSeat > 100 ? 'grid-cols-12' : totalSeat > 65 ? 'grid-cols-10' : 'grid-cols-8'; // Số cột tuỳ vào kích thước phòng
 
     return (
         <div className="grid h-[670px] rounded-[10px] custom-height-md1 custom-height-xl1 custom-height-lg1 custom-height-sm17 custom-height-xs1 bg-white">
@@ -160,7 +160,7 @@ const Room = () => {
                         })}
                     </div>
                 </div>
-                <div className="grid grid-cols-5 mx-2  lg:px-32  text-[13px] gap-1 justify-center items-center  ">
+                <div className={`grid grid-cols-5 mx-2  lg:px-32  text-[13px] gap-1 justify-center items-center   ${totalSeat > 100 ? '':'mt-10'}`}>
                     <div className="flex justify-center items-center">
                         <img src={urlImageSeat} alt="seat" className="object-contain h-[28px] " />
                         <h1 className="ml-3">Ghế thường</h1>

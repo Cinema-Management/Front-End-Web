@@ -693,7 +693,7 @@ const Price = () => {
                 toast.warning('Đã được sử dụng không thể xóa');
                 return;
             }else{
-                // await axios.delete(`api/prices/deletePriceDetail/${selectDetail.code}`);
+                await axios.delete(`api/prices/deletePriceDetail/${selectDetail.code}`);
                 toast.success('Xóa chi tiết bảng giá thành công');
                 setOpenDelete(false);
                 refetchPrice();
