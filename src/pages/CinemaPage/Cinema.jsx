@@ -265,6 +265,7 @@ const Cinema = () => {
                 getRoomByCinemaCode(selectedCinema?.code);
             }
         } catch (err) {
+            toast.dismiss(loadingToastId);
             toast.error('Lỗi: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -493,6 +494,11 @@ const Cinema = () => {
 
     const handleDeleteRoom = async (code) => {
         try {
+            const { data } = await axios.get(`api/rooms/checkRoomHasSchedule/${code}`);
+            if (data.hasSchedule === true) {
+                toast.warning('Phòng đang có lịch chiếu không thể xóa!');
+                return;
+            }
             handleCloseDelete();
 
             await axios.delete(`api/rooms/${code}`);
@@ -562,14 +568,14 @@ const Cinema = () => {
     const mutationUpdateRoom = useMutation(handleUpdateRoom, {
         onSuccess: () => {
             // Sau khi mutation thành công, refetch lại dữ liệu
-            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCode');            
         },
     });
 
     const mutationAddRoom = useMutation(handleAddRoom, {
         onSuccess: () => {
             // Sau khi mutation thành công, refetch lại dữ liệu
-            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCodeOrder');
+            queryClient.refetchQueries('fetchAllScheduleInRoomByCinemaCode');            
         },
     });
 

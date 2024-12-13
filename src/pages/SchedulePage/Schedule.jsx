@@ -122,7 +122,6 @@ const Schedule = () => {
                     name: cinema.name,
                     code: cinema.code,
                 }));
-            console.log('tt');
             setSelectedFilterCinema(arrayNameCinema[0]?.name);
             return { optionNameCinema: arrayNameCinema };
         } catch (error) {
@@ -1038,8 +1037,8 @@ const Schedule = () => {
                                     onClick={async () => {
                                         if (!isDisabledAdd) {
                                             const check = await axios.get(`api/rooms/getAll/${item.code}`);
-                                            if (check.data.status === 2) {
-                                                toast.warning('Phòng đã ngừng hoạt động');
+                                            if (check.data.status === 0) {
+                                                toast.warning('Phòng đang ngưng hoạt động không thể tạo suất chiếu');
                                                 return;
                                             }
                                             handleOpen(false);
