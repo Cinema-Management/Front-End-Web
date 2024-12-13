@@ -151,7 +151,7 @@ const StatisticReturnInvoice = () => {
         
             sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || 'Tất cả rạp')]);
             sheet.mergeCells('A1:C1');
-            sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || '')]);
+            sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || 'Tất cả rạp')]);
             sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
                 hour: '2-digit', 
                 minute: '2-digit', 
@@ -225,7 +225,7 @@ const StatisticReturnInvoice = () => {
                 if (item.returnInvoiceCode !== previousReturnInvoiceCode) {
                     stt++; 
                 }
-            
+                const rowNameProduct= item.productType!==0 ? item.productName : item.productName + ' ' + item.seatNumber;
                 const row = sheet.addRow([
                     stt, 
                     item.salesInvoiceCode,
@@ -234,7 +234,7 @@ const StatisticReturnInvoice = () => {
                     getFormatteNgay(item.returnInvoiceCreatedAt),
                     item.productType === 0 ? 'Ghế' : 'Đồ ăn & nước',
                     item.productCode,
-                    item.productName,
+                    rowNameProduct,
                     item.productQuantity,
                     item.totalAmount,
                 ]);
