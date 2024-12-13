@@ -174,7 +174,7 @@ const StatisticStaff = () => {
     
         sheet.addRow(['Tên rạp: ' + (selectedOptionFilterCinema || 'Tất cả rạp')]);
         sheet.mergeCells('A1:C1');
-        sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || '')]);
+        sheet.addRow(['Địa chỉ rạp: ' + (addressCinema || 'Tất cả rạp')]);
         sheet.addRow(['Ngày in: ' + new Date().toLocaleString('vi-VN', { 
             hour: '2-digit', 
             minute: '2-digit', 
