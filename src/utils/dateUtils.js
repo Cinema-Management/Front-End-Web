@@ -99,7 +99,7 @@ function getTimeSlot(time) {
 }
 
 function getVideoIdFromUri(uri) {
-    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:meed)?)\/|.*[?&]v=)|youth\.be\/)([^&\n]{11})/;
+    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^&\n]{11})/;
     const match = uri.match(regex);
     return match ? match[1] : null;
 }
